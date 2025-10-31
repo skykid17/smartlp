@@ -40,28 +40,6 @@ class SettingsService(BaseService):
             self.log_error("Failed to get global settings", e)
             return convert_key_to_camel(self._get_default_global_settings())
     
-    def get_smartuc_settings(self) -> Dict[str, Any]:
-        """Get SmartUC specific settings.
-        
-        Returns:
-            SmartUC settings as dictionary with camelCase keys
-        """
-        try:
-            settings = self.db.query(
-                'global_settings',
-                {"id": "smartuc"},
-                {"_id": 0, "amendments": 0},
-                limit=1
-            )
-            
-            if settings:
-                return convert_key_to_camel(settings)
-            else:
-                return {}
-        except Exception as e:
-            self.log_error("Failed to get SmartUC settings", e)
-            return {}
-    
     def get_siem_settings(self) -> List[Dict[str, Any]]:
         """Get SIEM configuration settings.
         
@@ -104,7 +82,6 @@ class SettingsService(BaseService):
         """
         return {
             "settings": self.get_global_settings(),
-            "smartuc": self.get_smartuc_settings(),
             "siems": self.get_siem_settings(),
             "llmEndpoints": self.get_llm_settings()
         }
@@ -131,8 +108,6 @@ class SettingsService(BaseService):
             'ingestOn': 'Log Ingestion',
             'ingestAlgoVersion': 'Parsing Algorithm Version',
             'fixCount': 'Regex Fix Count',
-            'smartucActiveLlmEndpoint': 'SmartUC Active LLM Endpoint',
-            'smartucActiveLlm': 'SmartUC Active LLM Model',
             'searchIndex': 'Search Index',
             'searchEntryCount': 'Search Entry Count', 
             'searchQuery': 'Search Query'
@@ -147,7 +122,7 @@ class SettingsService(BaseService):
         elif field == 'activeSiem' and current_siems:
             siem_name = current_siems.get(new_value, {}).get('name', new_value)
             return f"{display_name}: {siem_name}"
-        elif field in ['activeLlmEndpoint', 'smartucActiveLlmEndpoint'] and current_llms:
+        elif field == 'activeLlmEndpoint' and current_llms:
             llm_name = current_llms.get(new_value, {}).get('name', new_value)
             return f"{display_name}: {llm_name}"
         elif field == 'ingestFrequency':
@@ -173,7 +148,6 @@ class SettingsService(BaseService):
             
             # Get current settings for comparison
             current_global = self.get_global_settings()
-            current_smartuc = self.get_smartuc_settings()
             current_siems = {siem['id']: siem for siem in self.get_siem_settings()}
             current_llms = {llm['id']: llm for llm in self.get_llm_settings()}
             
@@ -210,36 +184,6 @@ class SettingsService(BaseService):
                 
                 if result:
                     self.log_info(f"Global settings updated: {list(global_settings_to_update.keys())}")
-            
-            # Prepare SmartUC settings update
-            smartuc_settings_to_update = {}
-            smartuc_fields = ['smartucActiveLlmEndpoint', 'smartucActiveLlm']
-            
-            for field in smartuc_fields:
-                if field in settings_data:
-                    snake_field = convert_key_to_snake({field: settings_data[field]})
-                    field_snake = list(snake_field.keys())[0]
-                    new_value = snake_field[field_snake]
-                    
-                    # Compare with current value
-                    if current_smartuc.get(field_snake) != new_value:
-                        smartuc_settings_to_update[field_snake] = new_value
-                        change_desc = self.get_human_friendly_change_description(field, new_value, current_siems, current_llms)
-                        changes.append(change_desc)
-            
-            # Update SmartUC settings if there are changes
-            if smartuc_settings_to_update:
-                smartuc_settings_to_update['id'] = 'smartuc'
-                smartuc_settings_to_update['updated_at'] = datetime.now().isoformat()
-                
-                result = self.db.update_one(
-                    'global_settings',
-                    {"id": "smartuc"},
-                    {"$set": smartuc_settings_to_update}
-                )
-                
-                if result:
-                    self.log_info(f"SmartUC settings updated: {list(smartuc_settings_to_update.keys())}")
             
             # Handle SIEM settings updates
             if 'siem' in settings_data:
