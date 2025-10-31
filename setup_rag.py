@@ -30,7 +30,7 @@ try:
     from rag.update_repository import update_elastic_repo
     from rag.download_fields import download_splunk_fields, download_elastic_fields
     from rag.extract_logtypes import extract_elastic_logtypes, extract_splunk_sourcetypes
-    from rag_func import create_embeddings
+    from rag_mongo import create_embeddings
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please ensure all required dependencies are installed and you're running from the correct directory.")
@@ -56,11 +56,9 @@ class RAGSetup:
         self.base_dir = Path(__file__).parent.absolute()
         self.rag_dir = self.base_dir / "rag"
         self.repos_dir = self.rag_dir / "repos"
-        self.chroma_dir = self.rag_dir / "chroma"
         
         # Ensure directories exist
         self.repos_dir.mkdir(parents=True, exist_ok=True)
-        self.chroma_dir.mkdir(parents=True, exist_ok=True)
     
     def download_repositories(self, siem):
         """Download SIEM repositories and packages"""
@@ -199,13 +197,6 @@ class RAGSetup:
                 ]
             )
 
-            # Required dirs for Splunk SIEM
-            required_dirs.extend(
-                [
-                    "rag/chroma"
-                ]
-            )
-
         if siem in ['elastic', 'both']:
             # Required files for Elastic SIEM
             required_files.extend(
@@ -216,20 +207,7 @@ class RAGSetup:
             )
 
             # Required dirs for Elastic SIEM
-            if "rag/chroma" in required_dirs:
-                required_dirs.extend(
-                    [
-                        "rag/repos/elastic_repo"
-                    ]
-                )
-
-            else:
-                required_dirs.extend(
-                    [
-                        "rag/repos/elastic_repo",
-                        "rag/chroma"
-                    ]
-                )
+            required_dirs.append("rag/repos/elastic_repo")
         
         issues = []
         
@@ -241,33 +219,27 @@ class RAGSetup:
             if not Path(dir_path).exists():
                 issues.append(f"Missing directory: {dir_path}")
         
-        # Check ChromaDB collections
-        chroma_collections = []
-
-        if siem in ['splunk', 'both']:
-            # Required ChromaDB collections for Splunk SIEM
-            chroma_collections.extend(
-                [
-                    "collection_mapping_splunk_addons.json",
-                    "collection_mapping_splunk_fields.json",
-                    "collection_mapping_splunk_sourcetypes.json"
-                ]
-            )
-        
-        if siem in ['elastic', 'both']:
-            # Required ChromaDB collections for Elastic SIEM
-            chroma_collections.extend(
-                [
-                    "collection_mapping_elastic_packages.json",
-                    "collection_mapping_elastic_fields.json",
-                    "collection_mapping_elastic_logtypes.json"
-                ]
-            )
-        
-        for collection in chroma_collections:
-            collection_dir = self.chroma_dir / collection
-            if not collection_dir.exists():
-                issues.append(f"Missing ChromaDB collection: {collection}")
+        # Check MongoDB connection and RAG collection
+        try:
+            from rag_mongo import get_rag_collection, list_sources
+            collection = get_rag_collection()
+            sources = list_sources()
+            
+            logger.info(f"MongoDB RAG collection accessible with {len(sources)} sources: {sources}")
+            
+            # Check if expected sources exist
+            expected_sources = []
+            if siem in ['splunk', 'both']:
+                expected_sources.extend(['splunk_addons', 'splunk_fields', 'splunk_sourcetypes'])
+            if siem in ['elastic', 'both']:
+                expected_sources.extend(['elastic_packages', 'elastic_fields', 'elastic_logtypes'])
+            
+            missing_sources = [s for s in expected_sources if s not in sources]
+            if missing_sources:
+                issues.append(f"Missing MongoDB sources: {', '.join(missing_sources)}")
+                
+        except Exception as e:
+            issues.append(f"MongoDB RAG collection error: {str(e)}")
         
         if issues:
             logger.warning("Setup verification found issues:")

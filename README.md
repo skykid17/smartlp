@@ -119,6 +119,10 @@ MONGO_COLLECTION_ELASTIC_RULES=elastic_rules
 MONGO_COLLECTION_SECOPS_RULES=secops_rules
 MONGO_COLLECTION_MITRE_TECHNIQUES=techniques
 
+# MongoDB RAG Vector Store (optional, defaults shown)
+MONGO_RAG_DB=rag
+MONGO_RAG_COLLECTION=rag
+
 # Ansible (optional for deployments)
 ANSIBLE_USER=admin
 ANSIBLE_SSH_PASSWORD=<password>
@@ -263,9 +267,36 @@ The unified interface is built on `templates/smartlp_unified.html` with modular 
 
 Located under `rag/` with orchestration in `setup_rag.py`:
 - Downloads Splunk CIM field definitions, Elastic ECS metadata, and vendor packages.
-- Builds ChromaDB collections (`splunk_fields`, `elastic_fields`, `splunk_addons`, `elastic_packages`, etc.) using sentence-transformer embeddings.
+- Builds MongoDB vector store collections using MongoDB Atlas hybrid search with reciprocal rank fusion (RRF).
+- Uses sentence-transformer embeddings (`all-MiniLM-L6-v2`) stored in a unified MongoDB collection.
 - Supports incremental refresh via CLI flags: `--siem`, `--skip-repos`, `--skip-fields`, `--skip-embeddings`.
 - Splunk add-ons must be downloaded manually and extracted into `rag/repos/splunk_repo/` due to licensing.
+
+**MongoDB RAG Setup:**
+The RAG system now uses MongoDB as the vector store backend instead of ChromaDB. Documents are stored in the `rag` database (configurable via `MONGO_RAG_DB`) in the `rag` collection (configurable via `MONGO_RAG_COLLECTION`). Each document includes:
+- `_id`: Unique identifier (format: `{source}#{relative_path}#{chunk_index}`)
+- `page_content`: The actual text content
+- `embedding`: Vector embedding (list of floats)
+- `source`: Source identifier (`splunk_addons`, `elastic_packages`, `splunk_fields`, `elastic_fields`, `splunk_sourcetypes`, `elastic_logtypes`)
+- `metadata`: File metadata including path, hash, modification time, etc.
+
+**Required MongoDB Indexes:**
+For optimal performance, create the following indexes on the `rag` collection:
+1. **Vector Search Index** (via MongoDB Atlas UI or CLI):
+   - Field: `embedding`
+   - Type: `vectorSearch`
+   - Dimensions: 384 (for all-MiniLM-L6-v2)
+   - Similarity: `cosine`
+   
+2. **Text Search Index** (via MongoDB Atlas UI or CLI):
+   - Field: `page_content`
+   - Type: `search`
+   - Analyzer: `lucene.standard`
+
+3. **Compound Index for filtering**:
+   ```javascript
+   db.rag.createIndex({ "source": 1, "metadata.relative_path": 1 })
+   ```
 
 Example commands:
 

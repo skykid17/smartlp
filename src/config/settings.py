@@ -16,6 +16,7 @@ class DatabaseConfig:
     settings_db_name: str
     mitre_db_name: str
     mitre_tech_db_name: str
+    rag_db_name: str
     
     # Collections
     parser_entries_collection: str
@@ -27,6 +28,7 @@ class DatabaseConfig:
     elastic_rules_collection: str
     secops_rules_collection: str
     mitre_techniques_collection: str
+    rag_collection: str
 
 
 @dataclass
@@ -91,6 +93,7 @@ class ConfigManager:
                 settings_db_name=self._get_env('MONGO_DB_SETTINGS'),
                 mitre_db_name=self._get_env('MONGO_DB_MITRE'),
                 mitre_tech_db_name=self._get_env('MONGO_DB_MITRE_TECH'),
+                rag_db_name=os.getenv('MONGO_RAG_DB', 'rag'),
                 parser_entries_collection=self._get_env('MONGO_COLLECTION_ENTRIES'),
                 global_settings_collection=self._get_env('MONGO_COLLECTION_GLOBAL_SETTINGS'),
                 llms_settings_collection=self._get_env('MONGO_COLLECTION_LLMS_SETTINGS'),
@@ -100,6 +103,7 @@ class ConfigManager:
                 elastic_rules_collection=self._get_env('MONGO_COLLECTION_ELASTIC_RULES'),
                 secops_rules_collection=self._get_env('MONGO_COLLECTION_SECOPS_RULES'),
                 mitre_techniques_collection=self._get_env('MONGO_COLLECTION_MITRE_TECHNIQUES'),
+                rag_collection=os.getenv('MONGO_RAG_COLLECTION', 'rag'),
             )
         return self._database_config
     

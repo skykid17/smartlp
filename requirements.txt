@@ -11,9 +11,9 @@ Flask-SocketIO==5.5.1
 gunicorn==23.0.0
 jq==1.9.1
 langchain==0.3.26
-langchain-chroma==0.2.4
 langchain-community==0.3.26
 langchain-core==0.3.66
+langchain-mongodb==0.2.6
 langchain-openai==0.3.25
 langchain-huggingface==0.3.0
 langchain-text-splitters==0.3.8
