@@ -47,7 +47,7 @@ Key highlights of the current codebase:
 - **Services**: Business logic is encapsulated in service classes (SmartLP, Settings, SIEM, LLM, Deployment). Each service extends a shared `BaseService` for logging, database access, and error handling.
 - **Database**: MongoDB hosts parser entries, prefixes, settings, SIEM/LLM metadata, Sigma rules, and MITRE ATT&CK content. Connection helpers live in `src/database/`.
 - **Realtime**: `socketio_manager` provides push notifications for logs, ingestion status, and UI toasts.
-- **Frontend**: Unified single-page application (`templates/smartlp_unified.html`) with collapsible sidebar navigation, modular section templates under `templates/sections/`, and Socket.IO aware JS modules in `static/js/`.
+- **Frontend**: Unified single-page application (`templates/smartlp.html`) with collapsible sidebar navigation, modular section templates under `templates/sections/`, and Socket.IO aware JS modules in `static/js/`.
 - **RAG**: `rag/` holds scripts, cached CSVs, and Chroma repositories required to build vector stores for Splunk and Elastic metadata.
 - **Automation**: Ansible playbooks (`ansible/`) deploy generated configurations to downstream platforms.
 
@@ -65,7 +65,7 @@ smartlp/
 │   ├── services/          # SmartLP, Settings, SIEM, LLM, Deployment services
 │   └── utils/             # Logging, formatters, pagination helpers
 ├── templates/             # Unified SPA template and modular sections
-│   ├── smartlp_unified.html   # Main unified template
+│   ├── smartlp.html   # Main unified template
 │   ├── sections/              # Modular section templates (dashboard, parser, prefix, settings)
 │   └── smartlp_report.html    # Standalone report page
 ├── static/                # CSS, JS, fonts, logos
@@ -257,7 +257,7 @@ The application uses a single-page design with:
 - **Section Switching**: Click sidebar items to change sections
 - **Modal Overlays**: Settings and sub-modals (SIEM warnings)
 
-The unified interface is built on `templates/smartlp_unified.html` with modular section templates (`templates/sections/`) for Dashboard, Parser, Prefix, and Settings. Socket.IO provides real-time notifications for logs, ingestion status, and UI toasts.
+The unified interface is built on `templates/smartlp.html` with modular section templates (`templates/sections/`) for Dashboard, Parser, Prefix, and Settings. Socket.IO provides real-time notifications for logs, ingestion status, and UI toasts.
 
 ## RAG Pipeline
 

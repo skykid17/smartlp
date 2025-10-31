@@ -1,58 +1,65 @@
-{% set is_embedded = embedded | default(false) %}
-<div class="report-wrapper bg-light py-4 {% if is_embedded %}px-3 rounded{% else %}min-vh-100{% endif %}">
-    <div class="container mt-4">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-1">SmartLP Summary Report</h2>
-            <div class="d-flex gap-2 align-items-center">
-                <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Refresh data">
-                    <i class="fa fa-refresh me-1"></i>Refresh
-                </button>
-            </div>
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-1">SmartLP Summary Report</h2>
+    <div class="d-flex gap-2 align-items-center">
+        <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
+            data-bs-title="Refresh data">
+            <i class="fa fa-refresh me-1"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row g-4">
+    <!-- Report header for exported PDFs -->
+    <div class="col-12">
+        <div class="pdf-only flex-column justify-content-between align-items-center text-center" id="content1">
+            <h1 class="data-bs-title mt-5">SMARTLP Report</h1>
+            <img class="mt-5" src="/logos/logo.png" height="200" alt="Logo">
+            <div class="mt-5">Generated at <time id="datetime"></time></div>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="row p-4">
-            <!-- Report header -->
-            <div class="pdf-only flex-column justify-content-between align-items-center" id="content1">
-                <h1 class="data-bs-title mt-5">SMARTLP Report</h1>
-                <img class="mt-5" src="/logos/logo.png" height="200" alt="Logo">
-                <div class="mt-5">Generated at <time id="datetime"></time></div>
+    <!-- Logs Parsed Chart Section -->
+    <div class="col-12 col-lg-6" id="content2">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-center">
+                <h5 class="mb-0">Percentage of Unparsed Logs</h5>
             </div>
-
-            <!-- Logs Parsed Chart Section -->
-            <div class="d-flex flex-column mb-4 align-items-center" id="content2">
-                <h2 class="data-bs-title mt-5 mb-5">Percentage of Unparsed Logs</h2>
-                <div>
-                    <div class="mb-5">
-                        <canvas id="parsed-chart"></canvas>
-                    </div>
-                    <div class="table-responsive mb-2">
-                        <table class="table" id="logParsedTable">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th>Type of Log</th>
-                                    <th>LogType Count</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logParsedBody">
-                                <!-- Results will be dynamically inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="card-body">
+                <div class="ratio ratio-1x1 mb-4">
+                    <canvas id="parsed-chart"></canvas>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0" id="logParsedTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Type of Log</th>
+                                <th class="text-end">LogType Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logParsedBody">
+                            <!-- Results will be dynamically inserted here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Top Logtype Chart Section -->
-            <div class="d-flex flex-column mb-4 align-items-center" id="content3">
-                <h2 class="data-bs-title mt-5 mb-5">Top 5 types of Unparsed Log</h2>
-                <div class="table-responsive mb-2">
-                    <table class="table" id="logStatsTable">
+    <!-- Top Logtype Chart Section -->
+    <div class="col-12 col-lg-6" id="content3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-center">
+                <h5 class="mb-0">Top 5 Types of Unparsed Log</h5>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm mb-0" id="logStatsTable">
                         <thead class="table-light sticky-top">
                             <tr>
                                 <th>Log Type</th>
-                                <th>Count</th>
+                                <th class="text-end">Count</th>
                             </tr>
                         </thead>
                         <tbody id="logStatsBody">
@@ -60,16 +67,19 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="mt-auto text-muted small">
+                    Data reflects the latest SmartLP parsing summary.
+                </div>
             </div>
         </div>
-
-        <!-- Footer Tools -->
-        <div class="d-flex justify-content-end align-items-center mt-2 gap-3 mb-4">
-            <div id="reportLogger" class="text-muted small"></div>
-            <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
-                data-bs-title="Save Report">
-                <i class="fa fa-save me-1"></i>Save Report
-            </button>
-        </div>
     </div>
+</div>
+
+<!-- Footer Tools -->
+<div class="d-flex justify-content-end align-items-center mt-2 gap-3 mb-4">
+    <div id="reportLogger" class="text-muted small"></div>
+    <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
+        data-bs-title="Save Report">
+        <i class="fa fa-save me-1"></i>Save Report
+    </button>
 </div>
