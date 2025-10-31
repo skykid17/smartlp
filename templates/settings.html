@@ -13,8 +13,6 @@
       <div class="nav flex-column nav-pills me-3" id="settings-tabs" role="tablist" aria-orientation="vertical">
         <button class="nav-link active" id="smartlp-tab" data-bs-toggle="pill" data-bs-target="#smartlp-settings"
           type="button" role="tab" aria-controls="smartlp-settings" aria-selected="true">SmartLP</button>
-        <button class="nav-link" id="smartuc-tab" data-bs-toggle="pill" data-bs-target="#smartuc-settings" type="button"
-          role="tab" aria-controls="smartuc-settings" aria-selected="false">SmartUC</button>
         <button class="nav-link" id="siem-tab" data-bs-toggle="pill" data-bs-target="#siem-settings" type="button"
           role="tab" aria-controls="siem-settings" aria-selected="false">SIEM</button>
         <button class="nav-link" id="llm-tab" data-bs-toggle="pill" data-bs-target="#llm-settings" type="button"
@@ -97,26 +95,6 @@
           </div>
         </div>
 
-        <!-- SmartUC Settings-->
-        <div class="tab-pane fade" id="smartuc-settings" role="tabpanel" aria-labelledby="smartuc-tab">
-          <h3>SmartUC Settings</h3>
-          <div class="row">
-            <div class="col">
-              <div class="form-group mb-3">
-                <label for="smartucActiveLlmEndpoint" data-bs-toggle="tooltip" data-bs-placement="top"
-                  data-bs-title="Service running the model">Active LLM Endpoint:</label>
-                <select id="smartucActiveLlmEndpoint" class="form-select">
-                </select>
-              </div>
-              <div class="form-group mb-3">
-                <label for="smartucActiveLlm" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
-                  data-bs-title="Current running model for all queries">Active LLM Model:</label>
-                <select id="smartucActiveLlm" class="form-select">
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
         <!-- SIEM Settings -->
         <div class="tab-pane fade" id="siem-settings" role="tabpanel" aria-labelledby="siem-tab">
           <h3>SIEM Settings</h3>

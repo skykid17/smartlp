@@ -96,7 +96,6 @@ class ApplicationFactory:
         try:
             from api.main_routes import register_main_routes
             from api.smartlp_routes import register_smartlp_routes
-            from api.smartuc_routes import register_smartuc_routes
             from api.settings_routes import register_settings_routes
             from api.deployment_routes import register_deployment_routes
             
@@ -105,8 +104,6 @@ class ApplicationFactory:
             print("Main routes registered")
             register_smartlp_routes(app)
             print("SmartLP routes registered")
-            register_smartuc_routes(app)
-            print("SmartUC routes registered")
             register_settings_routes(app)
             print("Settings routes registered")
             register_deployment_routes(app)
