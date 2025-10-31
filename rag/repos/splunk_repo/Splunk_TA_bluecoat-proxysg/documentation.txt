@@ -1,0 +1,7 @@
+The Splunk Add-on for Symantec Blue Coat ProxySG lets a Splunk software administrator collect data from Blue Coat ProxySG log files in W3C ELFF format. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Symantec Blue Coat ProxySG from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Symantec Blue Coat ProxySG. 
+
+For information about installing and configuring the Splunk Add-on for Symantec Blue Coat ProxySG, see Installation and configuration overview for the Splunk Add-on for Symantec Blue Coat ProxySG. 

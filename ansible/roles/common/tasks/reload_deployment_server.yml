@@ -1,0 +1,7 @@
+---
+
+- name: reload_deployment_server
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  command: "{{ splunk.home }}/bin/splunk reload deploy-server -auth {{ splunk.admin.username }}:{{ splunk.admin.password }} -timeout 10"
+  

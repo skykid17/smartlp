@@ -1,0 +1,5 @@
+The Splunk Add-on for Symantec DLP allows a Splunk software administrator to collect data in syslog format from Symantec DLP server. After the Splunk platform indexes the events, you can analyze the data using the prebuilt dashboard panels included with the add-on. This add-on provides the CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Symantec DLP from Splunkbase at http://splunkbase.splunk.com/app/3029. 
+
+Discuss the Splunk Add-on for Symantec DLP on Splunk Answers at http://answers.splunk.com/answers/app/3029. 

@@ -1,0 +1,41 @@
+<form version="1.1" script="vo_sla_config.js" stylesheet="victorops.css" hideFooter="true" hideEdit="true" hideTitle="false">
+  <label>Configure SLA</label>
+  <description>Set the SLA for Mean-Time-To-Acknowledge (MTTA) and Mean-Time-To-Resolve (MTTR)</description>
+  <row>
+    <panel>
+      <html>
+        <style>
+          .dashboard-row .dashboard-panel {
+            background: inherit;
+          }
+        </style>
+        <div id="slaPanel" style="display:none;">
+          <div>
+            <label style="margin-right:10px">* MTTA (minutes)</label>
+            <input id="mtta" class="numbers-only" type="text"></input>
+          </div>
+          <div>
+            <label style="margin-right:10px ">* MTTR (minutes)</label>
+            <input id="mttr" class="numbers-only" type="text"></input>
+          </div>
+          <input id="submit" class="btn btn-vo" style="width:100px; height: 30px;" type="submit" value="Save"></input>
+          <input type="hidden" id="key1" name="key" value="" />
+        </div>
+        <div id="slaModal" class="modal fade" style="margin-top:100px;z-index:-9999" data-backdrop="static">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+              </div>
+              <div class="modal-body" style="text-align:center;font-size:16px;font-weight:500;">
+              </div>
+              <div class="modal-footer" style="text-align:center;">
+                <button id="cancelDialogButton" type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button id="confirmDialogButton" type="button" class="btn btn-vo">Confirm</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+</form>

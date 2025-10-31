@@ -1,0 +1,9 @@
+The Splunk Add-on for Nagios Core allows a Splunk platform administrator to poll data from a local Nagios Core with NDOUtils and monitor log files. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+Download the Splunk Add-on for Nagios Core from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Nagios Core. 
+
+For information about installing and configuring the Splunk Add-on for Nagios Core, see Installation overview for the Splunk Add-on for Nagios Core. 
+
+See Questions related to Splunk Add-on for Nagios Core on Splunk Answers. 

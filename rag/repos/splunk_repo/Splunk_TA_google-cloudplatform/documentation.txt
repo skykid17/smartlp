@@ -1,0 +1,9 @@
+The Splunk Add-on for Google Cloud Platform allows a Splunk administrator to collect Google Cloud Platform events, logs, and performance metrics data using Google Cloud Platform APIs. You can then analyze the data or use it as a contextual data feed to correlate with other Google Cloud data in the Splunk platform.
+
+Download the Splunk Add-on for Google Cloud Platform from Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Google Cloud Platform.
+
+For information about installing and configuring the Splunk Add-on for Google Cloud Platform, see Installation and configuration overview for the Splunk Add-on for Google Cloud Platform.
+
+See Questions related to Splunk Add-on for Google Cloud Platform on the Splunk Community page.

@@ -1,0 +1,340 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "account",
+                    "title": "Account",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Tomcat JMX URL",
+                                "field": "jmx_url"
+                            },
+                            {
+                                "label": "Tomcat JMX user name",
+                                "field": "username"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of account name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "help": "Add unique name for Account"
+                        },
+                        {
+                            "field": "jmx_url",
+                            "label": "Tomcat JMX URL",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "URL should start with service:jmx",
+                                    "pattern": "^service:jmx.*$"
+                                }
+                            ],
+                            "help": "Example -> service:jmx:rmi:///jndi/rmi://127.0.0.1:8888/jmxrmi"
+                        },
+                        {
+                            "field": "username",
+                            "label": "Tomcat JMX user name",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Username field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ],
+                            "help": "Add server username"
+                        },
+                        {
+                            "field": "password",
+                            "label": "Tomcat JMX password",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Password field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ],
+                            "help": "Add server password"
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "help": "(DEBUG, INFO or ERROR)"
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Configure your Tomcat account and logging level."
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage Tomcat Inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Tomcat data input name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "field": "object_name",
+                        "label": "ObjectName"
+                    },
+                    {
+                        "field": "operation_name",
+                        "label": "OperationName"
+                    },
+                    {
+                        "field": "duration",
+                        "label": "Collection Interval"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "field": "duration",
+                        "label": "Interval"
+                    },
+                    {
+                        "label": "ObjectName",
+                        "field": "object_name"
+                    },
+                    {
+                        "label": "OperationName",
+                        "field": "operation_name"
+                    },
+                    {
+                        "label": "Signature",
+                        "field": "signature"
+                    },
+                    {
+                        "label": "Parameters",
+                        "field": "params"
+                    },
+                    {
+                        "label": "SplitArray",
+                        "field": "split_array"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status",
+                        "mapping": {
+                            "false": "Enabled",
+                            "true": "Disabled"
+                        }
+                    }
+                ]
+            },
+            "services": [
+                {
+                    "hook": {
+                        "src": "input_hook.3.0.0",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 50"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Tomcat Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "field": "object_name",
+                            "label": "ObjectName",
+                            "type": "text",
+                            "help": "The object name of the MBean on which the method is to be invoked.",
+                            "defaultValue": "java.lang:type=Threading",
+                            "required": true
+                        },
+                        {
+                            "field": "operation_name",
+                            "label": "OperationName",
+                            "type": "text",
+                            "help": "The name of the operation to be invoked.",
+                            "defaultValue": "dumpAllThreads",
+                            "required": true
+                        },
+                        {
+                            "field": "signature",
+                            "label": "Signature",
+                            "type": "text",
+                            "help": "Java data types separated by comma.",
+                            "defaultValue": "boolean, boolean",
+                            "required": true
+                        },
+                        {
+                            "field": "params",
+                            "label": "Parameters",
+                            "type": "text",
+                            "help": "Values for the data types(in Signature) separated by comma.",
+                            "defaultValue": "true, true",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "SplitArray",
+                            "field": "split_array",
+                            "defaultValue": "true",
+                            "help": "True for splitting up whole data chunk into events.",
+                            "required": true
+                        },
+                        {
+                            "field": "duration",
+                            "label": "Collection Interval",
+                            "type": "text",
+                            "help": "Collection interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 120,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ]
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be an integer.",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "tomcat",
+                    "title": "Input"
+                }
+            ]
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_tomcat",
+        "restRoot": "Splunk_TA_tomcat",
+        "version": "3.2.0",
+        "displayName": "Splunk Add-on for Tomcat",
+        "schemaVersion": "0.0.8",
+        "_uccVersion": "5.46.0"
+    }
+}

@@ -1,0 +1,10 @@
+<panel>
+  <title>Websense DLP - Top 10 Blocked Actions by Category in Last 24 Hours</title>
+  <table>
+	<search>
+	  <query>eventtype=websense_dlp_alert earliest=-24h | top cat | rename cat as "Policy Category", count as "Count", percent as "Percent"</query>
+	  <earliest>-24h@h</earliest>
+	  <latest>now</latest>
+	</search>
+  </table>
+</panel>

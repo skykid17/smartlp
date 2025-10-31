@@ -1,0 +1,5 @@
+The Splunk Add-on for NetApp Data ONTAP Extractions defines the search-time extractions for the data collected by Splunk Add-on for NetApp Data ONTAP. 
+
+The package included in Splunk Add-on for NetApp Data ONTAP Extractions (TA-ONTAP-FieldExtractions) was previously part of Splunk Add-on for NetApp Data ONTAP in v3.0.1 or below. The package is being released as an individual Splunkbase add-on to add the support for self-service installation of the package in the cloud environments.
+
+Download the Splunk Add-on for NetApp Data ONTAP Extractions from Splunkbase at https://splunkbase.splunk.com/app/5615/. 

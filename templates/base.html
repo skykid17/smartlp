@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title if page_title else "SmartSOC" }}</title>
+    <link rel="icon" type="image/x-icon" href="/logos/logo.png">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.css">
+    <!-- JavaScript -->
+    <!-- Custom JavaScript for SmartLP -->
+    <!-- <script src="/js/custom.js"></script> -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/socket.io.min.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/html2pdf.bundle.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <!-- Custom CSS for SmartLP -->
+    <link rel="stylesheet" href="/css/custom.css">
+
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <!-- Left-aligned Brand/Title -->
+            <span class="navbar-brand mb-0 h4 text-white">
+                <a href="{{ url_for('dashboard') }}" class="text-white text-decoration-none d-flex align-items-center">
+                    <img src="/logos/logo_white.png" class="me-2" height="20" alt="Logo">SmartSOC AI Cyber Engineer</a>
+            </span>
+
+            <!-- Toggler for mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Right-aligned Nav Links -->
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <!-- SmartLP Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link text-white" href="{{ url_for('smartlp') }}">
+                            SmartLP
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="{{ url_for('smartlp') }}">Overview</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('smartlp_parser') }}">Parser</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('smartlp_prefix') }}">Prefix</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- SmartUC Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link text-white" href="{{ url_for('smartuc') }}">
+                            SmartUC
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="{{ url_for('smartuc') }}">Overview</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('attacknavigator') }}">ATT&CK Navigator</a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- SmartDB -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('smartdb') }}">SmartDB</a>
+                    </li>
+
+                    <!-- SmartReport -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link text-white">
+                            SmartReport
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="{{ url_for('smartlp_report') }}">SmartLP</a></li>
+                            <li><a class="dropdown-item">SmartUC</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Report -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('settings') }}">Settings</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="position-fixed bottom-0 start-0 ms-2 mb-5 " style="z-index: 1060;">
+        <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasWithBothOptions"
+            aria-controls="offcanvasWithBothOptions">
+            <i class="fa fa-eye"></i>
+        </button>
+    </div>
+    <div class="offcanvas offcanvas-start logpanel" data-bs-scroll="true" tabindex="-1" id="offcanvasWithBothOptions"
+        aria-labelledby="offcanvasWithBothOptionsLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasWithBothOptionsLabel"><i class="fa fa-eye"></i> Logger</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="logger"></div>
+        </div>
+    </div>
+    <!-- Main Content -->
+    <main class="container mt-4 flex-grow-1">
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"
+                data-bs-delay="5000">
+                <div class="toast-header">
+                    <strong class="me-auto">SmartLP</strong>
+                    <small class="toast-timestamp">Just now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    <div id="ingestNotification"></div>
+                </div>
+            </div>
+        </div>
+        {% block content %}{% endblock %}
+    </main>
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+        <p class="mb-0">SmartSOC &copy; 2025. All Rights Reserved.</p>
+    </footer>
+</body>
+
+</html>

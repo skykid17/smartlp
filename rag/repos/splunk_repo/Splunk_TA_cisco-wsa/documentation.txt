@@ -1,0 +1,5 @@
+The Splunk Add-on for Cisco WSA allows a Splunk software administrator to collect Cisco Web Security Appliance (WSA) access log data, L4TM log data, and Syslog data. You can analyze these logs directly or use them as a contextual data source to correlate with other communication and authentication data in the Splunk platform. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance.
+
+Download the Splunk Add-on for Cisco WSA from Splunkbase.
+
+See Questions related to Splunk Add-on for Cisco WSA on the Splunk Community page.

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<view template="Splunk_TA_vmware:/templates/collection_config.html" type="html">
+	<label>Collection Configuration</label>
+</view>

@@ -1,0 +1,13 @@
+The Splunk Add-on for Microsoft SQL Server allows a Splunk software administrator to collect system performance, SQL server performance, log, audit, and status data from Microsoft SQL Server deployments. 
+
+The Splunk Add-on for Microsoft SQL Server uses Splunk DB Connect, Splunk Windows Performance monitoring, and file monitoring to collect data. Through log file monitoring and field extraction, the database administrator can correlate events and create alerts and dashboards to track database errors, problems, or incidents in real time. 
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+Download the Splunk Add-on for Microsoft SQL Server from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Microsoft SQL Server. 
+
+For information about installing and configuring the Splunk Add-on for Microsoft SQL Server, see Installation and configuration overview for the Splunk Add-on for Microsoft SQL Server. 
+
+See Questions related to Splunk Add-on for Microsoft SQL Server on Splunk Answers. 

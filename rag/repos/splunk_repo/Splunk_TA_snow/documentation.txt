@@ -1,0 +1,25 @@
+The Splunk Add-on for ServiceNow allows a Splunk software administrator to use ServiceNow REST APIs to collect the following types of data:
+
+Incident data
+
+Event data
+
+Change data
+
+User data
+
+User group data
+
+Location data
+
+Configuration management database (CMDB) configuration item (CI) data
+
+After you install and configure this add-on, you can use workflow actions that link directly from events in the Splunk platform search results to relevant ServiceNow incidents, events, and knowledge base articles. You can also use the custom commands, alert actions, and scripts to create new incidents and events in your ServiceNow instance, and update the incidents created from the Splunk platform.
+
+For more information about this add-on custom commands, alert actions, and scripts, see Commands, alert actions, and scripts available with the Splunk Add-on for ServiceNow. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as the Splunk App for ServiceNow or Splunk Enterprise Security.
+
+Download the Splunk Add-on for ServiceNow from Splunkbase. For a summary of new features, fixed issues, and known issues, see Release Notes.
+
+For information about installing and configuring the Splunk Add-on for ServiceNow, see Installation and configuration overview.
+
+See the Splunk Community page for questions related to Splunk Add-on for ServiceNow.

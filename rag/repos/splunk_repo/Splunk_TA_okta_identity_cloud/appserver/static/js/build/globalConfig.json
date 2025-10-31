@@ -1,0 +1,700 @@
+{
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "account",
+                    "title": "Okta Accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Okta Account Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Authentication Type",
+                                "field": "auth_type",
+                                "mapping": {
+                                    "basic": "Basic Authentication",
+                                    "oauth": "OAuth 2.0 Authentication"
+                                }
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Okta Account Name",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter a unique name for this Okta account",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "errorMsg": "Maximum length allowed 50 characters",
+                                    "minLength": 1
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account Name should not contain whitespace, must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "oauth",
+                            "field": "oauth",
+                            "label": "Not used",
+                            "options": {
+                                "auth_type": [
+                                    "basic",
+                                    "oauth"
+                                ],
+                                "basic": [
+                                    {
+                                        "oauth_field": "username",
+                                        "label": "Okta Domain",
+                                        "encrypted": false,
+                                        "help": "Enter the Okta domain name for the account. Example: yourdomain.okta.com",
+                                        "field": "domain"
+                                    },
+                                    {
+                                        "oauth_field": "password",
+                                        "label": "Okta API Token",
+                                        "encrypted": true,
+                                        "help": "Enter the API Token for this account",
+                                        "field": "password"
+                                    }
+                                ],
+                                "oauth": [
+                                    {
+                                        "oauth_field": "client_id",
+                                        "label": "Client ID",
+                                        "field": "client_id",
+                                        "help": "Enter the Okta App Client ID."
+                                    },
+                                    {
+                                        "oauth_field": "client_secret",
+                                        "label": "Client Secret",
+                                        "field": "client_secret",
+                                        "encrypted": true,
+                                        "help": "Enter the Okta App Client Secret."
+                                    },
+                                    {
+                                        "oauth_field": "redirect_url",
+                                        "label": "Redirect Url",
+                                        "field": "redirect_url",
+                                        "help": "Copy and paste this URL into your Okta App sign-in redirect url."
+                                    },
+                                    {
+                                        "oauth_field": "endpoint",
+                                        "label": "Okta Domain",
+                                        "field": "endpoint",
+                                        "help": "Enter the Okta domain name for the account. Example: yourdomain.okta.com"
+                                    },
+                                    {
+                                        "oauth_field": "scope",
+                                        "label": "Scope",
+                                        "field": "scope",
+                                        "help": "Requested scopes from Okta Web App",
+                                        "defaultValue": "offline_access okta.users.read okta.groups.read okta.logs.read okta.apps.read",
+                                        "options": {
+                                            "enable": false
+                                        }
+                                    }
+                                ],
+                                "auth_label": "Auth Type",
+                                "auth_code_endpoint": "/oauth2/v1/authorize",
+                                "access_token_endpoint": "/oauth2/v1/token",
+                                "oauth_timeout": 30,
+                                "oauth_state_enabled": true
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "additional_parameters",
+                    "title": "Add-on Settings",
+                    "entity": [
+                        {
+                            "field": "user_limit",
+                            "label": "User Limit",
+                            "type": "text",
+                            "help": "Number of Items to collect per call for the specific data type, defaults are ideal in most cases. (20-200)",
+                            "required": true,
+                            "defaultValue": "200",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        20,
+                                        200
+                                    ],
+                                    "errorMsg": "Expecting an integer between 20 and 200"
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Expecting an integer, not a decimal or floating number",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "group_limit",
+                            "label": "Group Limit",
+                            "type": "text",
+                            "help": "Number of Items to collect per call for the specific data type, defaults are ideal in most cases. (20-10000)",
+                            "required": true,
+                            "defaultValue": "300",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        20,
+                                        10000
+                                    ],
+                                    "errorMsg": "Expecting an integer between 20 and 10000"
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Expecting an integer, not a decimal or floating number",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "app_limit",
+                            "label": "App Limit",
+                            "type": "text",
+                            "help": "Number of Items to collect per call for the specific data type, defaults are ideal in most cases. (20-200)",
+                            "required": true,
+                            "defaultValue": "200",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        20,
+                                        200
+                                    ],
+                                    "errorMsg": "Expecting an integer between 20 and 200"
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Expecting an integer, not a decimal or floating number",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "log_limit",
+                            "label": "Log Limit",
+                            "type": "text",
+                            "help": "Number of Items to collect per call for the specific data type, defaults are ideal in most cases. (10-1000)",
+                            "required": true,
+                            "defaultValue": "1000",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        10,
+                                        1000
+                                    ],
+                                    "errorMsg": "Expecting an integer between 10 and 1000"
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Expecting an integer, not a decimal or floating number",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "rate_limit_pct",
+                            "label": "Rate Limit Pct",
+                            "type": "text",
+                            "help": "Used to adjust rate limit avoidance target. Tells add-on to use ONLY this percentage of API calls. Defaults to 50%",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        0,
+                                        100
+                                    ],
+                                    "errorMsg": "Expecting an integer between 0 and 100."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "dynamic_rate_enabled",
+                            "label": "Dynamic Rate Throttling",
+                            "type": "checkbox",
+                            "help": "Dynamically adjust the request rate to avoid exceeding API throttling warning limits",
+                            "required": false
+                        }
+                    ]
+                },
+                {
+                    "name": "proxy",
+                    "title": "Proxy",
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') { return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host is invalid",
+                                    "type": "regex"
+                                }
+                            ],
+                            "field": "proxy_url",
+                            "label": "Proxy Host",
+                            "help": "Hostname of the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[1-9]\\d*$",
+                                    "errorMsg": "Proxy Port must be a non-zero positive integer."
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Proxy Port",
+                            "help": "Port to the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Proxy Username",
+                            "help": "Username to connect to the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for password is 8192"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Proxy Password",
+                            "help": "Password to connect to the Proxy Server"
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log Level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Log level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+                                    "pattern": "^DEBUG|INFO|WARNING|ERROR|CRITICAL$"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    },
+                    {
+                        "field": "metric",
+                        "label": "Metric"
+                    },
+                    {
+                        "field": "global_account",
+                        "label": "Okta Account"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ]
+            },
+            "services": [
+                {
+                    "name": "okta_identity_cloud",
+                    "title": "Okta Identity Cloud Input",
+                    "hook": {
+                        "src": "inputs_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name should not contain whitespace, must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        60,
+                                        86400
+                                    ],
+                                    "errorMsg": "Interval must be between 60 and 86400"
+                                }
+                            ],
+                            "help": "Time interval of input in seconds.",
+                            "required": true,
+                            "defaultValue": 300
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "main",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$",
+                                "createSearchChoice": true
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                },
+                                {
+                                    "errorMsg": "You shouldn't use internal indexes",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "global_account",
+                            "label": "Okta Account",
+                            "help": "Select the Okta Account from the list which you want to collect the events.",
+                            "required": true,
+                            "type": "singleSelect",
+                            "options": {
+                                "referenceName": "account"
+                            }
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "metric",
+                            "label": "Metric",
+                            "help": "The metric (data type) you wish to collect",
+                            "required": true,
+                            "type": "singleSelect",
+                            "defaultValue": "logs",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "logs",
+                                        "label": "Logs"
+                                    },
+                                    {
+                                        "value": "users",
+                                        "label": "Users"
+                                    },
+                                    {
+                                        "value": "groups",
+                                        "label": "Groups"
+                                    },
+                                    {
+                                        "value": "apps",
+                                        "label": "Apps (not recommended)"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "Start Date",
+                            "type": "text",
+                            "help": "Start Date to start the data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SS.SSSZ",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Invalid Start Date format specified",
+                                    "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)?$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "advanced_settings",
+                            "type": "checkbox",
+                            "label": "Advanced Settings",
+                            "help": "Check this box to configure the Advanced Parameters.",
+                            "required": false,
+                            "defaultValue": 0,
+                            "options": {
+                                "display": false
+                            },
+                            "tooltip": "Updating Advanced Settings is NOT recommended unless required."
+                        },
+                        {
+                            "field": "logs_delay",
+                            "label": "Logs Delay",
+                            "type": "text",
+                            "help": "Delay in Seconds while live data collection for logs metric to avoid data loss.",
+                            "required": true,
+                            "defaultValue": 30,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        0,
+                                        300
+                                    ],
+                                    "errorMsg": "Expecting an integer between 0 and 300 for Logs Delay."
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[1-9]\\d*$",
+                                    "errorMsg": "Logs Delay must be a non-zero positive integer."
+                                }
+                            ],
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "end_date",
+                            "label": "End Date",
+                            "type": "text",
+                            "help": "(Optional) End Date for the timebound data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SS.SSSZ",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Invalid End Date format specified",
+                                    "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)?$"
+                                }
+                            ],
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "query_window_size",
+                            "label": "Query Window Size",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 3600,
+                            "help": "Time difference between the start and end of each API call (in seconds) during historical data collection",
+                            "options": {
+                                "display": false
+                            },
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        300,
+                                        86400
+                                    ],
+                                    "errorMsg": "Expecting a query window size between 300 and 86400"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[1-9]\\d*$",
+                                    "errorMsg": "Query Window Size must be a non-zero positive integer."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "collect_uris",
+                            "type": "checkbox",
+                            "label": "Collect URIs",
+                            "help": "Uncheck this box to remove uri fields from events.",
+                            "required": false,
+                            "defaultValue": 1,
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "advanced_settings_help_link",
+                            "label": "",
+                            "type": "helpLink",
+                            "options": {
+                                "text": "Learn more",
+                                "link": "https://docs.splunk.com/Documentation/AddOns/released/OktaIDC/Configure"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ]
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_okta_identity_cloud",
+        "displayName": "Splunk_TA_okta_identity_cloud",
+        "version": "3.0.0",
+        "restRoot": "Splunk_TA_okta_identity_cloud",
+        "schemaVersion": "0.0.9",
+        "_uccVersion": "5.52.0"
+    }
+}

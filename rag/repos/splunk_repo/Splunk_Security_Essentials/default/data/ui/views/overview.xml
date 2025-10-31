@@ -1,0 +1,950 @@
+<dashboard version="2" isDashboard="false" app="sse">
+<definition><![CDATA[
+{
+    "visualizations": {
+        "viz_vWSv5zxZ": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 50,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 50,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 5,
+                        "to": 10,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 1,
+                        "to": 5,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 1,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_Stle3KGk"
+            },
+            "eventHandlers": [
+                {
+                    "type": "drilldown.linkToSearch",
+                    "options": {
+                        "type": "auto",
+                        "newTab": false
+                    }
+                }
+            ],
+            "title": "# of Datasources",
+            "showProgressBar": true
+        },
+        "viz_5fJyDCKZ": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 500,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 100,
+                        "to": 500,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 30,
+                        "to": 100,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 30,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 10,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_TovxAGTn"
+            },
+            "title": "# of Examples",
+            "showProgressBar": true
+        },
+        "viz_CevJhh0n": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 500,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 100,
+                        "to": 500,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 30,
+                        "to": 100,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 30,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 10,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_QnQsHVNF"
+            },
+            "title": "# of Content Enabled by Datasource",
+            "showProgressBar": true
+        },
+        "viz_Y9wAHtPt": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 500,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 100,
+                        "to": 500,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 30,
+                        "to": 100,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 30,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 10,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_qhjZQKxW"
+            },
+            "title": "# of Content Disabled by Datasource",
+            "showProgressBar": true
+        },
+        "viz_WUUSdg6O": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 500,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 100,
+                        "to": 500,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 30,
+                        "to": 100,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 30,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 10,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_U7cHMwul"
+            },
+            "title": "# of Content Enabled by Originating App",
+            "showProgressBar": true
+        },
+        "viz_Cy9Cz3dc": {
+            "type": "splunk.singlevalue",
+            "options": {
+                "majorColor": "> majorValue | rangeValue(convertedColorRange)"
+            },
+            "context": {
+                "convertedColorRange": [
+                    {
+                        "from": 500,
+                        "value": "#d93f3c"
+                    },
+                    {
+                        "from": 100,
+                        "to": 500,
+                        "value": "#e5d08f"
+                    },
+                    {
+                        "from": 30,
+                        "to": 100,
+                        "value": "#9c9c9c"
+                    },
+                    {
+                        "from": 10,
+                        "to": 30,
+                        "value": "#cacbce"
+                    },
+                    {
+                        "to": 10,
+                        "value": "#cd7f32"
+                    }
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_t9q8TL69"
+            },
+            "title": "# of Content Disabled by Originating App",
+            "showProgressBar": true
+        },
+        "viz_BedD1lbO": {
+            "type": "splunk.pie",
+            "options": {
+                "collapseThreshold": 0.01
+            },
+            "dataSources": {
+                "primary": "ds_qMh2oKCN"
+            },
+            "title": "Top MITRE ATT&CK Tactics",
+            "showProgressBar": true
+        },
+        "viz_k1VtGVnc": {
+            "type": "splunk.pie",
+            "options": {
+                "collapseThreshold": 0.01
+            },
+            "dataSources": {
+                "primary": "ds_JC8erz9k"
+            },
+            "title": "Top Kill Chain Phases",
+            "showProgressBar": true
+        },
+        "viz_Gy56BOVj": {
+            "type": "splunk.bar",
+            "options": {
+                "yAxisAbbreviation": "auto",
+                "y2AxisAbbreviation": "auto",
+                "showRoundedY2AxisLabels": false,
+                "legendTruncation": "ellipsisEnd",
+                "showY2MajorGridLines": true,
+                "xAxisTitleVisibility": "show",
+                "yAxisTitleVisibility": "show",
+                "y2AxisTitleVisibility": "show",
+                "yAxisScale": "linear",
+                "dataValuesDisplay": "off",
+                "stackMode": "stacked",
+                "showSplitSeries": false,
+                "showIndependentYRanges": false,
+                "legendDisplay": "bottom",
+                "seriesColorsByField": {
+                    "securityDataJourney": "#cb2197",
+                    "SOC Automation": "#7b56db",
+                    "Insider Threat": "#00699d",
+                    "Compliance": "#ff6ace",
+                    "Advanced Threat Detection": "#FF677B",
+                    "Security Monitoring": "#CB2196"
+                }
+            },
+            "dataSources": {
+                "primary": "ds_i8VdSWn7"
+            },
+            "title": "Use Cases by Security Data Journey",
+            "context": {},
+            "containerOptions": {},
+            "showProgressBar": false,
+            "showLastUpdated": false
+        },
+        "viz_Ccjh8H7I": {
+            "type": "splunk.sankey",
+            "options": {
+                "colorMode": "categorical"
+            },
+            "dataSources": {
+                "primary": "ds_EaAKls19"
+            },
+            "title": "Use Case(s) > Data Source - (Requires Sankey Viz)"
+        },
+        "viz_uH4SJ4Oq": {
+            "type": "splunk.sankey",
+            "options": {
+                "colorMode": "categorical"
+            },
+            "dataSources": {
+                "primary": "ds_SjfygaAr"
+            },
+            "title": "Data Source > Splunk App - (Requires Sankey Viz)"
+        },
+        "viz_iUuZj0Ec": {
+            "type": "splunk.column",
+            "options": {
+                "yAxisAbbreviation": "auto",
+                "y2AxisAbbreviation": "auto",
+                "showRoundedY2AxisLabels": false,
+                "legendTruncation": "ellipsisMiddle",
+                "showY2MajorGridLines": true,
+                "xAxisLabelRotation": -45,
+                "xAxisTitleVisibility": "show",
+                "yAxisTitleVisibility": "show",
+                "y2AxisTitleVisibility": "show",
+                "yAxisScale": "linear",
+                "showOverlayY2Axis": false,
+                "y2AxisScale": "linear",
+                "dataValuesDisplay": "off",
+                "stackMode": "stacked",
+                "showSplitSeries": false,
+                "showIndependentYRanges": false,
+                "legendDisplay": "bottom",
+                "seriesColorsByField": {
+                    "Level_1": "#008c80",
+                    "Level_2": "#9d6301",
+                    "Level_3": "#f7540b",
+                    "Level_4": "#ff969e"
+                }
+            },
+            "dataSources": {
+                "primary": "ds_yePnhs9b"
+            },
+            "title": "Security Data Journey by Splunk Product",
+            "showProgressBar": true
+        },
+        "viz_2q4mdUlA": {
+            "type": "splunk.table",
+            "options": {
+                "dataOverlayMode": "heatmap",
+                "showInternalFields": false,
+                "tableFormat": {
+                    "rowBackgroundColors": "> table | seriesByIndex(0) | pick(tableRowBackgroundColorsByTheme)",
+                    "rowColors": "> table | pick(tableRowColor)"
+                },
+                "columnFormat": {
+                    "Security Monitoring": {
+                        "rowBackgroundColors": "> table | seriesByName(\"Security Monitoring\") | gradient(gradientConfig)"
+                    },
+                    "Insider Threat": {
+                        "rowBackgroundColors": "> table | seriesByName(\"Insider Threat\") | gradient(gradientConfig)"
+                    },
+                    "Application Security": {
+                        "rowBackgroundColors": "> table | seriesByName(\"Application Security\") | gradient(gradientConfig)"
+                    },
+                    "Compliance": {
+                        "rowBackgroundColors": "> table | seriesByName(\"Compliance\") | gradient(gradientConfig)"
+                    },
+                    "Advanced Threat Detection": {
+                        "rowBackgroundColors": "> table | seriesByName(\"Security Monitoring\") | gradient(gradientConfig)"
+                    },
+                    "Security Data Journey": {
+                        "data": "> table | seriesByName(\"Security Data Journey\") | formatByType(Security_Data_JourneyColumnFormatEditorConfig)",
+                        "rowColors": "> table | seriesByName('Security Data Journey') | pick(Security_Data_JourneyRowColorsEditorConfig)",
+                        "rowBackgroundColors": "> table | seriesByName('Security Data Journey') | matchValue(Security_Data_JourneyRowBackgroundColorsEditorConfig)"
+                    }
+                }
+            },
+            "dataSources": {
+                "primary": "ds_SIC4N0Hr"
+            },
+            "eventHandlers": [
+              {
+                "type": "drilldown.linkToSearch",
+                "options": {
+                  "type": "auto",
+                  "newTab": true
+                }
+              }
+            ],
+            "title": "Security Data Journey Coverage by Use Case",
+            "showProgressBar": true,
+            "context": {
+                "tableRowColor": [
+                    "#000000"
+                ],
+                "gradientConfig": {
+                    "colors": [
+                        "#FFFFFF",
+                        "#D6563C"
+                    ]
+                },
+                "Security_Data_JourneyColumnFormatEditorConfig": {
+                    "string": {
+                        "unitPosition": "after"
+                    }
+                },
+                "Security_Data_JourneyRowColorsEditorConfig": [
+                    "#0877a6"
+                ],
+                "Security_Data_JourneyRowBackgroundColorsEditorConfig": [
+                    {
+                        "match": "",
+                        "value": "#9980FF"
+                    }
+                ]
+            },
+            "containerOptions": {},
+            "showLastUpdated": false
+        },
+        "viz_RUDA1fg7": {
+            "type": "splunk.column",
+            "options": {
+                "yAxisAbbreviation": "off",
+                "y2AxisAbbreviation": "off",
+                "showRoundedY2AxisLabels": false,
+                "legendTruncation": "ellipsisMiddle",
+                "showY2MajorGridLines": true,
+                "xAxisLabelRotation": -45,
+                "dataValuesDisplay": "all",
+                "legendDisplay": "bottom",
+                "seriesColors": [
+                    "#018c80"
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_Jecyc6Ax"
+            },
+            "eventHandlers": [
+                {
+                    "type": "drilldown.linkToSearch",
+                    "options": {
+                        "type": "custom",
+                        "query": "| sseanalytics | table name usecase hasSearch includeSSE datasource displayapp app journey category domain icon description dashboard mitre killchain alertvolume bookmark_status enabled | search $usecase$ $category$ (enabled=\"Yes\") $bookmark$\n| stats count as \"# of Enabled Content\" by displayapp",
+                        "earliest": "-24h@h",
+                        "latest": "now",
+                        "newTab": true
+                    }
+                }
+            ],
+            "title": "Content Enabled by Originating App",
+            "showProgressBar": true
+        },
+        "viz_1vALm6pD": {
+            "type": "splunk.column",
+            "options": {
+                "yAxisAbbreviation": "off",
+                "y2AxisAbbreviation": "off",
+                "showRoundedY2AxisLabels": false,
+                "legendTruncation": "ellipsisMiddle",
+                "showY2MajorGridLines": true,
+                "xAxisLabelRotation": -45,
+                "dataValuesDisplay": "all",
+                "legendDisplay": "bottom",
+                "seriesColors": [
+                    "#f6540b"
+                ]
+            },
+            "dataSources": {
+                "primary": "ds_fqQazoBm"
+            },
+            "eventHandlers": [
+                {
+                    "type": "drilldown.linkToSearch",
+                    "options": {
+                        "type": "custom",
+                        "query": "| sseanalytics | table name usecase hasSearch includeSSE datasource displayapp app journey category domain icon description dashboard mitre killchain alertvolume bookmark_status enabled | search $usecase$ $category$ (enabled=\"No\") $bookmark$\n| stats count as \"# of Disabled Content\" by displayapp",
+                        "earliest": "-24h@h",
+                        "latest": "now",
+                        "newTab": true
+                    }
+                }
+            ],
+            "title": "Content Disabled by Originating App",
+            "showProgressBar": true
+        }
+    },
+    "dataSources": {
+        "ds_base_sseanalytics": {
+            "type": "ds.search",
+            "options": {
+                "query": "| sseanalytics",
+                "queryParameters": {
+                    "earliest": "-24h@h",
+                    "latest": "now"
+                }
+            },
+            "name": "ds_base_sseanalytics"
+        },
+        "ds_base_table": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_sseanalytics",
+                "query": "| table name usecase hasSearch includeSSE datasource displayapp app securityDataJourney category domain icon description dashboard mitre killchain alertvolume bookmark_status enabled"
+            },
+            "name": "ds_base_table"
+        },
+        "ds_T5GevBUs": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_sseanalytics",
+                "query": "| stats count by usecase | fields - count"
+            },
+            "name": "Use Case search"
+        },
+        "ds_WxJ4eFJ5": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$)\n| stats count by category | fields - count"
+            },
+            "name": "Category search"
+        },
+        "ds_Stle3KGk": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats dc(datasource) AS \"# of Datasources\""
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Datasources search"
+        },
+        "ds_TovxAGTn": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats count(name) AS number_of_analytics"
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Examples search"
+        },
+        "ds_QnQsHVNF": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"Yes\")\n| stats dc(datasource) AS \"# of Datasources\""
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Content Enabled by Datasource search"
+        },
+        "ds_qhjZQKxW": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"No\")\n| stats dc(datasource) AS \"# of Datasources\""
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Content Disabled by Datasource search"
+        },
+        "ds_U7cHMwul": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"Yes\")\n| stats dc(displayapp) AS \"# of Apps\""
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Content Enabled by Originating App search"
+        },
+        "ds_t9q8TL69": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"No\")\n| stats dc(displayapp) AS \"# of Apps\""
+            },
+            "name": "Splunk Security Essentials Content _for filters set above_ - _ of Content Disabled by Originating App search"
+        },
+        "ds_qMh2oKCN": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats count by mitre\n| search mitre!=\"None\"\n| sort + count"
+            },
+            "name": "Top MITRE ATT_CK Tactics - Pie chart search"
+        },
+        "ds_JC8erz9k": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats count by killchain\n| search killchain!=\"None\"\n| sort + count"
+            },
+            "name": "Top Kill Chain Phases - Pie chart search"
+        },
+        "ds_i8VdSWn7": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_sseanalytics",
+                "query": "| table name usecase hasSearch includeSSE datasource displayapp app securityDataJourney category domain icon description dashboard mitre killchain alertvolume highlight bookmark_status\n| search highlight=Yes\n| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| chart count over securityDataJourney by usecase\n| eval sort_field=case(usecase==\"Other\",1, 1=1,0)\n| sort sort_field usecase\n| fields - sort_field _time\n| eval securityDataJourney = replace(securityDataJourney, \"_\", \" \")"
+            },
+            "name": "Use Cases by Security Data Journey - Bar chart search"
+        },
+        "ds_EaAKls19": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats count by usecase datasource\n| sort usecase, datasource"
+            },
+            "name": "Use Case_s_ _ Data Source - _Requires Sankey Viz_ search"
+        },
+        "ds_SjfygaAr": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| stats count by datasource, displayapp\n| sort , displayapp datasource"
+            },
+            "name": "Data Source _ Splunk App - _Requires Sankey Viz_ search"
+        },
+        "ds_yePnhs9b": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| chart count over displayapp by securityDataJourney\n| append [ | makeresults | eval displayapp=\"-\"]\n| eval sort_field=case(displayapp==\"-\",1, displayapp==\"Splunk User Behavior Analytics\",2, displayapp==\"Splunk App for Enterprise Security\",3, displayapp==\"Splunk Security Essentials for Ransomware\",4, displayapp==\"Enterprise Security Content Update\",5)\n| sort sort_field\n| fields - sort_field _time\n| search displayapp!=\"-\" | rename Stage_* as \"Stage *\" | rename displayapp as \"Originating App\""
+            },
+            "name": "Security Data Journey by Splunk Product - Column chart search"
+        },
+        "ds_SIC4N0Hr": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$\n| chart count over securityDataJourney by usecase  | eval securityDataJourney = replace(securityDataJourney, \"_\", \" \") | rename securityDataJourney as \"Security Data Journey\" | fields \"Security Data Journey\" Security* Advance* Insider* Compli* Applic* *"
+            },
+            "name": "Security Data Journey Coverage by Use Case - Table search"
+        },
+        "ds_Jecyc6Ax": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| rename displayapp as \"Originating App\" | search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"Yes\")\n| stats count as \"# of Enabled Content\" by \"Originating App\""
+            },
+            "name": "Content Enabled by Originating App - Column chart search"
+        },
+        "ds_fqQazoBm": {
+            "type": "ds.chain",
+            "options": {
+                "extend": "ds_base_table",
+                "query": "| rename displayapp as \"Originating App\" | search usecase IN ($usecase|s$) AND category IN ($category|s$) AND $bookmark$ AND (enabled=\"No\")\n| stats count as \"# of Disabled Content\" by \"Originating App\""
+            },
+            "name": "Content Disabled by Originating App - Column chart search"
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {}
+                }
+            }
+        }
+    },
+    "inputs": {
+        "input_nHOmXQ48": {
+            "type": "input.multiselect",
+            "options": {
+                "defaultValue": "*",
+                "items": "> frame(label, value) | prepend(formattedStatics) | objects()",
+                "token": "usecase"
+            },
+            "title": "Use Case",
+            "context": {
+                "formattedConfig": {
+                    "number": {
+                        "prefix": ""
+                    },
+                    "string": {
+                        "prefix": "\"",
+                        "suffix": "\""
+                    }
+                },
+                "formattedStatics": "> statics | formatByType(formattedConfig)",
+                "statics": [
+                    [
+                        "ALL"
+                    ],
+                    [
+                        "*"
+                    ]
+                ],
+                "label": "> primary | seriesByName(\"usecase\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+                "value": "> primary | seriesByName(\"usecase\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+            },
+            "dataSources": {
+                "primary": "ds_T5GevBUs"
+            }
+        },
+        "input_jUZVarIv": {
+            "type": "input.multiselect",
+            "options": {
+                "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+                "token": "category",
+                "defaultValue": [
+                    "*"
+                ]
+            },
+            "title": "Category",
+            "context": {
+                "formattedConfig": {
+                    "number": {
+                        "prefix": ""
+                    }
+                },
+                "formattedStatics": ">statics | formatByType(formattedConfig)",
+                "statics": [
+                    [
+                        "ALL"
+                    ],
+                    [
+                        "*"
+                    ]
+                ],
+                "label": ">primary | seriesByName(\"category\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+                "value": ">primary | seriesByName(\"category\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+            },
+            "dataSources": {
+                "primary": "ds_WxJ4eFJ5"
+            }
+        },
+        "input_AhIMPU0j": {
+            "type": "input.dropdown",
+            "options": {
+                "defaultValue": "*",
+                "items": [
+                    {
+                        "value": "*",
+                        "label": "All Examples"
+                    },
+                    {
+                        "value": "bookmark_status!=none",
+                        "label": "Only Bookmarked"
+                    }
+                ],
+                "token": "bookmark"
+            },
+            "title": "Just Bookmarked?"
+        }
+    },
+    "layout": {
+        "type": "grid",
+        "options": {
+            "height": 2837,
+            "width": 1440
+        },
+        "structure": [
+            {
+                "item": "input_nHOmXQ48",
+                "type": "input",
+                "position": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 199,
+                    "h": 90
+                }
+            },
+            {
+                "item": "viz_vWSv5zxZ",
+                "type": "block",
+                "position": {
+                    "x": 0,
+                    "y": 90,
+                    "w": 240,
+                    "h": 203
+                }
+            },
+            {
+                "item": "viz_BedD1lbO",
+                "type": "block",
+                "position": {
+                    "x": 0,
+                    "y": 293,
+                    "w": 480,
+                    "h": 327
+                }
+            },
+            {
+                "item": "viz_Ccjh8H7I",
+                "type": "block",
+                "position": {
+                    "x": 0,
+                    "y": 620,
+                    "w": 480,
+                    "h": 691
+                }
+            },
+            {
+                "item": "viz_2q4mdUlA",
+                "type": "block",
+                "position": {
+                    "x": 0,
+                    "y": 1311,
+                    "w": 1440,
+                    "h": 285
+                }
+            },
+            {
+                "item": "viz_RUDA1fg7",
+                "type": "block",
+                "position": {
+                    "x": 0,
+                    "y": 1596,
+                    "w": 720,
+                    "h": 414
+                }
+            },
+            {
+                "item": "input_jUZVarIv",
+                "type": "input",
+                "position": {
+                    "x": 199,
+                    "y": 0,
+                    "w": 198,
+                    "h": 90
+                }
+            },
+            {
+                "item": "viz_5fJyDCKZ",
+                "type": "block",
+                "position": {
+                    "x": 240,
+                    "y": 90,
+                    "w": 301,
+                    "h": 203
+                }
+            },
+            {
+                "item": "input_AhIMPU0j",
+                "type": "input",
+                "position": {
+                    "x": 397,
+                    "y": 0,
+                    "w": 198,
+                    "h": 90
+                }
+            },
+            {
+                "item": "viz_k1VtGVnc",
+                "type": "block",
+                "position": {
+                    "x": 480,
+                    "y": 293,
+                    "w": 480,
+                    "h": 327
+                }
+            },
+            {
+                "item": "viz_uH4SJ4Oq",
+                "type": "block",
+                "position": {
+                    "x": 480,
+                    "y": 620,
+                    "w": 480,
+                    "h": 691
+                }
+            },
+            {
+                "item": "viz_CevJhh0n",
+                "type": "block",
+                "position": {
+                    "x": 541,
+                    "y": 90,
+                    "w": 192,
+                    "h": 203
+                }
+            },
+            {
+                "item": "viz_1vALm6pD",
+                "type": "block",
+                "position": {
+                    "x": 720,
+                    "y": 1596,
+                    "w": 720,
+                    "h": 414
+                }
+            },
+            {
+                "item": "viz_Y9wAHtPt",
+                "type": "block",
+                "position": {
+                    "x": 733,
+                    "y": 90,
+                    "w": 227,
+                    "h": 203
+                }
+            },
+            {
+                "item": "viz_WUUSdg6O",
+                "type": "block",
+                "position": {
+                    "x": 960,
+                    "y": 90,
+                    "w": 244,
+                    "h": 203
+                }
+            },
+            {
+                "item": "viz_Gy56BOVj",
+                "type": "block",
+                "position": {
+                    "x": 960,
+                    "y": 293,
+                    "w": 480,
+                    "h": 327
+                }
+            },
+            {
+                "item": "viz_iUuZj0Ec",
+                "type": "block",
+                "position": {
+                    "x": 960,
+                    "y": 620,
+                    "w": 480,
+                    "h": 691
+                }
+            },
+            {
+                "item": "viz_Cy9Cz3dc",
+                "type": "block",
+                "position": {
+                    "x": 1204,
+                    "y": 90,
+                    "w": 236,
+                    "h": 203
+                }
+            }
+        ],
+        "globalInputs": []
+    },
+    "description": "",
+    "title": "Overview"
+}
+]]></definition>
+<!-- <meta><![CDATA[{
+  "isEditable":false
+}]]></meta> -->
+<meta type="hiddenElements"><![CDATA[
+{
+	"hideEdit": true,
+	"hideOpenInSearch": false,
+	"hideExport": false
+}
+    ]]></meta>
+  <label> Overview </label>
+</dashboard>

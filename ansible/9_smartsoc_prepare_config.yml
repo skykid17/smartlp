@@ -1,0 +1,6 @@
+
+# Deployment Server
+- name: Prepare and update config in MongoDB
+  hosts: deployment_server
+  roles:
+    - { role: update_config_mongodb, tags: update_config_mongodb }

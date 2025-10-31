@@ -1,0 +1,18 @@
+<nav search_view="search" color="#3C444D">
+  <view name="vo_noc" default="true"/>
+  <collection label="Incidents">
+    <view name="vo_incidents"/>
+    <view name="vo_incidents_analysis"/>
+  </collection>
+  <view name="vo_sla"/>
+  <view name="vo_oncall"/>
+  <view name="vo_team_oncall_calendar"/>
+  <view name="vo_teams"/>
+  <collection label="Configuration">
+    <view name="inputs" />
+    <view name="vo_sla_config"/>
+    <view name="vo_proxy" />
+    <view name="configuration"/>
+  </collection>
+<view name="search" label="Search"/>
+</nav>

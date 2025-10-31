@@ -1,0 +1,7 @@
+The Splunk Add-on for Tomcat allows a Splunk software administrator to pull Tomcat logs from a local Tomcat server and Tomcat performance data from local and remote Tomcat servers. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+You must also install and configure the Splunk Add-on for Java Management Extensions (JMX) if you want to collect Tomcat performance data provided by MBean attributes. 
+
+Download the Splunk Add-on for Tomcat from Splunkbase at http://splunkbase.splunk.com/app/2911. 
+
+ See the Splunk Community page for questions related to Splunk Add-on for Tomcat. 

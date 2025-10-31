@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<view isDashboard="False" template="Splunk_TA_snow:templates/splunk_ta_snow_redirect.html" type="html">
+    <label>Redirect</label>
+</view>

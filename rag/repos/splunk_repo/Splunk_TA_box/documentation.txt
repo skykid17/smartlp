@@ -1,0 +1,11 @@
+The Splunk Add-on for Box allows a Splunk software administrator to collect data from Box and monitor Box events in near real time. The add-on can collect the following data via the Box REST APIs: 
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Box from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Box. 
+
+For information about installing and configuring the Splunk Add-on for Box, see Installation and configuration overview for the Splunk Add-on for Box. 
+
+See the Splunk Community page for questions related to the Splunk Add-on for Box. 

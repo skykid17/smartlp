@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-0">Parser</h2>
+                <small id="entryStats" class="text-muted">Loading statistics...</small>
+            </div>
+            <div class="d-flex gap-2 align-items-center ">
+
+                <button id="clearEntryButton" onclick="clearEntry()" class="btn btn-primary" data-bs-toggle="tooltip"
+                    data-bs-placement="top" data-bs-title="Clear all fields">
+                    Clear
+                </button>
+                <button id="pullEntryButton" onclick="pullEntry()" class="btn btn-primary" data-bs-toggle="tooltip"
+                    data-bs-placement="top" data-bs-title="Pull the latest Unmatched entry">
+                    <i class="fa fa-download"></i> Pull Latest Unmatched Entry
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Left Column -->
+            <div id="leftColumn" class="col-md-8">
+                <!-- REGEX Section -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">REGEX</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-secondary" onclick="reduceRegex()" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Returns the longest matching regex sequence.">
+                            Reduce
+                        </button>
+                        <button id="generateButton" class="btn btn-secondary aiButton" onclick="queryLLM('generate')"
+                            data-bs-toggle="tooltip" data-bs-placement="top"
+                            data-bs-title="Use AI to generate a regex for the log..">
+                            <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Generate
+                            <span id="generateSpinner" class="spinner-border spinner-border-sm ms-1 d-none"
+                                role="status" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </div>
+                <textarea id="regexDisplay" class="form-control mb-3" placeholder="Generate/Add/Edit regex here"
+                    oninput="findMatch()"></textarea>
+
+                <!-- LOG Section -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">LOG</h5>
+                    <button id="fixButton" class="btn btn-secondary aiButton" onclick="queryLLM('fix')"
+                        data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="Use AI to improve or correct the current regex.">
+                        <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Fix
+                        <span id="fixSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
+                            aria-hidden="true"></span>
+                    </button>
+                </div>
+                <pre class="bg-light border rounded p-2 text-wrap position-relative mb-3">
+                <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                <code id="logDisplay"></code>
+            </pre>
+            </div>
+
+            <!-- Right Column -->
+            <div id="rightColumn" class="col-md-4">
+                <div class="d-flex flex-row justify-content-between">
+                    <h5 class="mb-3">MATCHES</h5>
+                    <div id="matchLogger"></div>
+                </div>
+                <div id="matchDisplay" class="bg-light rounded p-2">Matches appear here</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <button id="backButton" class="btn btn-outline-secondary" onclick="window.location.href='/smartlp'">
+                &lt; Back
+            </button>
+            <div id=logger></div>
+            <button id="saveToDBButton" class="btn btn-primary" onclick="saveToDB()">
+                <i class="fa fa-database"></i> Save to Database
+                <span id="saveToDBSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
+                    aria-hidden="true"></span>
+            </button>
+        </div>
+    </div>
+</body>
+<script src="/js/smartlp/parser.js"></script>
+{% endblock %}

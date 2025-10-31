@@ -1,0 +1,9 @@
+The Splunk Add-on for BMC Remedy allows a Splunk software administrator to use BMC Remedy REST APIs to collect incident, audit, and incident work log data. This add-on for BMC Remedy integrates Remedy with your Splunk platform and enables a Splunk software administrator to create and update incidents in a Remedy system from the Splunk platform, either through search commands or the alert action provided by the add-on. 
+
+Download the Splunk Add-on for BMC Remedy from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for BMC Remedy. 
+
+For information about installing and configuring the Splunk Add-on for BMC Remedy, see Installation and configuration overview for the Splunk Add-on for BMC Remedy. 
+
+See Questions related to Splunk Add-on for BMC Remedy on Splunk Answers. 

@@ -1,0 +1,26 @@
+[{
+  "_id": {
+    "$oid": "67f48a0918cde7a9e3d6314c"
+  },
+  "id": "global",
+  "amendments": [],
+  "prefixes": [],
+  "active_llm": "qwen25-coder-32b-awq",
+  "active_llm_endpoint": "vllm",
+  "active_siem": "splunk",
+  "fix_count": 10,
+  "ingest_algo_version": "v2",
+  "ingest_frequency": 1,
+  "ingest_on": false,
+  "similarity_check": false,
+  "similarity_threshold": 0.8
+},
+{
+  "_id": {
+    "$oid": "681b0ba08eefcb4d831435fa"
+  },
+  "id": "smartuc",
+  "amendments": [],
+  "active_llm": "qwen25-coder-32b-awq",
+  "active_llm_endpoint": "vllm"
+}]

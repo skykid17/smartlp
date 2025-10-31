@@ -1,0 +1,5 @@
+The Splunk Add-on for ISC DHCP allows a Splunk software administrator to collect the DHCP access log in syslog format from the ISC DHCP platform, using file monitoring. This add-on provides the CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for ISC DHCP from Splunkbase at http://splunkbase.splunk.com/app/3010. 
+
+See the Splunk Community page for questions related to the Splunk Add-on for ISC DHCP. 

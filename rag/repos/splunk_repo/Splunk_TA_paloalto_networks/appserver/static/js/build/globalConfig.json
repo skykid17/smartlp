@@ -1,0 +1,790 @@
+{
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "iot_account",
+                    "title": "IoT accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Customer ID",
+                                "field": "name"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Customer ID",
+                            "help": "Found in the hostname when accessing IoT Security. (eg. https://customer-id.iot.paloaltonetworks.com)",
+                            "field": "name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Access Key ID",
+                            "help": "Access Key ID created in IoT security dashboard.",
+                            "field": "access_key_id",
+                            "encrypted": true,
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Secret Access Key",
+                            "help": "Secret Access Key created in IoT security dashboard.",
+                            "field": "secret_access_key",
+                            "encrypted": true,
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "data_security_account",
+                    "title": "Data Security accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Accout Name",
+                                "field": "name"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Account Name",
+                            "help": "Enter a unique name for the Data Security account",
+                            "field": "name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Client ID",
+                            "help": "Client ID created in Data Security dashboard.",
+                            "field": "client_id",
+                            "encrypted": true,
+                            "required": true
+                        },
+                        {
+                            "field": "region",
+                            "label": "Region",
+                            "help": "Region to collect data from",
+                            "required": true,
+                            "type": "singleSelect",
+                            "defaultValue": "us",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "us",
+                                        "label": "VPC1"
+                                    },
+                                    {
+                                        "value": "apac",
+                                        "label": "AP1"
+                                    },
+                                    {
+                                        "value": "eu",
+                                        "label": "EU1"
+                                    },
+                                    {
+                                        "value": "uk",
+                                        "label": "UK"
+                                    },
+                                    {
+                                        "value": "in1",
+                                        "label": "INDIA"
+                                    },
+                                    {
+                                        "value": "au1",
+                                        "label": "AUSTRALIA"
+                                    },
+                                    {
+                                        "value": "uk2",
+                                        "label": "UK2"
+                                    },
+                                    {
+                                        "value": "jp1",
+                                        "label": "JAPAN"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Client Secret",
+                            "help": "Client Secret created in Data Security dashboard.",
+                            "field": "client_secret",
+                            "encrypted": true,
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "xdr_account",
+                    "title": "Cortex XDR accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Tenant name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Tenant region",
+                                "field": "region"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Tenant name",
+                            "help": "Value can be found in Cortex XDR URL: https://<tenantname>.xdr.<tenantregion>.paloaltonetworks.com/.",
+                            "field": "name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Tenant region",
+                            "help": "Value can be found in Cortex XDR URL: https://<tenantname>.xdr.<tenantregion>.paloaltonetworks.com/.",
+                            "field": "region",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "API Key ID",
+                            "help": "ID column in API Keys dashboard.",
+                            "field": "api_key_id",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "API Key",
+                            "help": "API key should have 'Advanced' security level with a role of 'Viewer'.",
+                            "field": "api_key",
+                            "encrypted": true,
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "firewall_account",
+                    "title": "Firewall & Panorama accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Host",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Firewall/Panorama username",
+                                "field": "username"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Firewall/Panorama address",
+                            "help": "Enter IP or hostname of firewall/panorama.",
+                            "field": "name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Firewall/Panorama username",
+                            "help": "Enter username for firewall/panorama account.",
+                            "field": "username",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Firewall/Panorama password",
+                            "help": "Enter password for firewall/panorama account.",
+                            "field": "password",
+                            "encrypted": true,
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "proxy",
+                    "title": "Proxy",
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "label": "Enable",
+                            "type": "checkbox"
+                        },
+                        {
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "http",
+                                        "value": "http"
+                                    },
+                                    {
+                                        "label": "socks5",
+                                        "value": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http"
+                        },
+                        {
+                            "field": "proxy_url",
+                            "label": "Host",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 4096,
+                                    "errorMsg": "Max host length is 4096"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_port",
+                            "label": "Port",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_username",
+                            "label": "Username",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 50,
+                                    "errorMsg": "Max length of username is 50"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of password is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "checkbox",
+                            "label": "Reverse DNS resolution",
+                            "field": "proxy_rdns"
+                        }
+                    ],
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    }
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Log level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+                                    "pattern": "^DEBUG|INFO|WARNING|ERROR|CRITICAL$"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    },
+                    {
+                        "field": "feed_url",
+                        "label": "Output Node Feed URL"
+                    },
+                    {
+                        "field": "indicator_timeout",
+                        "label": "Indicator Timeout"
+                    },
+                    {
+                        "field": "credentials",
+                        "label": "Feed Credentials"
+                    },
+                    {
+                        "field": "region",
+                        "label": "Region"
+                    },
+                    {
+                        "field": "global_account",
+                        "label": "Global Account"
+                    },
+                    {
+                        "field": "label",
+                        "label": "Label"
+                    },
+                    {
+                        "field": "customer_id",
+                        "label": "Customer ID"
+                    },
+                    {
+                        "field": "access_key_id",
+                        "label": "Access Key ID"
+                    },
+                    {
+                        "field": "secret_access_key",
+                        "label": "Secret Access Key"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ]
+            },
+            "services": [
+                {
+                    "template": "input_with_helper",
+                    "name": "palo_iot_security",
+                    "title": "IoT Security",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of input in seconds.",
+                            "required": true
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "help": "Index where data is going to be ingested.",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "IoT account",
+                            "options": {
+                                "referenceName": "iot_account"
+                            },
+                            "help": "IoT account to use for this input.",
+                            "field": "iot_account",
+                            "required": true
+                        },
+                        {
+                            "field": "start_time",
+                            "label": "Collection date time start",
+                            "type": "text",
+                            "help": "Specify a date and time in UTC format (YYYY-MM-DD HH:MM:SS) from which to start collecting data. For example, 2024-03-10 09:35:00",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                    "errorMsg": "Expects UTC datetime value YYYY-MM-DD HH:MM:SS, for example 2024-03-10 09:35:00"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "template": "input_with_helper",
+                    "name": "palo_data_security",
+                    "title": "Data Security",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of input in seconds.",
+                            "required": true
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "help": "Index where data is going to be ingested.",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Data Security account",
+                            "options": {
+                                "referenceName": "data_security_account"
+                            },
+                            "help": "Data Security account to use for this input.",
+                            "field": "data_security_account",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "template": "input_with_helper",
+                    "name": "palo_cortex_xdr",
+                    "title": "Cortex XDR",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of input in seconds.",
+                            "required": true
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "help": "Index where data is going to be ingested.",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "type": "checkbox",
+                            "label": "Incident details",
+                            "help": "Enrich incidents with details",
+                            "field": "xdr_get_details"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Cortex XDR account",
+                            "options": {
+                                "referenceName": "xdr_account"
+                            },
+                            "help": "Cortex XDR to use for this input.",
+                            "field": "xdr_account",
+                            "required": true
+                        },
+                        {
+                            "field": "start_time",
+                            "label": "Collection date time start",
+                            "type": "text",
+                            "help": "Specify a date and time in UTC format (YYYY-MM-DD HH:MM:SS) from which to start collecting data. For example, 2024-03-10 09:35:00",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
+                                    "errorMsg": "Expects UTC datetime value YYYY-MM-DD HH:MM:SS, for example 2024-03-10 09:35:00"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ],
+            "settings": {
+                "custom_license_usage": {
+                    "determine_by": "sourcetype",
+                    "search_condition": [
+                        "pan*"
+                    ]
+                }
+            }
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_paloalto_networks",
+        "restRoot": "splunk_ta_paloalto_networks",
+        "version": "2.0.1",
+        "displayName": "Splunk Add-on for Palo Alto Networks",
+        "schemaVersion": "0.0.9",
+        "_uccVersion": "5.57.1"
+    },
+    "alerts": [
+        {
+            "name": "alert_pantag",
+            "label": "Palo Alto Networks Tag to Dynamic",
+            "description": "Add/remove Palo Alto Networks dynamic address or user group tag",
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "Hostname",
+                    "field": "hostname",
+                    "help": "IP or hostname of Firewall/Panorama to apply tag. Make sure that account with the same hostname is configured in the add-on's Firewall & Panorama section.",
+                    "required": true
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Action",
+                    "field": "action",
+                    "help": "Add or Remove the tag.",
+                    "required": true,
+                    "defaultValue": "add_ip",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "add_ip",
+                                "label": "Add IP"
+                            },
+                            {
+                                "value": "remove_ip",
+                                "label": "Remove IP"
+                            },
+                            {
+                                "value": "add_user",
+                                "label": "Add User"
+                            },
+                            {
+                                "value": "remove_user",
+                                "label": "Remove User"
+                            }
+                        ],
+                        "disableSearch": true
+                    }
+                },
+                {
+                    "type": "text",
+                    "label": "Tags",
+                    "field": "tags",
+                    "help": "Tags to add or remove (use spaces to separate multiple tags)",
+                    "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "Timeout",
+                    "field": "timeout",
+                    "required": false,
+                    "help": "Specify timeout to unregister tag mapping after a specified amount of time. If no timeout is specified, the tag mapping should be unregistered manually."
+                }
+            ]
+        }
+    ]
+}

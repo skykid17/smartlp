@@ -1,0 +1,11 @@
+Use the Splunk Add-on for Amazon Web Services (AWS) to collect performance, billing, raw or JSON data, and IT and security data on Amazon Web Service products using either a push-based (Amazon Kinesis Firehose) or pull-based (API) collection method.
+
+This add-on provides modular inputs and CIM-compatible knowledge to use with other Splunk apps, such as the Splunk App for AWS, Splunk Enterprise Security, and Splunk IT Service Intelligence.
+
+See Use cases for the Splunk Add-on for AWS for more information.
+
+Download the Splunk Add-on for Amazon Web Services from Splunkbase. See Deploy the Splunk Add-on for AWS for information about installing and configuring this add-on.
+
+See Release notes for the Splunk Add-on for AWS for a summary of new features, fixed issues, and known issues.
+
+See Questions related to Splunk Add-on for Amazon Web Services on the Splunk Community page.

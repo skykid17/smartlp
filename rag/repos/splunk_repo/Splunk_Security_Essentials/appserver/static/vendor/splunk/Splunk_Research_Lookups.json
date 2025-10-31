@@ -1,0 +1,967 @@
+{
+  "lookups": [
+    {
+      "filename": "3cx_ioc_domains_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(domain)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "3cx_ioc_domains",
+      "description": "A list of domains from the 3CX supply chain attack."
+    },
+    {
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_detect_dns_data_exfiltration_using_pretrained_model_in_dsdl",
+      "description": "Detect DNS Data Exfiltration using pretrained Model in DSDL"
+    },
+    {
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_detect_suspicious_dns_txt_records_using_pretrained_model_in_dsdl",
+      "description": "Detect suspicious DNS txt records using Pretrained Model in DSDL"
+    },
+    {
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_detect_suspicious_processnames_using_pretrained_model_in_dsdl",
+      "description": "Detect a suspicious processname using Pretrained Model in DSDL"
+    },
+    {
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_pretrained_dga_model_dsdl",
+      "description": "Detect DGA domains using Pretrained Model in DSDL"
+    },
+    {
+      "default_match": "false",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_risky_spl_pre_trained_model",
+      "description": "Detect Risky SPL using Pretrained ML Model"
+    },
+    {
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "__mlspl_unusual_commandline_detection",
+      "description": "An MLTK model for detecting malicious commandlines"
+    },
+    {
+      "filename": "ace_access_rights_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "ace_access_rights_lookup",
+      "description": "A lookup file that will contain translations for AD object ace access rights strings"
+    },
+    {
+      "filename": "ace_flag_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "ace_flag_lookup",
+      "description": "A lookup file that will contain translations for AD object ace flags strings"
+    },
+    {
+      "filename": "ace_type_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "ace_type_lookup",
+      "description": "A lookup file that will contain translations for AD object ace type strings"
+    },
+    {
+      "filename": "advanced_audit_policy_guids_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(GUID)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "advanced_audit_policy_guids",
+      "description": "List of GUIDs associated with Windows advanced audit policies"
+    },
+    {
+      "collection": "api_call_by_user_baseline",
+      "fields_list": "_key, arn, latestCount, numDataPoints, avgApiCalls, stdevApiCalls",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "api_call_by_user_baseline",
+      "description": "A collection that will contain the baseline information for number of AWS API calls per user"
+    },
+    {
+      "filename": "applockereventcodes_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(AppLocker_Event_Code)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "applockereventcodes",
+      "description": "A csv of the ID and rule name for AppLocker event codes."
+    },
+    {
+      "filename": "asr_rules_20250129.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(ASR_Rule)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "asr_rules",
+      "description": "A csv of the ID and rule name for ASR, Microsoft Attack Surface Reduction rules."
+    },
+    {
+      "filename": "attacker_tools_20250318.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(attacker_tool_names)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "attacker_tools",
+      "description": "A list of tools used by attackers"
+    },
+    {
+      "filename": "aws_service_accounts_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "aws_service_accounts",
+      "description": "A lookup file that will contain AWS Service accounts"
+    },
+    {
+      "filename": "baseline_blocked_outbound_connections_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "baseline_blocked_outbound_connections",
+      "description": "A lookup file that will contain the baseline information for number of blocked outbound connections"
+    },
+    {
+      "filename": "brandMonitoring_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(domain)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "brandMonitoring_lookup",
+      "description": "A file that contains look-a-like domains for brands that you want to monitor"
+    },
+    {
+      "filename": "browser_app_list_20241223.csv",
+      "default_match": "false",
+      "match_type": "WILDCARD(browser_process_name), WILDCARD(browser_object_path)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "browser_app_list",
+      "description": "A list of known browser application being targeted for credential extraction."
+    },
+    {
+      "filename": "builtin_groups_lookup_20250129.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "builtin_groups_lookup",
+      "description": "A lookup file that will contain translations for builtin AD group strings"
+    },
+    {
+      "filename": "char_conversion_matrix_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(data)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "true",
+      "name": "char_conversion_matrix",
+      "description": "A simple conversion matrix for converting to and from UTF8/16 base64/hex/decimal encoding. Created mosty from https://community.splunk.com/t5/Splunk-Search/base64-decoding-in-search/m-p/27572#M177741, with small modifications for UTF16LE parsing for powershell encoding."
+    },
+    {
+      "filename": "cisco_secure_firewall_filetype_lookup_20250403.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "cisco_secure_firewall_filetype_lookup",
+      "description": "A list that maps filetypes in cisco secure firewall threat defense with their ids and description"
+    },
+    {
+      "filename": "cisco_snort_ids_to_threat_mapping_20250512.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "cisco_snort_ids_to_threat_mapping",
+      "description": "Mapping file of Snort IDs to Threats"
+    },
+    {
+      "collection": "cloud_instances_enough_data",
+      "fields_list": "_key, filter, enough_data",
+      "default_match": "",
+      "match_type": "WILDCARD(filter)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "cloud_instances_enough_data",
+      "description": "A lookup to determine if you have a sufficient amount of time has passed to collect cloud instance data for behavioral searches"
+    },
+    {
+      "filename": "data_sources_20250521.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "data_sources",
+      "description": "A lookup file that contains the data source objects for detections."
+    },
+    {
+      "collection": "decommissioned_buckets",
+      "fields_list": "_key, bucketName, hosts, firstEvent, lastEvent, events, policy_details, website_details, accountIds, userARNs, awsRegions",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "decommissioned_buckets",
+      "description": "A lookup table of decommissioned S3 buckets created by baseline - Baseline of Open S3 Bucket Decommissioning. This lookup table is used by detections searches to trigger alerts when decommissioned buckets are detected."
+    },
+    {
+      "filename": "discovered_dns_records_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "discovered_dns_records",
+      "description": "A placeholder for a list of discovered DNS records generated by the baseline discover_dns_records"
+    },
+    {
+      "filename": "domain_admins_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "domain_admins",
+      "description": "List of domain admins"
+    },
+    {
+      "filename": "domains_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "domains",
+      "description": "A list of domains that can be ignored"
+    },
+    {
+      "filename": "dynamic_dns_providers_default_20250129.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(dynamic_dns_domains)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "dynamic_dns_providers_default",
+      "description": "A list of dynammic dns providers that should not be modified"
+    },
+    {
+      "filename": "dynamic_dns_providers_local_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(dynamic_dns_domains)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "dynamic_dns_providers_local",
+      "description": "A list of dynammic dns providers that can be modified"
+    },
+    {
+      "filename": "hijacklibs_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(library)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "hijacklibs",
+      "description": "A list of potentially abused libraries in Windows"
+    },
+    {
+      "filename": "hijacklibs_loaded_20241223.csv",
+      "default_match": "false",
+      "match_type": "WILDCARD(library), WILDCARD(excludes)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "hijacklibs_loaded",
+      "description": "A list of potentially abused libraries in Windows"
+    },
+    {
+      "filename": "images_to_repository_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "images_to_repository",
+      "description": "Mapping images to repositories"
+    },
+    {
+      "filename": "is_net_windows_file_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "is_net_windows_file",
+      "description": "A full baseline of executable files in \\Windows\\, including sub-directories from Server 2016 and Windows 11. Certain .net binaries may not have been captured due to different Windows SDK's or developer utilities not installed during baseline."
+    },
+    {
+      "filename": "is_nirsoft_software_20250424.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "is_nirsoft_software",
+      "description": "A subset of utilities provided by NirSoft that may be used by adversaries."
+    },
+    {
+      "filename": "is_suspicious_file_extension_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(file_name)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "is_suspicious_file_extension_lookup",
+      "description": "A list of suspicious extensions for email attachments"
+    },
+    {
+      "filename": "is_windows_system_file_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "is_windows_system_file",
+      "description": "A full baseline of executable files in Windows\\System32 and Windows\\Syswow64, including sub-directories from Server 2016 and Windows 10."
+    },
+    {
+      "collection": "k8s_container_network_io_baseline",
+      "fields_list": "_key, avg_outbound_network_io, avg_inbound_network_io, stdev_outbound_network_io, stdev_inbound_network_io, count, last_seen",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "k8s_container_network_io_baseline",
+      "description": "A place holder for a list of used Kuberntes Container Network IO"
+    },
+    {
+      "collection": "k8s_container_network_io_ratio_baseline",
+      "fields_list": "_key, avg_outbound_network_io, avg_inbound_network_io, stdev_outbound_network_io, stdev_inbound_network_io, count, last_seen",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "k8s_container_network_io_ratio_baseline",
+      "description": "A place holder for a list of used Kuberntes Container Network IO Ratio"
+    },
+    {
+      "collection": "k8s_process_resource_baseline",
+      "fields_list": "_key, host.name, k8s.cluster.name, k8s.node.name, process.executable.name, avg_process.cpu.time, avg_process.cpu.utilization, avg_process.disk.io, avg_process.disk.operations, avg_process.memory.usage, avg_process.memory.utilization, avg_process.memory.virtual, avg_process.threads, stdev_process.cpu.time, stdev_process.cpu.utilization, stdev_process.disk.io, stdev_process.disk.operations, stdev_process.memory.usage, stdev_process.memory.utilization, stdev_process.memory.virtual, stdev_process.threads",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "k8s_process_resource_baseline",
+      "description": "A place holder for a list of used Kuberntes Process Resource"
+    },
+    {
+      "collection": "k8s_process_resource_ratio_baseline",
+      "fields_list": "_key, avg_cpu:mem, stdev_cpu:mem, avg_cpu:disk, stdev_cpu:disk, avg_mem:disk, stdev_mem:disk, avg_cpu:threads, stdev_cpu:threads, avg_disk:threads, avg_disk:threads, count, last_seen",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "k8s_process_resource_ratio_baseline",
+      "description": "A place holder for a list of used Kuberntes Process Ratios"
+    },
+    {
+      "filename": "legit_domains_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "legit_domains",
+      "description": "A list of legit domains to be used as an ignore list for possible phishing sites"
+    },
+    {
+      "filename": "linux_tool_discovery_process_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(process)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "linux_tool_discovery_process",
+      "description": "A list of suspicious bash commonly used by attackers via scripts"
+    },
+    {
+      "filename": "local_file_inclusion_paths_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(local_file_inclusion_paths)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "local_file_inclusion_paths",
+      "description": "A list of interesting files in a local file inclusion attack"
+    },
+    {
+      "filename": "lolbas_file_path_20241223.csv",
+      "default_match": "false",
+      "match_type": "WILDCARD(lolbas_file_name), WILDCARD(lolbas_file_path)",
+      "min_matches": 1,
+      "max_matches": 1,
+      "case_sensitive_match": "false",
+      "name": "lolbas_file_path",
+      "description": "A list of LOLBAS and their file path used in determining if a script or binary is valid on windows, Updated for 2024 from lolbas project."
+    },
+    {
+      "filename": "loldrivers_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(driver_name)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "loldrivers",
+      "description": "A list of known vulnerable drivers"
+    },
+    {
+      "filename": "lookup_rare_process_allow_list_default_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(process)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "lookup_rare_process_allow_list_default",
+      "description": "A list of rare processes that are legitimate that is provided by Splunk"
+    },
+    {
+      "filename": "lookup_rare_process_allow_list_local_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(process)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "lookup_rare_process_allow_list_local",
+      "description": "A list of rare processes that are legitimate provided by the end user"
+    },
+    {
+      "filename": "lookup_uncommon_processes_default_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(process)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "lookup_uncommon_processes_default",
+      "description": "A list of processes that are not common"
+    },
+    {
+      "filename": "lookup_uncommon_processes_local_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(process)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "lookup_uncommon_processes_local",
+      "description": "A list of processes that are not common"
+    },
+    {
+      "filename": "malicious_powershell_strings_20250303.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(command)",
+      "min_matches": 1,
+      "max_matches": 1,
+      "case_sensitive_match": "false",
+      "name": "malicious_powershell_strings",
+      "description": "A list of commands and commandlets used with known malicious powershell tooling."
+    },
+    {
+      "filename": "mandatory_job_for_workflow_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "mandatory_job_for_workflow",
+      "description": "A lookup file that will be used to define the mandatory job for workflow"
+    },
+    {
+      "filename": "mandatory_step_for_job_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "mandatory_step_for_job",
+      "description": "A lookup file that will be used to define the mandatory step for job"
+    },
+    {
+      "filename": "msad_guid_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "msad_guid_lookup",
+      "description": "A lookup file that will contain translations for AD object ace control access rights guids"
+    },
+    {
+      "filename": "network_acl_activity_baseline_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "network_acl_activity_baseline",
+      "description": "A lookup file that will contain the baseline information for number of AWS Network ACL Activity"
+    },
+    {
+      "collection": "previously_seen_S3_access_from_remote_ip",
+      "fields_list": "_key, bucket_name, remote_ip, earliest, latest",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_S3_access_from_remote_ip",
+      "description": "A placeholder for a list of IPs that have access S3"
+    },
+    {
+      "collection": "previously_seen_api_calls_from_user_roles",
+      "fields_list": "_key, earliest, latest, userName, eventName",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_api_calls_from_user_roles",
+      "description": "A placeholder for a list of IPs that have access S3"
+    },
+    {
+      "collection": "previously_seen_aws_cross_account_activity",
+      "fields_list": "_key, firstTime, lastTime, requestingAccountId, requestedAccountId",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_aws_cross_account_activity",
+      "description": "A placeholder for a list of AWS accounts and assumed roles"
+    },
+    {
+      "collection": "previously_seen_aws_regions",
+      "fields_list": "_key, earliest, latest, awsRegion",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_aws_regions",
+      "description": "A place holder for a list of used AWS regions"
+    },
+    {
+      "collection": "previously_seen_cloud_api_calls_per_user_role",
+      "fields_list": "_key, user, command, firstTimeSeen, lastTimeSeen, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_api_calls_per_user_role",
+      "description": "A table of users, commands, and the first and last time that they have been seen"
+    },
+    {
+      "collection": "previously_seen_cloud_compute_creations_by_user",
+      "fields_list": "_key, firstTimeSeen, lastTimeSeen, user, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_compute_creations_by_user",
+      "description": "A table of previously seen users creating cloud instances"
+    },
+    {
+      "collection": "previously_seen_cloud_compute_images",
+      "fields_list": "_key, firstTimeSeen, lastTimeSeen, image_id, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_compute_images",
+      "description": "A table of previously seen Cloud image IDs"
+    },
+    {
+      "collection": "previously_seen_cloud_compute_instance_types",
+      "fields_list": "_key, firstTimeSeen, lastTimeSeen, instance_type, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_compute_instance_types",
+      "description": "A place holder for a list of used cloud compute instance types"
+    },
+    {
+      "collection": "previously_seen_cloud_instance_modifications_by_user",
+      "fields_list": "_key, firstTimeSeen, lastTimeSeen, user, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_instance_modifications_by_user",
+      "description": "A table of users seen making instance modifications, and the first and last time that the activity was observed"
+    },
+    {
+      "collection": "previously_seen_cloud_provisioning_activity_sources",
+      "fields_list": "_key, src, City, Country, Region, firstTimeSeen, lastTimeSeen, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_provisioning_activity_sources",
+      "description": "A table of source IPs, geographic locations, and the first and last time that they have that done cloud provisioning activities"
+    },
+    {
+      "collection": "previously_seen_cloud_regions",
+      "fields_list": "_key, firstTimeSeen, lastTimeSeen, vendor_region, enough_data",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cloud_regions",
+      "description": "A table of vendor_region values and the first and last time that they have been observed in cloud provisioning activities"
+    },
+    {
+      "filename": "previously_seen_cmd_line_arguments_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_cmd_line_arguments",
+      "description": "A placeholder for a list of cmd line arugments that been seen before"
+    },
+    {
+      "collection": "previously_seen_ec2_amis_lookup",
+      "fields_list": "_key, firstTime, lastTime, amiID",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_ec2_amis_lookup",
+      "description": "A place holder for a list of used Previously Seen EC2 AMIs"
+    },
+    {
+      "collection": "previously_seen_ec2_instance_types_lookup",
+      "fields_list": "_key, earliest, latest, instanceType",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_ec2_instance_types_lookup",
+      "description": "A place holder for a list of used previously seen EC2 instance types."
+    },
+    {
+      "collection": "previously_seen_ec2_launches_by_user_lookup",
+      "fields_list": "_key, firstTime, lastTime, arn",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_ec2_launches_by_user_lookup",
+      "description": "A place holder for a list of previouslyt seen EC2 launches by user"
+    },
+    {
+      "filename": "previously_seen_ec2_modifications_by_user_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_ec2_modifications_by_user",
+      "description": "A place holder for a list of AWS EC2 modifications done by each user"
+    },
+    {
+      "collection": "previously_seen_gcp_storage_access_from_remote_ip",
+      "fields_list": "_key, firstTime, lastTime, bucket_name, remote_ip, operation, request_uri",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_gcp_storage_access_from_remote_ip",
+      "description": "A place holder for a list of GCP storage access from remote IPs"
+    },
+    {
+      "collection": "previously_seen_provisioning_activity_src",
+      "fields_list": "_key, firstTime, lastTime, sourceIPAddress, City, Region, Country",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_provisioning_activity_src",
+      "description": "A placeholder for the list of previously seen AWS provisioning activity"
+    },
+    {
+      "collection": "previously_seen_running_windows_services",
+      "fields_list": "_key, service, firstTimeSeen, lastTimeSeen",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_running_windows_services",
+      "description": "A placeholder for the list of Windows Services running"
+    },
+    {
+      "collection": "previously_seen_users_console_logins",
+      "fields_list": "_key, firstTime, lastTime, user, src, City, Region, Country",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "previously_seen_users_console_logins",
+      "description": "A table of users seen doing console logins, and the first and last time that the activity was observed"
+    },
+    {
+      "filename": "privileged_azure_ad_roles_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(azureadrole), WILDCARD(azuretemplateid)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "privileged_azure_ad_roles",
+      "description": "A list of privileged Azure Active Directory roles, includes updates for 2024 and template IDs."
+    },
+    {
+      "filename": "prohibited_apps_launching_cmd_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(prohibited_applications)",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "prohibited_apps_launching_cmd",
+      "description": "A list of processes that should not be launching cmd.exe"
+    },
+    {
+      "filename": "prohibited_processes_20241223.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "prohibited_processes",
+      "description": "A list of processes that have been marked as prohibited"
+    },
+    {
+      "filename": "ransomware_extensions_lookup_20250318.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(Extensions)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "ransomware_extensions_lookup",
+      "description": "A list of file extensions that are associated with ransomware"
+    },
+    {
+      "filename": "ransomware_notes_lookup_20250303.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(ransomware_notes)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "ransomware_notes_lookup",
+      "description": "A list of file names that are ransomware note files"
+    },
+    {
+      "filename": "remote_access_software_20250404.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(remote_utility), WILDCARD(remote_domain), WILDCARD(remote_utility_fileinfo)",
+      "min_matches": 1,
+      "max_matches": 1,
+      "case_sensitive_match": "false",
+      "name": "remote_access_software",
+      "description": "A list of Remote Access Software"
+    },
+    {
+      "collection": "remote_access_software_exceptions",
+      "fields_list": "_key, asset, software, exception_date, exception_ttl_days, exception, comment",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "remote_access_software_exceptions",
+      "description": "A list used to provide global exceptions to remote access monitoring content."
+    },
+    {
+      "collection": "s3_deletion_baseline",
+      "fields_list": "_key, arn, latestCount, numDataPoints, avgApiCalls, stdevApiCalls",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "s3_deletion_baseline",
+      "description": "A placeholder for the baseline information for AWS S3 deletions"
+    },
+    {
+      "collection": "security_group_activity_baseline",
+      "fields_list": "_key, arn, latestCount, numDataPoints, avgApiCalls, stdevApiCalls",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "security_group_activity_baseline",
+      "description": "A placeholder for the baseline information for AWS security groups"
+    },
+    {
+      "filename": "security_services_lookup_20250129.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(service)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "security_services_lookup",
+      "description": "A list of services that deal with security, such as Antivirus, Endpoint Detection and Response, etc."
+    },
+    {
+      "filename": "splunk_risky_command_20241223.csv",
+      "default_match": "false",
+      "match_type": "WILDCARD(splunk_risky_command)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "splunk_risky_command",
+      "description": "A list of Risky Splunk Command that are candidates for abuse"
+    },
+    {
+      "filename": "sslbl_ssl_certificate_blacklist_20250403.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "sslbl_ssl_certificate_blacklist",
+      "description": "abuse.ch SSLBL SSL Certificate Blacklist (SHA1 Fingerprints)"
+    },
+    {
+      "filename": "suspicious_writes_lookup_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(file)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "suspicious_writes_lookup",
+      "description": "A list of suspicious file names"
+    },
+    {
+      "filename": "threat_snort_count_20250513.csv",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "threat_snort_count",
+      "description": "A list of threats and the number of distinct Snort IDs that should be fired to create an alert"
+    },
+    {
+      "filename": "windows_protocol_handlers_20241223.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(handler)",
+      "min_matches": 1,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "windows_protocol_handlers",
+      "description": "A list of Windows Protocol Handlers"
+    },
+    {
+      "filename": "windows_suspicious_services_20250326.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(service_name), WILDCARD(service_path)",
+      "min_matches": 1,
+      "max_matches": 1,
+      "case_sensitive_match": "false",
+      "name": "windows_suspicious_services",
+      "description": "A list of suspicious Windows Service names and locations"
+    },
+    {
+      "filename": "windows_suspicious_tasks_20250207.csv",
+      "default_match": "",
+      "match_type": "WILDCARD(task_name), WILDCARD(task_command), WILDCARD(task_arguments)",
+      "min_matches": 1,
+      "max_matches": 1,
+      "case_sensitive_match": "false",
+      "name": "windows_suspicious_tasks",
+      "description": "A list of suspicious Windows Scheduled Task names and locations"
+    },
+    {
+      "collection": "zoom_first_time_child_process",
+      "fields_list": "_key, dest, process_name, firstTimeSeen, lastTimeSeen",
+      "default_match": "",
+      "match_type": "",
+      "min_matches": null,
+      "max_matches": null,
+      "case_sensitive_match": "false",
+      "name": "zoom_first_time_child_process",
+      "description": "A list of suspicious file names"
+    }
+  ]
+}

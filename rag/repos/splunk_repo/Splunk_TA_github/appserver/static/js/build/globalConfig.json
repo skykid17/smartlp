@@ -1,0 +1,1576 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "account",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Account Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Personal Access Token",
+                                "field": "security_token"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Account Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Account Name must not exceed 50 characters.",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account name should not contain whitespace and must start with a letter and followed by alphabetic letters, digits or underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this GitHub account.",
+                            "required": true
+                        },
+                        {
+                            "field": "security_token",
+                            "label": "Personal Access Token",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "help": "Enter the personal access token generated for this GitHub account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Length of password should be between 1 and 8192"
+                                }
+                            ]
+                        }
+                    ],
+                    "title": "GitHub Account"
+                },
+                {
+                    "title": "Proxy",
+                    "name": "proxy",
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host is invalid",
+                                    "type": "regex"
+                                }
+                            ],
+                            "field": "proxy_url",
+                            "label": "Proxy Host",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Proxy Port",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Proxy Username"
+                        },
+                        {
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for password is 8192"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Proxy Password"
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_rdns",
+                            "label": "Use Proxy for DNS Resolution"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "socks5",
+                                        "label": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http",
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "help": "(DEBUG, INFO, WARN, ERROR or CRITICAL)"
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Set up your add-on"
+        },
+        "inputs": {
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "false": "Enabled",
+                            "true": "Disabled"
+                        }
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Input name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "label": "Endpoint",
+                        "field": "rest_endpoint"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Organization Name",
+                        "field": "org_name"
+                    },
+                    {
+                        "label": "Enterprise Name",
+                        "field": "enterprises_name"
+                    },
+                    {
+                        "label": "Input Type",
+                        "field": "input_type"
+                    }
+                ]
+            },
+            "description": "",
+            "services": [
+                {
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name should not contain whitespace and must start with a letter and followed by alphabetic letters, digits or underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "name",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Input Type",
+                            "required": false,
+                            "help": "Type of Input",
+                            "field": "input_type",
+                            "defaultValue": "GitHub Audit Input",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Event Type",
+                            "required": true,
+                            "help": "Select type of the events to be ingested (web,git,all)",
+                            "field": "events_type",
+                            "defaultValue": "web",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "web",
+                                        "label": "Web"
+                                    },
+                                    {
+                                        "value": "git",
+                                        "label": "Git"
+                                    },
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    }
+                                ],
+                                "display": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account Type",
+                            "required": true,
+                            "help": "Select type of the account for which events will be ingested",
+                            "field": "account_type",
+                            "defaultValue": "orgs",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "orgs",
+                                        "label": "Organization"
+                                    },
+                                    {
+                                        "value": "enterprises",
+                                        "label": "Enterprise"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "orgs",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": true,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "orgs",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "enterprises",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": true,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "enterprises",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": true
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "Organization Name",
+                            "required": false,
+                            "help": "Enter name of the Organization",
+                            "field": "org_name"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Enterprise Name",
+                            "required": false,
+                            "help": "Enter name of the Enterprise",
+                            "field": "enterprises_name"
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "Start Date",
+                            "required": false,
+                            "help": "Start Date to start the data collection. Format: YYYY-MM-DDTHH:MM:SS",
+                            "field": "start_date",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Invalid Start Date format specified",
+                                    "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})?$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GitHub Account",
+                            "options": {
+                                "referenceName": "account",
+                                "disableonEdit": true
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number or -1.",
+                                    "pattern": "^(?:-1|\\d+(?:\\.\\d+)?)$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "github_audit_input",
+                    "title": "GitHub Audit Input"
+                },
+                {
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name should not contain whitespace and must start with a letter and followed by alphabetic letters, digits or underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "name",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Input Type",
+                            "required": false,
+                            "help": "Type of Input",
+                            "field": "input_type",
+                            "defaultValue": "GitHub User Input",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GitHub Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Organization Name",
+                            "required": true,
+                            "help": "Enter valid organization name",
+                            "field": "org_name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Max length of text input is 80"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number or -1.",
+                                    "pattern": "^(?:-1|\\d+(?:\\.\\d+)?)$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": 86400
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "github_user_input",
+                    "title": "GitHub User Input"
+                },
+                {
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name should not contain whitespace and must start with a letter and followed by alphabetic letters, digits or underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "name",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Input Type",
+                            "required": false,
+                            "help": "Type of Input",
+                            "field": "input_type",
+                            "defaultValue": "GitHub Alerts Input",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account Type",
+                            "required": true,
+                            "help": "Select type of the account for which events will be ingested",
+                            "field": "account_type",
+                            "defaultValue": "orgs",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "orgs",
+                                        "label": "Organization"
+                                    },
+                                    {
+                                        "value": "enterprises",
+                                        "label": "Enterprise"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "orgs",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": true,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": true,
+                                            "value": "all"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "orgs",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "enterprises",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": true,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "enterprises",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "org_name",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false
+                                        },
+                                        {
+                                            "fieldId": "enterprises_name",
+                                            "display": true
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "Organization Name",
+                            "required": false,
+                            "help": "Enter name of the Organization",
+                            "field": "org_name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 39,
+                                    "errorMsg": "Maximum length allowed for Organization Name is 39",
+                                    "minLength": 1
+                                }
+                            ],
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Enterprise Name",
+                            "required": false,
+                            "help": "Enter name of the Enterprise",
+                            "field": "enterprises_name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 60,
+                                    "errorMsg": "Maximum length allowed for Enterprise Name is 60",
+                                    "minLength": 1
+                                }
+                            ],
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Alert Type",
+                            "required": true,
+                            "help": "Select type of the alert for which events will be ingested",
+                            "field": "alert_type",
+                            "defaultValue": "code_scanning_alerts",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "code_scanning_alerts",
+                                        "label": "Code Scanning Alerts"
+                                    },
+                                    {
+                                        "value": "dependabot_alerts",
+                                        "label": "Dependabot Scanning Alerts"
+                                    },
+                                    {
+                                        "value": "secret_scanning_alerts",
+                                        "label": "Secret Scanning Alerts"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "code_scanning_alerts",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": true,
+                                            "value": "all"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "code_scanning_alerts",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "dependabot_alerts",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "dependabot_alerts",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "secret_scanning_alerts",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": true,
+                                            "value": "all"
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": true,
+                                            "value": "open"
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false,
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "secret_scanning_alerts",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "dependabot_severity",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_ecosystem",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "dependabot_scope",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_resolution",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_validity",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "state",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "secret_scanning_state",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "severity",
+                                            "display": false,
+                                            "value": ""
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Dependabot Alert Severity",
+                            "required": false,
+                            "help": "Select severity of the alerts to be ingested.",
+                            "field": "dependabot_severity",
+                            "defaultValue": "all",
+                            "options": {
+                                "delimiter": ",",
+                                "disableSearch": true,
+                                "items": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "critical",
+                                        "label": "Critical"
+                                    },
+                                    {
+                                        "value": "high",
+                                        "label": "High"
+                                    },
+                                    {
+                                        "value": "medium",
+                                        "label": "Medium"
+                                    },
+                                    {
+                                        "value": "low",
+                                        "label": "Low"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Dependabot Alert State",
+                            "required": false,
+                            "help": "Select state of the alerts to be ingested.",
+                            "field": "dependabot_state",
+                            "defaultValue": "all",
+                            "options": {
+                                "delimiter": ",",
+                                "disableSearch": true,
+                                "items": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "auto_dismissed",
+                                        "label": "auto_dismissed"
+                                    },
+                                    {
+                                        "value": "dismissed",
+                                        "label": "dismissed"
+                                    },
+                                    {
+                                        "value": "fixed",
+                                        "label": "fixed"
+                                    },
+                                    {
+                                        "value": "open",
+                                        "label": "open"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Dependabot Alert Ecosystem",
+                            "required": false,
+                            "help": "Select the ecosystem of the alerts to be ingested.",
+                            "field": "dependabot_ecosystem",
+                            "defaultValue": "all",
+                            "options": {
+                                "delimiter": ",",
+                                "disableSearch": true,
+                                "items": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "composer",
+                                        "label": "composer"
+                                    },
+                                    {
+                                        "value": "go",
+                                        "label": "go"
+                                    },
+                                    {
+                                        "value": "maven",
+                                        "label": "maven"
+                                    },
+                                    {
+                                        "value": "npm",
+                                        "label": "npm"
+                                    },
+                                    {
+                                        "value": "nuget",
+                                        "label": "nuget"
+                                    },
+                                    {
+                                        "value": "pip",
+                                        "label": "pip"
+                                    },
+                                    {
+                                        "value": "pub",
+                                        "label": "pub"
+                                    },
+                                    {
+                                        "value": "rubygems",
+                                        "label": "rubygems"
+                                    },
+                                    {
+                                        "value": "rust",
+                                        "label": "rust"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Dependabot Alert Scope",
+                            "required": false,
+                            "help": "Select scope of the alerts to be ingested.",
+                            "field": "dependabot_scope",
+                            "defaultValue": "all",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "development",
+                                        "label": "development"
+                                    },
+                                    {
+                                        "value": "runtime",
+                                        "label": "runtime"
+                                    }
+                                ],
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Severity",
+                            "required": false,
+                            "help": "Select severity of the alerts to be ingested.",
+                            "field": "severity",
+                            "defaultValue": "all",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "critical",
+                                        "label": "Critical"
+                                    },
+                                    {
+                                        "value": "high",
+                                        "label": "High"
+                                    },
+                                    {
+                                        "value": "medium",
+                                        "label": "Medium"
+                                    },
+                                    {
+                                        "value": "low",
+                                        "label": "Low"
+                                    },
+                                    {
+                                        "value": "warning",
+                                        "label": "Warning"
+                                    },
+                                    {
+                                        "value": "note",
+                                        "label": "Note"
+                                    },
+                                    {
+                                        "value": "error",
+                                        "label": "Error"
+                                    },
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    }
+                                ],
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Secret Scanning Alerts Resolution",
+                            "required": false,
+                            "help": "Select resolution of the alerts to be ingested.",
+                            "field": "secret_scanning_resolution",
+                            "defaultValue": "all",
+                            "options": {
+                                "delimiter": ",",
+                                "disableSearch": true,
+                                "items": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "false_positive",
+                                        "label": "false_positive"
+                                    },
+                                    {
+                                        "value": "wont_fix",
+                                        "label": "wont_fix"
+                                    },
+                                    {
+                                        "value": "revoked",
+                                        "label": "revoked"
+                                    },
+                                    {
+                                        "value": "pattern_edited",
+                                        "label": "pattern_edited"
+                                    },
+                                    {
+                                        "value": "pattern_deleted",
+                                        "label": "pattern_deleted"
+                                    },
+                                    {
+                                        "value": "used_in_tests",
+                                        "label": "used_in_tests"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Secret Scanning Alerts Validity",
+                            "required": false,
+                            "help": "Select validity of the alerts to be ingested.",
+                            "field": "secret_scanning_validity",
+                            "defaultValue": "all",
+                            "options": {
+                                "delimiter": ",",
+                                "disableSearch": true,
+                                "items": [
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "active",
+                                        "label": "active"
+                                    },
+                                    {
+                                        "value": "inactive",
+                                        "label": "inactive"
+                                    },
+                                    {
+                                        "value": "unknown",
+                                        "label": "unknown"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "State",
+                            "required": false,
+                            "help": "Select state of the alerts to be ingested.",
+                            "field": "state",
+                            "defaultValue": "all",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "open",
+                                        "label": "Open"
+                                    },
+                                    {
+                                        "value": "closed",
+                                        "label": "Closed"
+                                    },
+                                    {
+                                        "value": "dismissed",
+                                        "label": "Dismissed"
+                                    },
+                                    {
+                                        "value": "fixed",
+                                        "label": "Fixed"
+                                    },
+                                    {
+                                        "value": "all",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "resolved",
+                                        "label": "Resolved"
+                                    }
+                                ],
+                                "display": true,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Secret Scanning Alerts State",
+                            "required": false,
+                            "help": "Select state of the alerts to be ingested.",
+                            "field": "secret_scanning_state",
+                            "defaultValue": "open",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "open",
+                                        "label": "Open"
+                                    },
+                                    {
+                                        "value": "resolved",
+                                        "label": "Resolved"
+                                    }
+                                ],
+                                "display": false,
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GitHub Account",
+                            "options": {
+                                "referenceName": "account",
+                                "disableonEdit": true
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number or -1.",
+                                    "pattern": "^(?:-1|\\d+(?:\\.\\d+)?)$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": 300
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "github_alerts_input",
+                    "title": "GitHub Alerts Input"
+                }
+            ],
+            "title": "Inputs"
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ]
+        }
+    },
+    "meta": {
+        "version": "3.1.0",
+        "displayName": "Splunk_TA_github",
+        "restRoot": "Splunk_TA_github",
+        "name": "Splunk_TA_github",
+        "schemaVersion": "0.0.8",
+        "_uccVersion": "5.50.0"
+    }
+}

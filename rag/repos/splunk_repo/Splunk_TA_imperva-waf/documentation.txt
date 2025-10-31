@@ -1,0 +1,5 @@
+The Splunk Add-on for Imperva SecureSphere WAF allows a Splunk software administrator to pull system logs and traffic statistics from Imperva SecureSphere Web Application Firewall (WAF) using Syslog. After the Splunk platform indexes the events, you can consume the data using the prebuilt panels included with the add-on. This add-on provides the Common Information Model (CIM). This is compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. For more information about CIMs for this add-on, see Sourcetypes 
+
+Download the Splunk Add-on for Imperva SecureSphere WAF from Splunkbase at http://splunkbase.splunk.com/app/2874. 
+
+Discuss the Splunk Add-on for Imperva SecureSphere WAF on Splunk Answers at https://answers.splunk.com/app/questions/2874.html. 

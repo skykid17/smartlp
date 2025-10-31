@@ -1,0 +1,58 @@
+<form version="1.1">
+  <label>Okta System Logs Events Ingestion Series Trendline</label>
+  <description>Use this dashboard to monitor the Okta System Logs ingestion. The data ingestion gap for System Logs can be determined using this time-series chart for data collected via log streaming by filtering through the host. Determine the Start and End Date of the data gap, and use the modular input to collect the missing data based on the dates.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="log_time">
+      <label>Time for logs</label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Event ingestion rate for OktaIM2:log</title>
+      <input type="multiselect" token="selectedHosts" searchWhenChanged="true">
+        <label>Select a Host</label>
+        <search>
+          <query>`okta_log_streaming_indexes` sourcetype=OktaIM2:log | dedup host</query>
+          <earliest>$log_time.earliest$</earliest>
+          <latest>$log_time.latest$</latest>
+        </search>
+        <fieldForLabel>host</fieldForLabel>
+        <fieldForValue>host</fieldForValue>
+        <choice value="*">All</choice>
+        <valuePrefix>"</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter>,</delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <input type="multiselect" token="selectedSources" searchWhenChanged="true">
+        <label>Select a Source</label>
+        <search>
+          <query>`okta_log_streaming_indexes` sourcetype=OktaIM2:log | dedup source</query>
+          <earliest>$log_time.earliest$</earliest>
+          <latest>$log_time.latest$</latest>
+        </search>
+        <fieldForLabel>source</fieldForLabel>
+        <fieldForValue>source</fieldForValue>
+        <choice value="*">All</choice>
+        <valuePrefix>"</valuePrefix>
+        <valueSuffix>"</valueSuffix>
+        <delimiter>,</delimiter>
+        <initialValue>*</initialValue>
+      </input>
+      <chart>
+        <search>
+          <query>`okta_log_streaming_indexes` host IN ($selectedHosts$) source IN ($selectedSources$) sourcetype=OktaIM2:log | timechart span=5m count as events by host</query>
+          <earliest>$log_time.earliest$</earliest>
+          <latest>$log_time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>

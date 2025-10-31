@@ -1,0 +1,5 @@
+The Splunk Add-on for Apache Web Server allows a Splunk software administrator to collect and analyze data from Apache Web Server using file monitoring. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Web. 
+
+Download the Splunk Add-on for Apache Web Server from Splunkbase at http://splunkbase.splunk.com/app/3186. 
+
+Discuss the Splunk Add-on for Apache Web Server on the Splunk Community page. 

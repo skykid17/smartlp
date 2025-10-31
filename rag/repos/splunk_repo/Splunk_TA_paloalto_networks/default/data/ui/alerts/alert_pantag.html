@@ -1,0 +1,46 @@
+<form class="form-horizontal form-complex">
+<div class="control-group">
+    <label class="control-label" for="alert_pantag_hostname">Hostname <span class="required">*</span> </label>
+    <div class="controls">
+<input type="text" name="action.alert_pantag.param.hostname"
+		id="alert_pantag_hostname" />
+            <span class="help-block">
+        IP or hostname of Firewall/Panorama to apply tag. Make sure that account with the same hostname is configured in the add-on's Firewall & Panorama section.
+    </span>
+    </div>
+</div>
+<div class="control-group">
+    <label class="control-label" for="alert_pantag_action">Action <span class="required">*</span> </label>
+    <div class="controls">
+<select name="action.alert_pantag.param.action" id="alert_pantag_action">
+        <option value="add_ip">Add IP</option>
+        <option value="remove_ip">Remove IP</option>
+        <option value="add_user">Add User</option>
+        <option value="remove_user">Remove User</option>
+</select>
+            <span class="help-block">
+        Add or Remove the tag.
+    </span>
+    </div>
+</div>
+<div class="control-group">
+    <label class="control-label" for="alert_pantag_tags">Tags <span class="required">*</span> </label>
+    <div class="controls">
+<input type="text" name="action.alert_pantag.param.tags"
+		id="alert_pantag_tags" />
+            <span class="help-block">
+        Tags to add or remove (use spaces to separate multiple tags)
+    </span>
+    </div>
+</div>
+<div class="control-group">
+    <label class="control-label" for="alert_pantag_timeout">Timeout  </label>
+    <div class="controls">
+<input type="text" name="action.alert_pantag.param.timeout"
+		id="alert_pantag_timeout" />
+            <span class="help-block">
+        Specify timeout to unregister tag mapping after a specified amount of time. If no timeout is specified, the tag mapping should be unregistered manually.
+    </span>
+    </div>
+</div>
+</form>

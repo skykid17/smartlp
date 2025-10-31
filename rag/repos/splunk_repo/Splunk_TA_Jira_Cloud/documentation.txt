@@ -1,0 +1,5 @@
+Splunk Add-on for Jira Cloud collects and normalizes Audit Events and Jira Issues from Jira Cloud. Security teams can use the Audit Logs collected by the Splunk Add-on for Jira Cloud to monitor activities in Jira Cloud, including authentication, administration, and other changes. The Splunk Add-on for Jira Cloud can also fetch Jira Issues based on different filter parameters provided by the modular input from the projects available in respective domains.
+
+You can also use the Alert Actions to create a new Jira issue or update an existing one. The fetched Jira issues are CIM normalized and CIM-compatible with the knowledge to use with other Splunk Apps
+
+Download the Splunk Add-on for Jira Cloud from Splunkbase at http://splunkbase.splunk.com/app/6211.

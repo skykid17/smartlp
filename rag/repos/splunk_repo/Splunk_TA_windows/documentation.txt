@@ -1,0 +1,9 @@
+The Splunk Add-on for Windows allows a Splunk software administrator to collect: CPU, disk, I/O, memory, log, configuration, and user data with data inputs. Active Directory and Domain Name Server debug logs from Windows hosts that act as domain controllers for a supported version of a Windows Server. You must configure Active Directory audit policy since Active Directory does not log certain events by default. Domain Name Server debug logs from Windows hosts that run a Windows DNS Server. Windows DNS Server does not log certain events by default, and you must enable debug logging
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, the Splunk ITSI Operating System Module, the Splunk App for Windows Infrastructure, and the Splunk App for Microsoft Exchange
+
+Download the Splunk Add-on for Windows from Splunkbase
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for Splunk Add-on for Windows
+
+See Questions related to Splunk Add-on for Windows on the Splunk Community page

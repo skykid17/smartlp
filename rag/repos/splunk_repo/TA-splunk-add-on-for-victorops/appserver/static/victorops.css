@@ -1,0 +1,24 @@
+.dashboard-row .dashboard-panel {
+  background: inherit;
+}
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.btn-vo {
+  background-color: #0cb9a8;
+  background-image: linear-gradient(180deg,#0ed8c4,#0cb9a8);
+  background-repeat: repeat-x;
+  border: 1px solid #c3cbd4;
+  color: #FFFFFF !important;
+  text-shadow: none;
+}
+.btn-vo:hover,
+.btn-vo.active {
+  background-image: linear-gradient(180deg,#0ed8c4,#0ed8c4);
+  background-position: unset;
+  background-repeat: repeat-x;
+  background-color: #0ed8c4;
+  color: #FFFFFF !important;
+  text-decoration: none;
+}

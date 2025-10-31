@@ -1,0 +1,9 @@
+The Splunk Add-on for Sophos allows a Splunk software administrator to collect Sophos Endpoint Security events and map them to the Splunk CIM. You can then use the data with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Sophos from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Sophos. 
+
+For information about installing and configuring the Splunk Add-on for Sophos, see Installation overview for the Splunk Add-on for Sophos. 
+
+See Questions related to Splunk Add-on for Sophos on Splunk Answers. 

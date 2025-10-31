@@ -1,0 +1,7 @@
+The Splunk Add-on for CyberArk EPM allows a Splunk software administrator to pull raw and aggregated events of Inbox Events, Policy Audit Events, Admin Audit Logs and can also collect logs related to policies, computers, and computer groups using the cloud administration APIs of CyberArk EPM. Inbox Events are comprised of events related to Application Events and Threat Detection events. 
+
+This add-on provides modular inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+This add-on is only Python3 compatible. 
+
+Download the Splunk Add-on for CyberArk EPM from Splunkbase at http://splunkbase.splunk.com/app/5160. 

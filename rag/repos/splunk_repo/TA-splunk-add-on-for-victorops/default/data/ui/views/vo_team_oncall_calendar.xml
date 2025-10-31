@@ -1,0 +1,87 @@
+<form version="1.1" script="vo_team_oncall_calender.js">
+  <label>OnCall Calendar</label>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="org_field">
+      <label>Organization</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_teams` org != '' | eval name = org | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <change label="All">
+        <set token="JUNK">JUNK</set>
+      </change>
+      <!--
+      <change>
+        <unset token="form.Slug"></unset>
+      </change>
+      -->
+    </input>
+    <input type="multiselect" token="Slug" searchWhenChanged="true">
+      <label>Team Name</label>
+      <fieldForLabel>Name</fieldForLabel>
+      <fieldForValue>Slug</fieldForValue>
+      <search>
+        <query>`victorops_teams` org="$org_field$" earliest=0 | eval Name='info.name' | eval Slug = 'info.slug' | eval Slug=org+"~"+Slug
+| table Name Slug | where  isnotnull(Name) | sort Name | dedup Name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+        <!--
+        <done>
+          <set token="Slug">$form.Slug$</set>
+        </done>
+        -->
+      </search>
+    </input>
+    <!--
+    <input type="text" token="tokText" searchWhenChanged="true">
+      <label>Temporary Text Input to populate Multielect</label>
+      <change>
+          <eval token="tokMulti"></eval>
+          <eval token="form.Slug">$value$</eval>
+      </change>
+    </input>
+    -->
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <style>
+          
+.splunk-event-calendar {
+  max-width: calc(100% - 400px) !important;
+  margin: 0 auto;
+}
+.fc-basic-view .fc-body .fc-row {
+  min-height: 100px !important;
+  /*height: 100px !important;*/
+  /*max-height: 100px !important;*/
+}
+
+        </style>
+      </html>
+      <viz type="TA-splunk-add-on-for-victorops.calendar">
+        <search>
+          <query>| getTeamOnCallSchedule $Slug$ |  rex field=entry ".*\| (?&lt;username&gt;.*) \|.* " | table startTime endTime entry username  | eval displayname = username
+| join type=left username [search `victorops_teams` earliest=0 latest=now() | spath output=displayname members{}.displayName | spath output=username members{}.username | table username displayname 
+| eval zipped = mvzip(username,displayname) | fields zipped | mvexpand zipped | rex field=zipped "(?&lt;username&gt;.*),(?&lt;displayname&gt;.*)" | table username displayname | dedup username]
+| eval entry = replace(entry, username, displayname)
+| fields startTime endTime entry
+| eval count=1 | eval time = startTime+":"+endTime 
+| xyseries time entry count | eval fields=split(time,":") | eval startTime=mvindex(fields,0) | eval endTime=mvindex(fields,1) | eval span = tonumber(endTime)-tonumber(startTime) | eval _time = startTime | fields - time fields startTime endTime | fillnull</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="TA-splunk-add-on-for-victorops.calendar.calendarView">month</option>
+        <option name="TA-splunk-add-on-for-victorops.calendar.showWeekNumbers">false</option>
+        <option name="TA-splunk-add-on-for-victorops.calendar.showWeekends">true</option>
+        <option name="height">1200</option>
+        <option name="refresh.display">progressbar</option>
+      </viz>
+    </panel>
+  </row>
+</form>

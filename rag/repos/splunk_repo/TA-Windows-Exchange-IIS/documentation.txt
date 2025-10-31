@@ -1,0 +1,3 @@
+The Splunk Add-ons for Microsoft Exchange let you collect Exchange data from the hosts in your Exchange Server environment. The add-ons have been designed to work with the Splunk App for Microsoft Exchange, but are now available as a separate download from Splunkbase. You can use them with the app or to provide knowledge objects for Splunk Enterprise dashboards that you design by yourself.
+
+The Splunk Add-ons for Microsoft Exchange are available on https://splunkbase.splunk.com/app/3225.

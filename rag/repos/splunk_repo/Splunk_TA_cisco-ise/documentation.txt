@@ -1,0 +1,5 @@
+The Splunk Add-on for Cisco ISE lets a Splunk software administrator work with Cisco Identity Service Engine (ISE) syslog data. You can use the Splunk platform to analyze these logs directly or use them as a contextual data source to correlate with other communication and authentication data in the Splunk platform.
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence.
+
+You can download the Splunk Add-on for Cisco ISE at https://splunkbase.splunk.com/app/1915.

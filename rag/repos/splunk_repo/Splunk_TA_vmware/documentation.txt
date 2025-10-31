@@ -1,0 +1,17 @@
+The Splunk Add-on for VMware is a collection of add-ons used to collect and transform data from VMware vCenters, ESXi hosts and Virtual Machines. The Splunk Add-on for VMware contains the below components: 1) Splunk_TA_Vmware - Contains the python based API data collection engine and collects data from VMware environment. 2) SA-Hydra - Collects API based data from vCenter. It schedules jobs from the Search Head and runs the worker processes on each data collection node. Please install the Splunk Add-on for VMware Indexes (https://splunkbase.splunk.com/app/5640/) in order to define the indexes used by Splunk Add-on for VMware. Follow the Install and Configure Splunk Add-on for VMware Indexes(https://docs.splunk.com/Documentation/AddOns/released/VMWindex/Datacollection). Please install the Splunk Add-on for VMware Extractions (https://splunkbase.splunk.com/app/5641/) which contains the search time extractions for use with the Splunk IT Service Intelligence Virtualization Module and the Splunk App for VMware. Follow the Install and Configure Splunk Add-on for VMware Extractions (https://docs.splunk.com/Documentation/AddOns/released/VMWextractions/Datacollection). The packages "SA-VMWIndex", "TA-VMW-FieldExtractions", "Splunk_TA_vcenter" and "Splunk_TA_esxilogs" have been removed from Splunk Add-on for VMware build and published as an individual Splunkbase App in order to make the add-on compatible with Self-service installation in cloud environments If you would like to collect the vCenter logs from your environment, then install Splunk Add-on for vCenter Logs (https://splunkbase.splunk.com/app/5601) by following the steps mentioned in Install and Configure Splunk Add-on for vCenter Logs (https://docs.splunk.com/Documentation/AddOns/released/VMWvcenterlogs/CollectData). If you would like to collect the ESXi logs from your environment, then install Splunk Add-on for VMware ESXi Logs (https://splunkbase.splunk.com/app/5603/) by following the steps mentioned in Install and Configure Splunk Add-on for VMware ESXi Logs (https://docs.splunk.com/Documentation/AddOns/released/VMWesxilogs/CollectData). Each component works with a different part of the VMware Infrastructure to collect and transform the data into the format needed for the Splunk App for VMware and the Virtualization Module for ITSI, and is required to work with the Splunk OVA for VMware (https://splunkbase.splunk.com/app/3216/).
+
+(0)
+
+Categories
+
+Created By
+
+Type
+
+Downloads
+
+Licensing
+
+Splunk Answers
+
+Resources

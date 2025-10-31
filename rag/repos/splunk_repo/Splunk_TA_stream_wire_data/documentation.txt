@@ -1,0 +1,7 @@
+Splunk Add-on for Stream Wire Data is part of the purpose-built wire data collection and analytics solution from Splunk along with Splunk App for Stream for data visualization and data capture management and Splunk Add-on for Stream Forwarders for data collection.
+
+The Splunk App for Stream with the Add-on for Stream Forwarder and Add-on for Stream Wire Data actively or passively capture packets, dynamically detect applications, parse protocols, and send metadata back to your Splunk environment for over 30 protocols and 300 commercial applications.
+
+Targeted full packet capture to NAS for forensic investigation of raw packets. Aggregate data using familiar SPL aggregation methods to reduce the volume of data indexed. Capture Flow-type records, including NetFlow v5, v9, jFlow, and sFlow, and IPFIX, and send Flow Records directly into your Indexers, with optional filtering and aggregation.
+
+Ingest PCAP files in real-time or on-demand. Create MD5 hashes of file attachments for Threat Intelligence correlations using Splunk ES, and extract and store those reassembled files for forensic or DLP purposes. Parse SQL statements to help understand user intent. Understand IP client-server connections with patent-pending visualization.

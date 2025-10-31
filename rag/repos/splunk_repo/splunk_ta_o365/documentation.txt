@@ -1,0 +1,11 @@
+Note
+
+Version 4.3.0 and higher is expected to have around 1% of event duplication for the Management Activity input in the Splunk platform due to duplicate events from the Microsoft API.
+
+The Splunk Add-on for Microsoft Office 365 replaces the modular input for the Office 365 Management API within the Splunk Add-on for Microsoft Cloud Services.
+
+The Splunk Add-on for Microsoft Office 365 allows a Splunk software administrator to pull service status, service messages, and management activity logs from the Office 365 Management Activity API and the Office 365 Service Communications API. You can collect:
+
+After the Splunk platform indexes the events, you can then directly analyze the data or use it as a contextual data feed to correlate with other data in the Splunk platform.
+
+Search the Splunk Community page for more information about this add-on.

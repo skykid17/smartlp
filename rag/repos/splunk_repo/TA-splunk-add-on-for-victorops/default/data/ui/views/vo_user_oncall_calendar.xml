@@ -1,0 +1,33 @@
+<dashboard version="1.1" stylesheet="vo_calendar.css">
+  <label>User OnCall Calendar</label>
+  <row>
+    <panel>
+      <title>Calendar for pclancy</title>
+      <html>
+        <style>
+          
+.splunk-event-calendar {
+  max-width: calc(100% - 400px) !important;
+  margin: 0 auto;
+}
+.fc-basic-view .fc-body .fc-row {
+  min-height: 150px !important;
+  height: 150px !important;
+  max-height: 150px !important;
+}
+
+        </style>
+      </html>
+      <viz type="calendar_app.calendar">
+        <title></title>
+        <search>
+          <query>| getUserOnCallSchedule pclancy | eval count=1 | eval time = startTime+":"+endTime | table time, entry, count | xyseries time entry count | eval fields=split(time,":") | eval startTime=mvindex(fields,0) | eval endTime=mvindex(fields,1) | eval span = tonumber(endTime)-tonumber(startTime) | eval _time = startTime | fields - time fields startTime endTime | fillnull</query>
+        </search>
+        <option name="calendar_app.calendar.calendarView">month</option>
+        <option name="calendar_app.calendar.showWeekNumbers">false</option>
+        <option name="calendar_app.calendar.showWeekends">true</option>
+        <option name="height">1200</option>
+      </viz>
+    </panel>
+  </row>
+</dashboard>

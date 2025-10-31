@@ -1,0 +1,9 @@
+The Splunk Add-on for Java Management Extensions (JMX) allows a Splunk software administrator to poll local or remote JMX Management Servers running in Java Virtual Machines and index MBean attributes, outputs from MBean operations, and MBean notifications. This add-on provides modular inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Java Management Extensions. 
+
+For information about installing and configuring the Splunk Add-on for Java Management Extensions, see Installation and configuration overview for the Splunk Add-on for Java Management Extensions. 
+
+Download the Splunk Add-on for Java Management Extensions from Splunkbase. 
+
+See the Splunk Community page for questions related to Splunk Add-on for Java Management Extensions. 

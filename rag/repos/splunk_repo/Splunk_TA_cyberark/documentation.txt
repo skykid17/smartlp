@@ -1,0 +1,5 @@
+The Splunk Add-on for CyberArk allows a Splunk software administrator to pull system logs and traffic statistics from Privileged Threat Analytics (PTA) 12.2 and Enterprise Password Vault (EPV) 12.2 using syslog in Common Event Format (CEF). This add-on extracts CyberArk real-time privileged account activities (such as individual user activity when using shared accounts) into the Splunk platform and Splunk Enterprise Security, providing a single place to analyze unusual account activity. 
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for CyberArk from Splunkbase at http://splunkbase.splunk.com/app/2891. 

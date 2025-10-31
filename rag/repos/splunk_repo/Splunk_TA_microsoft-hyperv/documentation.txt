@@ -1,0 +1,9 @@
+Microsoft Hyper-V Server 2016 Microsoft Hyper-V Server 2019 
+
+The Splunk Add-on for Microsoft Hyper-V allows a Splunk software administrator to collect inventory, performance, and alert information from Microsoft Hyper-V environments. You can then directly analyze the data or use it as a contextual data feed to correlate with other data in the Splunk platform. This add-on provides the inputs and CIM-compatible knowledge to use Microsoft Hyper-V data with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+The Splunk Add-on for Microsoft Hyper-V uses Microsoft PowerShell, performance monitor and windows event logs to collect data from the Hyper-V server. Microsoft PowerShell is natively integrated into Splunk Enterprise 6.3.x or later and does not require the Splunk Add-on for Microsoft PowerShell to power this collection method. 
+
+Download the Splunk Add-on for Microsoft Hyper-V from Splunkbase at https://splunkbase.splunk.com/app/1253. 
+
+Discuss the Splunk Add-on for Microsoft Hyper-V on the Splunk Community page. 

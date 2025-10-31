@@ -1,0 +1,7 @@
+The Splunk Add-on for Check Point Log Exporter allows a Splunk software administrator to collect data from Check Point Log Exporter over syslog. 
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security. 
+
+Download the Splunk Add-on for Check Point Log Exporter from Splunkbase at http://splunkbase.splunk.com/app/5478. 
+
+Discuss the Splunk Add-on for Check Point Log Exporter on Splunk Answers at https://community.splunk.com/t5/Apps-and-Add-ons/ct-p/apps-add-ons. 

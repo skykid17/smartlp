@@ -1,0 +1,177 @@
+<form version="1.1" hideEdit="false" hideTitle="false">
+  <label>SLA</label>
+  <search id="vo_search">
+    <query>
+      `victorops_incidents`  | sort lastAlertTime desc | dedup incidentNumber | fields *
+    </query>
+    <earliest>$time_period.earliest$</earliest>
+    <latest>$time_period.latest$</latest>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="org_field">
+      <label>Organization</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org != '' | eval name = org | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="time" token="time_period" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+       <change>
+         <condition match="isnum($earliest$) OR isnum($latest$)">
+           <eval token="earliest_time">$earliest$</eval>
+           <eval token="latest_time">$latest$</eval>
+         </condition>
+         <condition>
+           <eval token="earliest_time">relative_time(now(), $earliest$)</eval>
+           <eval token="latest_time">relative_time(now(), $latest$)</eval>
+         </condition>
+       </change>
+    </input>
+    <input type="dropdown" token="state_field" searchWhenChanged="true">
+      <label>State</label>
+      <choice value="*">All</choice>
+      <choice value="RESOLVED">RESOLVED</choice>
+      <choice value="ACKED">ACKED</choice>
+      <choice value="UNACKED">UNACKED</choice>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="routing_key_field" searchWhenChanged="true">
+      <label>Routing Key</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>routingKeyName</fieldForLabel>
+      <fieldForValue>routingKey</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org="$org_field$" | stats count by routingKey | eval routingKeyName = substr(routingKey, 8)  | table routingKeyName routingKey</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>MTTA Violations</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=$state_field$ routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1)  | search transition_type=ACKED | eval transition_time=mvindex(transitions,2) | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ")  | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval duration = transition_time - startTime | table incidentNumber startTime transition_time duration
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval duration = current - startTime | eval transition_time = current | table incidentNumber startTime transition_time duration]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60]
+| where duration &gt;= mtta
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">Incidents</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>MTTR Violations</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=$state_field$ routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1)  | search transition_type=RESOLVED | eval transition_time=mvindex(transitions,2) | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ")  | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval duration = transition_time - startTime | table incidentNumber startTime transition_time duration
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$  currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber  | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval duration = current - startTime | eval transition_time = current | table incidentNumber startTime transition_time duration]
+   | join [  | inputlookup victorops_sla_lookup | eval mttr = mttr * 60]
+| where duration &gt;= mttr
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">Incidents</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>No Violations</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=* routingKey=* | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1) | eval  transition_time=mvindex(transitions,2) | fields - transitions | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval lastAlertTime =strptime(lastAlertTime,"%Y-%m-%dT%H:%M:%SZ") | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval resolve_time=if(transition_type="RESOLVED",transition_time,0) | eval ack_time = if(transition_type="ACKED",transition_time,0) | fields - transitions{}* transition_time | eval resolved_duration = if (transition_type="RESOLVED",resolve_time - startTime,0) | eval acked_duration = if (transition_type="ACKED",ack_time - startTime,0) | eval transition_user = if(transition_user="","unassigned",transition_user) | fillnull value=unassigned  | table incidentNumber transition_user resolved_duration acked_duration routingKey
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=* currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "*" and "ACKED" != "*" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval acked_duration = current - startTime | eval transition_time = current | eval resolved_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration routingKey]
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=* currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber  | where "RESOLVED" != "RESOLVED" and "ACKED" != "RESOLVED" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval resolved_duration = current - startTime | eval transition_time = current | eval acked_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration routingKey]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60 | eval mttr = mttr * 60]
+| where resolved_duration &lt; mttr or acked_duration &lt; mtta
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">Incidents</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>SLA Violations By Analyst</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=$state_field$ routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1) | eval  transition_time=mvindex(transitions,2) | fields - transitions | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval lastAlertTime =strptime(lastAlertTime,"%Y-%m-%dT%H:%M:%SZ") | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval resolve_time=if(transition_type="RESOLVED",transition_time,0) | eval ack_time = if(transition_type="ACKED",transition_time,0) | fields - transitions{}* transition_time | eval resolved_duration = if (transition_type="RESOLVED",resolve_time - startTime,0) | eval acked_duration = if (transition_type="ACKED",ack_time - startTime,0) | eval transition_user = if(transition_user="","unassigned",transition_user) | fillnull value=unassigned  | table incidentNumber transition_user resolved_duration acked_duration 
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval acked_duration = current - startTime | eval transition_time = current | eval resolved_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration]
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval resolved_duration = current - startTime | eval transition_time = current | eval acked_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60 | eval mttr = mttr * 60]
+| eval violation_type = case(resolved_duration &gt;= mttr,"MTTR",acked_duration &gt;= mtta, "MTTA") | where violation_type not null | stats count by violation_type, transition_user | xyseries transition_user violation_type count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">SLA Violations</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>SLA Violations By Routing Key</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=$state_field$ routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1) | eval  transition_time=mvindex(transitions,2) | fields - transitions | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval lastAlertTime =strptime(lastAlertTime,"%Y-%m-%dT%H:%M:%SZ") | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval resolve_time=if(transition_type="RESOLVED",transition_time,0) | eval ack_time = if(transition_type="ACKED",transition_time,0) | fields - transitions{}* transition_time | eval resolved_duration = if (transition_type="RESOLVED",resolve_time - startTime,0) | eval acked_duration = if (transition_type="ACKED",ack_time - startTime,0) | eval transition_user = if(transition_user="","unassigned",transition_user) | fillnull value=unassigned  | table incidentNumber transition_user resolved_duration acked_duration routingKey
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval acked_duration = current - startTime | eval transition_time = current | eval resolved_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration routingKey]
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "RESOLVED" and "ACKED" != "RESOLVED" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval resolved_duration = current - startTime | eval transition_time = current | eval acked_duration=0 | eval transition_user = "unassigned"| table incidentNumber transition_user resolved_duration acked_duration routingKey]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60 | eval mttr = mttr * 60]
+| eval violation_type = case(resolved_duration &gt;= mttr,"MTTR",acked_duration &gt;= mtta, "MTTA") | where violation_type not null | stats count by violation_type, routingKey | eval routingKey = substr(routingKey, 8) | xyseries routingKey violation_type count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">SLA Violations</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>SLA Violations</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" currentPhase=$state_field$ routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1) | eval  transition_time=mvindex(transitions,2) | fields - transitions | eval startTimeEpoch =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval violation_type = if (transition_type="RESOLVED","MTTR","MTTA") | eval resolve_time=if(transition_type="RESOLVED",transition_time,0) | eval ack_time = if(transition_type="ACKED",transition_time,0)  | eval resolved_duration = if (transition_type="RESOLVED",resolve_time - startTimeEpoch,0) | eval acked_duration = if (transition_type="ACKED",ack_time - startTimeEpoch,0) | eval transition_user = if(transition_user="","unassigned",transition_user) | fillnull value=unassigned  | table incidentNumber entityState entityDisplayName currentPhase alertCount startTime lastAlertTime transition_user resolved_duration acked_duration routingKey transitions{}.name transitions{}.by violation_type
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "ACKED" != "$state_field$" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTimeEpoch = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval acked_duration = current - startTimeEpoch | eval transition_time = current | eval resolved_duration=0 | eval transition_user = "unassigned" | eval violation_type = "MTTA"| table incidentNumber entityState entityDisplayName currentPhase alertCount startTime lastAlertTime transition_user resolved_duration acked_duration routingKey transitions{}.name transitions{}.by violation_type]
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | where "RESOLVED" != "$state_field$" and "$state_field$" != "RESOLVED" | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTimeEpoch = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval resolved_duration = current - startTimeEpoch | eval transition_time = current | eval acked_duration=0 | eval transition_user = "unassigned" | eval violation_type = "MTTR"| table incidentNumber entityState entityDisplayName currentPhase alertCount startTime lastAlertTime transition_user resolved_duration acked_duration routingKey 'transitions{}.name transitions{}.by violation_type]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60 | eval mttr = mttr * 60]
+| where resolved_duration &gt;= mttr or acked_duration &gt;= mtta
+| eval transitions = mvzip('transitions{}.name','transitions{}.by') 
+| eval n = mvfind(transitions,"RESOLVED") 
+| eval tmp = if (isnotnull(n), mvindex(transitions,n),'')
+| eval resolvedBy = if (tmp == '', tmp, replace(tmp,"RESOLVED,",""))
+| eval duration = if (resolved_duration == 0, round(acked_duration), round(resolved_duration))
+| eval user = if (violation_type == "MTTR", resolvedBy, transition_user)
+| eval user = if (user == "unassigned", "", user)
+| rename org as Organization incidentNumber as Incident violation_type as Violation entityState as State entityDisplayName as Entity currentPhase as Phase alertCount as "Alert Count" startTime as "Start Time" lastAlertTime as "Last Alert Time" duration as Duration user as User
+| table Organization, Incident, Violation, State, Entity, Phase, "Alert Count", "Start Time", "Last Alert Time" Duration  User</query>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

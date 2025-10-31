@@ -1,0 +1,5 @@
+---
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/configure_search_head_apps.yml"
+  when:
+    - "ansible_host in groups['deployer'] or (groups['deployer'] | length<1 and ansible_host in groups['search_head'])"

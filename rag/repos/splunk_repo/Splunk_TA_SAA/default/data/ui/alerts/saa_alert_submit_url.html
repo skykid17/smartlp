@@ -1,0 +1,14 @@
+<form class="form-horizontal form-complex">
+    <div class="control-group">
+        <label class="control-label" for="account">Connection<span class="required">*</span> </label>
+        <div class="controls">
+            <splunk-search-dropdown name="action.saa_alert_submit_url.param.account" id="account" value-field="title" label-field="title" search="| rest /servicesNS/nobody/Splunk_TA_SAA/Splunk_TA_SAA_account | dedup title"/>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="url">URL  </label>
+        <div class="controls">
+        <input type="text" class="input-xlarge" name="action.saa_alert_submit_url.param.url" id="url"/>
+        </div>
+    </div>
+</form>

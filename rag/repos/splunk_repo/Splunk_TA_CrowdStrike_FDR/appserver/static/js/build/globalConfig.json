@@ -1,0 +1,2928 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "aws_collections",
+                    "title": "FDR AWS Collection",
+                    "restHandlerName": "aws_collections_rh",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "AWS Region",
+                                "field": "aws_region"
+                            },
+                            {
+                                "label": "AWS Access Key Id",
+                                "field": "aws_access_key_id"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "FDR AWS collection name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 70,
+                                    "errorMsg": "Length of Name is restricted from 1 to 70."
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Select AWS region",
+                            "field": "aws_region",
+                            "label": "AWS region",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "AWS GovCloud (US-East)",
+                                        "value": "us-gov-east-1"
+                                    },
+                                    {
+                                        "label": "AWS GovCloud (US-West)",
+                                        "value": "us-gov-west-1"
+                                    },
+                                    {
+                                        "label": "US East (Ohio) us-east-2",
+                                        "value": "us-east-2"
+                                    },
+                                    {
+                                        "label": "US East (N. Virginia) us-east-1",
+                                        "value": "us-east-1"
+                                    },
+                                    {
+                                        "label": "US West (N. California) us-west-1",
+                                        "value": "us-west-1"
+                                    },
+                                    {
+                                        "label": "US West (Oregon) us-west-2",
+                                        "value": "us-west-2"
+                                    },
+                                    {
+                                        "label": "Africa (Cape Town) af-south-1",
+                                        "value": "af-south-1"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Hong Kong) ap-east-1",
+                                        "value": "ap-east-1"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Mumbai) ap-south-1",
+                                        "value": "ap-south-1"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Osaka) ap-northeast-3",
+                                        "value": "ap-northeast-3"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Seoul) ap-northeast-2",
+                                        "value": "ap-northeast-2"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Singapore) ap-southeast-1",
+                                        "value": "ap-southeast-1"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Sydney) ap-southeast-2",
+                                        "value": "ap-southeast-2"
+                                    },
+                                    {
+                                        "label": "Asia Pacific (Tokyo) ap-northeast-1",
+                                        "value": "ap-northeast-1"
+                                    },
+                                    {
+                                        "label": "Canada (Central) ca-central-1",
+                                        "value": "ca-central-1"
+                                    },
+                                    {
+                                        "label": "Europe (Frankfurt) eu-central-1",
+                                        "value": "eu-central-1"
+                                    },
+                                    {
+                                        "label": "Europe (Ireland) eu-west-1",
+                                        "value": "eu-west-1"
+                                    },
+                                    {
+                                        "label": "Europe (London) eu-west-2",
+                                        "value": "eu-west-2"
+                                    },
+                                    {
+                                        "label": "Europe (Milan) eu-south-1",
+                                        "value": "eu-south-1"
+                                    },
+                                    {
+                                        "label": "Europe (Paris) eu-west-3",
+                                        "value": "eu-west-3"
+                                    },
+                                    {
+                                        "label": "Europe (Stockholm) eu-north-1",
+                                        "value": "eu-north-1"
+                                    },
+                                    {
+                                        "label": "Middle East (Bahrain) me-south-1",
+                                        "value": "me-south-1"
+                                    },
+                                    {
+                                        "label": "South America (São Paulo) sa-east-1",
+                                        "value": "sa-east-1"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "help": "Enter AWS access key id",
+                            "field": "aws_access_key_id",
+                            "label": "AWS access key id",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of access key id should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Enter AWS secret access key",
+                            "field": "aws_secret_access_key",
+                            "label": "AWS secret access key",
+                            "type": "text",
+                            "required": true,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the secret access key should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "cs_event_filters",
+                    "title": "CrowdStrike event filters",
+                    "restHandlerName": "cs_event_filters_rh",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Filter type",
+                                "field": "filter_type"
+                            },
+                            {
+                                "label": "Filter value",
+                                "field": "filter_value"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "CrowdStrike event filter name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 70,
+                                    "errorMsg": "Length of Name is restricted from 1 to 70."
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Select filter type",
+                            "field": "filter_type",
+                            "label": "Filter type",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "Drop matching events",
+                                        "value": "drop"
+                                    },
+                                    {
+                                        "label": "Ingest only matching events",
+                                        "value": "ingest"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "drop"
+                        },
+                        {
+                            "help": "Enter space separated list of CrowdsStrike FDR event event_simpleName field values",
+                            "field": "filter_value",
+                            "label": "Filter value",
+                            "type": "textarea",
+                            "required": true,
+                            "options": {
+                                "rowsMin": 10,
+                                "rowsMax": 10
+                            },
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for filter value is 8192"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "cs_device_field_filters",
+                    "title": "CrowdStrike device field filters",
+                    "restHandlerName": "cs_device_field_filters_rh",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Filter type",
+                                "field": "filter_type"
+                            },
+                            {
+                                "label": "Filter value",
+                                "field": "filter_value"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "CrowdStrike device fields filter name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 70,
+                                    "errorMsg": "Length of Name is restricted from 1 to 70."
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Select filter type",
+                            "field": "filter_type",
+                            "label": "Filter type",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "Enrich events with matching fields",
+                                        "value": "enrich"
+                                    },
+                                    {
+                                        "label": "Skip matching fields when enriching events",
+                                        "value": "skip"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "enrich"
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Filter value",
+                            "field": "filter_value",
+                            "help": "Select device information fields",
+                            "required": true,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "agent_load_flags",
+                                        "label": "agent_load_flags"
+                                    },
+                                    {
+                                        "value": "agent_local_time",
+                                        "label": "agent_local_time"
+                                    },
+                                    {
+                                        "value": "agent_version",
+                                        "label": "agent_version"
+                                    },
+                                    {
+                                        "value": "bios_manufacturer",
+                                        "label": "bios_manufacturer"
+                                    },
+                                    {
+                                        "value": "bios_version",
+                                        "label": "bios_version"
+                                    },
+                                    {
+                                        "value": "build_number",
+                                        "label": "build_number"
+                                    },
+                                    {
+                                        "value": "chassis_type",
+                                        "label": "chassis_type"
+                                    },
+                                    {
+                                        "value": "chassis_type_desc",
+                                        "label": "chassis_type_desc"
+                                    },
+                                    {
+                                        "value": "config_id_base",
+                                        "label": "config_id_base"
+                                    },
+                                    {
+                                        "value": "config_id_build",
+                                        "label": "config_id_build"
+                                    },
+                                    {
+                                        "value": "config_id_platform",
+                                        "label": "config_id_platform"
+                                    },
+                                    {
+                                        "value": "connection_ip",
+                                        "label": "connection_ip"
+                                    },
+                                    {
+                                        "value": "connection_mac_address",
+                                        "label": "connection_mac_address"
+                                    },
+                                    {
+                                        "value": "cpu_signature",
+                                        "label": "cpu_signature"
+                                    },
+                                    {
+                                        "value": "default_gateway_ip",
+                                        "label": "default_gateway_ip"
+                                    },
+                                    {
+                                        "value": "external_ip",
+                                        "label": "external_ip"
+                                    },
+                                    {
+                                        "value": "first_seen",
+                                        "label": "first_seen"
+                                    },
+                                    {
+                                        "value": "group_hash",
+                                        "label": "group_hash"
+                                    },
+                                    {
+                                        "value": "hostname",
+                                        "label": "hostname"
+                                    },
+                                    {
+                                        "value": "instance_id",
+                                        "label": "instance_id"
+                                    },
+                                    {
+                                        "value": "kernel_version",
+                                        "label": "kernel_version"
+                                    },
+                                    {
+                                        "value": "last_seen",
+                                        "label": "last_seen"
+                                    },
+                                    {
+                                        "value": "local_ip",
+                                        "label": "local_ip"
+                                    },
+                                    {
+                                        "value": "mac_address",
+                                        "label": "mac_address"
+                                    },
+                                    {
+                                        "value": "major_version",
+                                        "label": "major_version"
+                                    },
+                                    {
+                                        "value": "minor_version",
+                                        "label": "minor_version"
+                                    },
+                                    {
+                                        "value": "modified_timestamp",
+                                        "label": "modified_timestamp"
+                                    },
+                                    {
+                                        "value": "os_build",
+                                        "label": "os_build"
+                                    },
+                                    {
+                                        "value": "os_product_name",
+                                        "label": "os_product_name"
+                                    },
+                                    {
+                                        "value": "os_version",
+                                        "label": "os_version"
+                                    },
+                                    {
+                                        "value": "platform_id",
+                                        "label": "platform_id"
+                                    },
+                                    {
+                                        "value": "platform_name",
+                                        "label": "platform_name"
+                                    },
+                                    {
+                                        "value": "pointer_size",
+                                        "label": "pointer_size"
+                                    },
+                                    {
+                                        "value": "product_type",
+                                        "label": "product_type"
+                                    },
+                                    {
+                                        "value": "product_type_desc",
+                                        "label": "product_type_desc"
+                                    },
+                                    {
+                                        "value": "provision_status",
+                                        "label": "provision_status"
+                                    },
+                                    {
+                                        "value": "reduced_functionality_mode",
+                                        "label": "reduced_functionality_mode"
+                                    },
+                                    {
+                                        "value": "serial_number",
+                                        "label": "serial_number"
+                                    },
+                                    {
+                                        "value": "service_pack_minor",
+                                        "label": "service_pack_minor"
+                                    },
+                                    {
+                                        "value": "service_provider",
+                                        "label": "service_provider"
+                                    },
+                                    {
+                                        "value": "service_provider_account_id",
+                                        "label": "service_provider_account_id"
+                                    },
+                                    {
+                                        "value": "status",
+                                        "label": "status"
+                                    },
+                                    {
+                                        "value": "system_manufacturer",
+                                        "label": "system_manufacturer"
+                                    },
+                                    {
+                                        "value": "system_product_name",
+                                        "label": "system_product_name"
+                                    },
+                                    {
+                                        "value": "zone_group",
+                                        "label": "zone_group"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "title": "Logging",
+                    "name": "logging",
+                    "restHandlerName": "logging_settings_rh",
+                    "entity": [
+                        {
+                            "field": "loglevel",
+                            "type": "singleSelect",
+                            "label": "Logging Level",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO"
+                        }
+                    ]
+                },
+                {
+                    "title": "Proxy",
+                    "name": "proxy",
+                    "restHandlerName": "proxy_settings_rh",
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "label": "Enable",
+                            "type": "checkbox"
+                        },
+                        {
+                            "field": "proxy_type",
+                            "type": "singleSelect",
+                            "label": "Proxy Type",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "https",
+                                        "label": "https"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http"
+                        },
+                        {
+                            "field": "proxy_url",
+                            "label": "Host",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])$",
+                                    "errorMsg": "The Host field can contain letters, numbers, dots(.) and hyphens(-)"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_port",
+                            "label": "Port",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_username",
+                            "label": "Username",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true
+                        },
+                        {
+                            "field": "proxy_rdns",
+                            "type": "checkbox",
+                            "label": "DNS Resolution"
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Configure AWS accounts, settings and proxy"
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage inputs and services",
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "FDR AWS Collection",
+                        "field": "aws_collection"
+                    },
+                    {
+                        "label": "SQS URL",
+                        "field": "aws_sqs_url"
+                    },
+                    {
+                        "label": "S3 bucket",
+                        "field": "aws_bucket"
+                    },
+                    {
+                        "label": "Ignore SQS Messages Before",
+                        "field": "aws_sqs_ignore_before"
+                    },
+                    {
+                        "label": "SQS Visibility Timeout",
+                        "field": "aws_sqs_visibility_timeout"
+                    },
+                    {
+                        "label": "Crowdstrike event filter",
+                        "field": "cs_event_filter_name"
+                    },
+                    {
+                        "label": "Ingest time host resolution",
+                        "field": "cs_ithr_type"
+                    },
+                    {
+                        "label": "Device field filter",
+                        "field": "cs_device_field_filter_name"
+                    },
+                    {
+                        "label": "Event encoding",
+                        "field": "cs_event_encoding"
+                    },
+                    {
+                        "field": "collect_external_events",
+                        "label": "Collect external events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_external_events",
+                        "label": "Index for external events"
+                    },
+                    {
+                        "field": "collect_ztha_events",
+                        "label": "Collect ZTA events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_ztha_events",
+                        "label": "Index for ZTA events"
+                    },
+                    {
+                        "field": "collect_inventory_aidmaster",
+                        "label": "Collect aidmaster events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_aidmaster_events",
+                        "label": "Index for aidmaster events"
+                    },
+                    {
+                        "field": "collect_inventory_managedassets",
+                        "label": "Collect managedassets events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_managedassets_events",
+                        "label": "Index for managedassets events"
+                    },
+                    {
+                        "field": "collect_inventory_notmanaged",
+                        "label": "Collect notmanaged events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_notmanaged_events",
+                        "label": "Index for notmanaged events"
+                    },
+                    {
+                        "field": "collect_inventory_appinfo",
+                        "label": "Collect appinfo events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_appinfo_events",
+                        "label": "Index for appinfo events"
+                    },
+                    {
+                        "field": "collect_inventory_userinfo",
+                        "label": "Collect userinfo events",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "field": "index_for_userinfo_events",
+                        "label": "Index for userinfo events"
+                    },
+                    {
+                        "label": "Search head host",
+                        "field": "search_head_address"
+                    },
+                    {
+                        "label": "Search head port",
+                        "field": "search_head_port"
+                    },
+                    {
+                        "label": "Use failover search head",
+                        "field": "use_failover_search_head",
+                        "mapping": {
+                            "1": "Yes",
+                            "0": "No"
+                        }
+                    },
+                    {
+                        "label": "Failover search head host",
+                        "field": "failover_search_head_address"
+                    },
+                    {
+                        "label": "Failover search head port",
+                        "field": "failover_search_head_port"
+                    },
+                    {
+                        "label": "Checkpoint type",
+                        "field": "checkpoint_type"
+                    },
+                    {
+                        "label": "Managed by",
+                        "field": "manager"
+                    },
+                    {
+                        "label": "Crowdstrike API Base URL",
+                        "field": "api_base_url"
+                    },
+                    {
+                        "label": "OAuth2 API Client ID",
+                        "field": "api_client_id"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "false": "Enabled",
+                            "true": "Disabled"
+                        }
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    }
+                ]
+            },
+            "services": [
+                {
+                    "name": "device_api_inventory_sync_service",
+                    "title": "CrowdStrike Device API Inventory Sync Service",
+                    "restHandlerName": "device_api_inventory_sync_service_rh",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "CrowdStrike device API inventory sync service instance name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Specify CrowdStrike OAuth2 API Client ID",
+                            "field": "api_client_id",
+                            "label": "OAuth2 API Client ID",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of CrowdStrike OAuth2 API Client should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "help": "Specify CrowdStrike OAuth2 API Client Secret",
+                            "field": "api_client_secret",
+                            "label": "OAuth2 API Client Secret",
+                            "type": "text",
+                            "required": true,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the CrowdStrike OAuth2 API client secret should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "api_base_url",
+                            "label": "Crowdstrike API Base URL",
+                            "help": "Specify Crowdstrike API base URL",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": "https://api.crowdstrike.com",
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of Crowdstrike API gateway enbpoint url should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Bucket check interval",
+                            "help": "Value in seconds between 60 (1 minute) and 86400 (24 hours)",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 600,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        60,
+                                        86400
+                                    ],
+                                    "errorMsg": "Numeric value between 60 (1 minute) and 86400 (24 hours) is expected"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "inventory_sync_service",
+                    "title": "Crowdstrike FDR host information sync",
+                    "restHandlerName": "inventory_sync_service_rh",
+                    "options": {
+                        "saveValidator": "function(formData) {if (!formData.use_failover_search_head || formData.use_failover_search_head === '0') { return true; } if (!formData.failover_search_head_address) { return 'You have chosen to use a failover search head. Please specify failover search head host'; } if (!formData.failover_search_head_port) { return 'You have chosen to use a failover search head. Please specify failover search head port'; } if(!formData.failover_search_head_username) { return 'You have chosen to use a failover search head. Please specify failover search head user'; } if(!formData.failover_search_head_password) { return 'You have chosen to use a failover search head. Please specify failover search head password'; } return true;}"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Inventory sync service instance name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "search_head_address",
+                            "label": "Search head host",
+                            "help": "Search head hostname, FQDN or ip address",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the search head host should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "search_head_port",
+                            "label": "Search head port",
+                            "help": "Search head Splunk REST API port",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": "8089",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ],
+                                    "errorMsg": "Valid port number should be in range between 1 and 65535"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "search_head_username",
+                            "label": "Search head user",
+                            "help": "Splunk user name to access search head instance. Please do not use personal account. Instead request and use technical user account",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the user name should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "search_head_password",
+                            "label": "Search head password",
+                            "help": "Splunk user password to access search head instance",
+                            "type": "text",
+                            "required": true,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the user name should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "use_failover_search_head",
+                            "label": "Use failover Search head",
+                            "help": "Failover is used if prmary search head cannot be connected",
+                            "type": "checkbox"
+                        },
+                        {
+                            "field": "failover_search_head_address",
+                            "label": "Failover search head host",
+                            "help": "Failover search head hostname, FQDN or ip address",
+                            "type": "text",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the search head host should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "failover_search_head_port",
+                            "label": "Failover search head port",
+                            "help": "Failover search head Splunk REST API port",
+                            "type": "text",
+                            "required": false,
+                            "defaultValue": "8089",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ],
+                                    "errorMsg": "Valid port number should be in range between 1 and 65535"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "failover_search_head_username",
+                            "label": "Failover search head user",
+                            "help": "Splunk user name to access search head instance.  Please do not use personal account. Instead request and use technical user account",
+                            "type": "text",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the user name should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "failover_search_head_password",
+                            "label": "Failover search head password",
+                            "help": "Splunk user password to access failover search head instance",
+                            "type": "text",
+                            "required": false,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "maxLength": 200,
+                                    "type": "string",
+                                    "errorMsg": "Length of the user name should be between 1 and 200",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Inventory sync interval",
+                            "help": "Numeric value between 30 and 3600",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 200,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        30,
+                                        3600
+                                    ],
+                                    "errorMsg": "Numeric value between 30 and 3600 is expected"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "fdr_s3bucket_monitor_service",
+                    "title": "Crowdstrike FDR S3 bucket monitor",
+                    "restHandlerName": "fdr_s3bucket_monitor_service_rh",
+                    "options": {
+                        "saveValidator": "function(formData) {if (!formData.use_failover_search_head || formData.use_failover_search_head === '0') { return true; } if (!formData.failover_search_head_address) { return 'You have chosen to use a failover search head. Please specify failover search head host'; } if (!formData.failover_search_head_port) { return 'You have chosen to use a failover search head. Please specify failover search head port'; } if(!formData.failover_search_head_username) { return 'You have chosen to use a failover search head. Please specify failover search head user'; } if(!formData.failover_search_head_password) { return 'You have chosen to use a failover search head. Please specify failover search head password'; } return true;}"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Bucket monitor service instance name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "aws_collection",
+                            "label": "FDR AWS Collection",
+                            "help": "Select FDR AWS Collection",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "aws_collections"
+                            }
+                        },
+                        {
+                            "field": "aws_bucket",
+                            "label": "FDR AWS S3 bucket",
+                            "help": "Specify FDR AWS S3 bucket",
+                            "type": "text",
+                            "required": true
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Bucket check interval",
+                            "help": "Numeric value between 60 and 3600",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 300,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        60,
+                                        3600
+                                    ],
+                                    "errorMsg": "Numeric value between 60 and 3600 is expected"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "simple_consumer_input",
+                    "title": "Crowdstrike FDR SQS based S3 consumer",
+                    "restHandlerName": "simple_consumer_input_rh",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "SQS based S3 consumer input name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "aws_collection",
+                            "label": "FDR AWS Collection",
+                            "help": "Select FDR AWS Collection",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "aws_collections"
+                            }
+                        },
+                        {
+                            "field": "aws_sqs_url",
+                            "label": "SQS",
+                            "help": "Type AWS SQS queue URL",
+                            "type": "text",
+                            "required": true
+                        },
+                        {
+                            "field": "aws_sqs_ignore_before",
+                            "label": "Ignore SQS messages older than",
+                            "type": "text",
+                            "help": "Specify a date and time in UTC format (YYYY-MM-DD HH:MM). If no value is entered ingestion will start with the oldest SQS message available.",
+                            "defaultValue": "",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\s*\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2]\\d|3[0-1])\\s+([0-1]\\d|2[0-3]):([0-5]\\d)\\s*$",
+                                    "errorMsg": "Expects UTC datetime value YYYY-MM-DD HH:MM, for example 2022-03-10 09:35"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "aws_sqs_visibility_timeout",
+                            "label": "SQS Message Visibility Timeout",
+                            "help": "Select appropriate SQS Message Visibility Timeout",
+                            "type": "singleSelect",
+                            "required": true,
+                            "defaultValue": "21600",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "30 seconds",
+                                        "value": "30"
+                                    },
+                                    {
+                                        "label": "1 minute",
+                                        "value": "60"
+                                    },
+                                    {
+                                        "label": "2 minutes",
+                                        "value": "120"
+                                    },
+                                    {
+                                        "label": "5 minutes",
+                                        "value": "300"
+                                    },
+                                    {
+                                        "label": "10 minutes",
+                                        "value": "600"
+                                    },
+                                    {
+                                        "label": "15 minutes",
+                                        "value": "900"
+                                    },
+                                    {
+                                        "label": "20 minutes",
+                                        "value": "1200"
+                                    },
+                                    {
+                                        "label": "30 minutes",
+                                        "value": "1800"
+                                    },
+                                    {
+                                        "label": "45 minutes",
+                                        "value": "2700"
+                                    },
+                                    {
+                                        "label": "1 hour",
+                                        "value": "3600"
+                                    },
+                                    {
+                                        "label": "2 hours",
+                                        "value": "7200"
+                                    },
+                                    {
+                                        "label": "3 hours",
+                                        "value": "10800"
+                                    },
+                                    {
+                                        "label": "4 hours",
+                                        "value": "14400"
+                                    },
+                                    {
+                                        "label": "5 hours",
+                                        "value": "18000"
+                                    },
+                                    {
+                                        "label": "6 hours",
+                                        "value": "21600"
+                                    },
+                                    {
+                                        "label": "7 hours",
+                                        "value": "25200"
+                                    },
+                                    {
+                                        "label": "8 hours",
+                                        "value": "28800"
+                                    },
+                                    {
+                                        "label": "9 hours",
+                                        "value": "32400"
+                                    },
+                                    {
+                                        "label": "10 hours",
+                                        "value": "36000"
+                                    },
+                                    {
+                                        "label": "11 hours",
+                                        "value": "39600"
+                                    },
+                                    {
+                                        "label": "12 hours",
+                                        "value": "43200"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_event_encoding",
+                            "label": "Events encoding",
+                            "help": "In most cases it's UTF-8, change it only if events are ingested incorectly",
+                            "type": "singleSelect",
+                            "required": true,
+                            "defaultValue": "utf-8",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "utf-16",
+                                        "label": "All languages (u16, utf-16, utf16)"
+                                    },
+                                    {
+                                        "value": "utf-16-be",
+                                        "label": "All languages (utf-16-be, utf-16be)"
+                                    },
+                                    {
+                                        "value": "utf-16-le",
+                                        "label": "All languages (utf-16-le, utf-16le)"
+                                    },
+                                    {
+                                        "value": "utf-32",
+                                        "label": "All languages (u32, utf-32, utf32)"
+                                    },
+                                    {
+                                        "value": "utf-32-be",
+                                        "label": "All languages (utf-32-be, utf-32be)"
+                                    },
+                                    {
+                                        "value": "utf-32-le",
+                                        "label": "All languages (utf-32-le, utf-32le)"
+                                    },
+                                    {
+                                        "value": "utf-7",
+                                        "label": "All languages (u7, unicode-1-1-utf-7, utf-7)"
+                                    },
+                                    {
+                                        "value": "utf-8",
+                                        "label": "All languages (u8, utf, utf-8, utf8)"
+                                    },
+                                    {
+                                        "value": "utf-8-sig",
+                                        "label": "All languages (utf-8-sig)"
+                                    },
+                                    {
+                                        "value": "cp1256",
+                                        "label": "Arabic (cp1256, windows-1256)"
+                                    },
+                                    {
+                                        "value": "cp720",
+                                        "label": "Arabic (cp720)"
+                                    },
+                                    {
+                                        "value": "cp864",
+                                        "label": "Arabic (cp864, ibm864)"
+                                    },
+                                    {
+                                        "value": "iso8859-6",
+                                        "label": "Arabic (arabic, iso-8859-6)"
+                                    },
+                                    {
+                                        "value": "cp1257",
+                                        "label": "Baltic languages (cp1257, windows-1257)"
+                                    },
+                                    {
+                                        "value": "cp775",
+                                        "label": "Baltic languages (cp775, ibm775)"
+                                    },
+                                    {
+                                        "value": "iso8859-13",
+                                        "label": "Baltic languages (iso-8859-13, l7, latin7)"
+                                    },
+                                    {
+                                        "value": "iso8859-4",
+                                        "label": "Baltic languages (iso-8859-4, l4, latin4)"
+                                    },
+                                    {
+                                        "value": "cp1251",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (cp1251, windows-1251)"
+                                    },
+                                    {
+                                        "value": "cp855",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (855, cp855, ibm855)"
+                                    },
+                                    {
+                                        "value": "iso8859-5",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (cyrillic, iso-8859-5)"
+                                    },
+                                    {
+                                        "value": "mac-cyrillic",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (mac-cyrillic, maccyrillic)"
+                                    },
+                                    {
+                                        "value": "cp863",
+                                        "label": "Canadian (863, cp863, ibm863)"
+                                    },
+                                    {
+                                        "value": "iso8859-14",
+                                        "label": "Celtic languages (iso-8859-14, l8, latin8)"
+                                    },
+                                    {
+                                        "value": "cp1250",
+                                        "label": "Central and Eastern Europe (cp1250, windows-1250)"
+                                    },
+                                    {
+                                        "value": "cp852",
+                                        "label": "Central and Eastern Europe (852, cp852, ibm852)"
+                                    },
+                                    {
+                                        "value": "iso8859-2",
+                                        "label": "Central and Eastern Europe (iso-8859-2, l2, latin2)"
+                                    },
+                                    {
+                                        "value": "mac-latin2",
+                                        "label": "Central and Eastern Europe (mac-latin2, maccentraleurope, maclatin2)"
+                                    },
+                                    {
+                                        "value": "cp865",
+                                        "label": "Danish, Norwegian (865, cp865, ibm865)"
+                                    },
+                                    {
+                                        "value": "ascii",
+                                        "label": "English (646, ascii, us-ascii)"
+                                    },
+                                    {
+                                        "value": "cp037",
+                                        "label": "English (cp037, ibm037, ibm039)"
+                                    },
+                                    {
+                                        "value": "cp437",
+                                        "label": "English (437, cp437, ibm437)"
+                                    },
+                                    {
+                                        "value": "iso8859-3",
+                                        "label": "Esperanto, Maltese (iso-8859-3, l3, latin3)"
+                                    },
+                                    {
+                                        "value": "cp1253",
+                                        "label": "Greek (cp1253, windows-1253)"
+                                    },
+                                    {
+                                        "value": "cp737",
+                                        "label": "Greek (cp737)"
+                                    },
+                                    {
+                                        "value": "cp869",
+                                        "label": "Greek (869, cp-gr, cp869, ibm869)"
+                                    },
+                                    {
+                                        "value": "cp875",
+                                        "label": "Greek (cp875)"
+                                    },
+                                    {
+                                        "value": "iso8859-7",
+                                        "label": "Greek (greek, greek8, iso-8859-7)"
+                                    },
+                                    {
+                                        "value": "mac-greek",
+                                        "label": "Greek (mac-greek, macgreek)"
+                                    },
+                                    {
+                                        "value": "cp1255",
+                                        "label": "Hebrew (cp1255, windows-1255)"
+                                    },
+                                    {
+                                        "value": "cp424",
+                                        "label": "Hebrew (cp424, ebcdic-cp-he, ibm424)"
+                                    },
+                                    {
+                                        "value": "cp856",
+                                        "label": "Hebrew (cp856)"
+                                    },
+                                    {
+                                        "value": "cp862",
+                                        "label": "Hebrew (862, cp862, ibm862)"
+                                    },
+                                    {
+                                        "value": "iso8859-8",
+                                        "label": "Hebrew (hebrew, iso-8859-8)"
+                                    },
+                                    {
+                                        "value": "cp861",
+                                        "label": "Icelandic (861, cp-is, cp861, ibm861)"
+                                    },
+                                    {
+                                        "value": "mac-iceland",
+                                        "label": "Icelandic (mac-iceland, maciceland)"
+                                    },
+                                    {
+                                        "value": "cp932",
+                                        "label": "Japanese (932, cp932, ms-kanji, ms932, mskanji)"
+                                    },
+                                    {
+                                        "value": "euc-jis-2004",
+                                        "label": "Japanese (euc-jis-2004, eucjis2004, jisx0213)"
+                                    },
+                                    {
+                                        "value": "euc-jisx0213",
+                                        "label": "Japanese (euc-jisx0213, eucjisx0213)"
+                                    },
+                                    {
+                                        "value": "euc-jp",
+                                        "label": "Japanese (euc-jp, eucjp, u-jis, ujis)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp",
+                                        "label": "Japanese (csiso2022jp, iso-2022-jp)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-1",
+                                        "label": "Japanese (iso-2022-jp-1)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-2004",
+                                        "label": "Japanese (iso-2022-jp-2004)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-3",
+                                        "label": "Japanese (iso-2022-jp-3)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-ext",
+                                        "label": "Japanese (iso-2022-jp-ext)"
+                                    },
+                                    {
+                                        "value": "shift-jis",
+                                        "label": "Japanese (csshiftjis, s-jis, shift-jis, shiftjis, sjis)"
+                                    },
+                                    {
+                                        "value": "shift-jis-2004",
+                                        "label": "Japanese (shift-jis-2004, sjis-2004, sjis2004)"
+                                    },
+                                    {
+                                        "value": "shift-jisx0213",
+                                        "label": "Japanese (s-jisx0213, shift-jisx0213, sjisx0213)"
+                                    },
+                                    {
+                                        "value": "iso-2022-jp-2",
+                                        "label": "Japanese, Korean, Simplified Chinese, Western Europe, Greek (iso-2022-jp-2)"
+                                    },
+                                    {
+                                        "value": "ptcp154",
+                                        "label": "Kazakh (cp154, csptcp154, cyrillic-asian, pt154, ptcp154)"
+                                    },
+                                    {
+                                        "value": "cp949",
+                                        "label": "Korean (949, cp949, ms949, uhc)"
+                                    },
+                                    {
+                                        "value": "euc-kr",
+                                        "label": "Korean (euc-kr, euckr, korean, ks-c-5601, ks-c-5601-1987, ks-x-1001, ksc5601, ksx1001)"
+                                    },
+                                    {
+                                        "value": "iso2022-kr",
+                                        "label": "Korean (csiso2022kr, iso-2022-kr)"
+                                    },
+                                    {
+                                        "value": "johab",
+                                        "label": "Korean (cp1361, johab, ms1361)"
+                                    },
+                                    {
+                                        "value": "iso8859-10",
+                                        "label": "Nordic languages (iso-8859-10, iso8859-10, l6, latin6)"
+                                    },
+                                    {
+                                        "value": "cp860",
+                                        "label": "Portuguese (860, cp860, ibm860)"
+                                    },
+                                    {
+                                        "value": "cp866",
+                                        "label": "Russian (866, cp866, ibm866)"
+                                    },
+                                    {
+                                        "value": "koi8-r",
+                                        "label": "Russian (koi8-r)"
+                                    },
+                                    {
+                                        "value": "gb2312",
+                                        "label": "Simplified Chinese (csiso58gb231280, eucgb2312-cn, gb2312, gb2312-1980, gb2312-80)"
+                                    },
+                                    {
+                                        "value": "iso-ir-58",
+                                        "label": "Simplified Chinese (chinese, euc-cn, euccn, iso-ir-58)"
+                                    },
+                                    {
+                                        "value": "hz",
+                                        "label": "Simplified Chinese (hz, hz-gb, hz-gb-2312, hzgb)"
+                                    },
+                                    {
+                                        "value": "iso8859-16",
+                                        "label": "South-Eastern Europe (iso-8859-16, l10, latin10)"
+                                    },
+                                    {
+                                        "value": "cp874",
+                                        "label": "Thai (cp874)"
+                                    },
+                                    {
+                                        "value": "big5",
+                                        "label": "Traditional Chinese (big5, big5-tw, csbig5)"
+                                    },
+                                    {
+                                        "value": "big5hkscs",
+                                        "label": "Traditional Chinese (big5-hkscs, big5hkscs, hkscs)"
+                                    },
+                                    {
+                                        "value": "cp950",
+                                        "label": "Traditional Chinese (950, cp950, ms950)"
+                                    },
+                                    {
+                                        "value": "cp1026",
+                                        "label": "Turkish (cp1026, ibm1026)"
+                                    },
+                                    {
+                                        "value": "cp1254",
+                                        "label": "Turkish (cp1254, windows-1254)"
+                                    },
+                                    {
+                                        "value": "cp857",
+                                        "label": "Turkish (857, cp857, ibm857)"
+                                    },
+                                    {
+                                        "value": "iso8859-9",
+                                        "label": "Turkish (iso-8859-9, l5, latin5)"
+                                    },
+                                    {
+                                        "value": "mac-turkish",
+                                        "label": "Turkish (mac-turkish, macturkish)"
+                                    },
+                                    {
+                                        "value": "koi8-u",
+                                        "label": "Ukrainian (koi8-u)"
+                                    },
+                                    {
+                                        "value": "gb18030",
+                                        "label": "Unified Chinese (gb18030, gb18030-2000)"
+                                    },
+                                    {
+                                        "value": "gbk",
+                                        "label": "Unified Chinese (936, cp936, gbk, ms936)"
+                                    },
+                                    {
+                                        "value": "cp1006",
+                                        "label": "Urdu (cp1006)"
+                                    },
+                                    {
+                                        "value": "cp1258",
+                                        "label": "Vietnamese (cp1258, windows-1258)"
+                                    },
+                                    {
+                                        "value": "latin-1",
+                                        "label": "West Europe (8859, cp819, iso-8859-1, l1, latin, latin-1)"
+                                    },
+                                    {
+                                        "value": "cp1140",
+                                        "label": "Western Europe (cp1140, ibm1140)"
+                                    },
+                                    {
+                                        "value": "cp1252",
+                                        "label": "Western Europe (cp1252, windows-1252)"
+                                    },
+                                    {
+                                        "value": "cp500",
+                                        "label": "Western Europe (cp500, ebcdic-cp-be, ebcdic-cp-ch, ibm500)"
+                                    },
+                                    {
+                                        "value": "cp850",
+                                        "label": "Western Europe (850, cp850, ibm850)"
+                                    },
+                                    {
+                                        "value": "cp858",
+                                        "label": "Western Europe (858, cp858, ibm858)"
+                                    },
+                                    {
+                                        "value": "iso8859-15",
+                                        "label": "Western Europe (iso-8859-15, l9, latin9)"
+                                    },
+                                    {
+                                        "value": "mac-roman",
+                                        "label": "Western Europe (mac-roman, macintosh, macroman)"
+                                    },
+                                    {
+                                        "value": "cp65001",
+                                        "label": "Windows only: Windows UTF-8 (cp-utf8, cp65001)"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_event_filter_name",
+                            "label": "Sensor event filter",
+                            "help": "Select event filter for sensor events (clean out to ingest all)",
+                            "type": "singleSelect",
+                            "required": false,
+                            "defaultValue": "Drop Heartbeats",
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "cs_event_filters"
+                            }
+                        },
+                        {
+                            "field": "cs_ithr_type",
+                            "label": "Ingest time host resolution",
+                            "help": "Select a source for ingest time host resolution",
+                            "type": "singleSelect",
+                            "required": false,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "CrowdStrike device API (recommended)",
+                                        "value": "device_api"
+                                    },
+                                    {
+                                        "label": "CrowdStrike inventory events (not supported by Splunk Cloud)",
+                                        "value": "inventory"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_device_field_filter_name",
+                            "label": "Device field filter",
+                            "help": "Select device field filter for host resolution (used with Device API host resolution only)",
+                            "type": "singleSelect",
+                            "required": false,
+                            "defaultValue": "",
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "cs_device_field_filters"
+                            }
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "help": "Specify destination splunk index",
+                            "type": "singleSelect",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_external_events",
+                            "label": "External security events",
+                            "help": "Tick to collect external security events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_external_events",
+                            "label": "Index for external events",
+                            "help": "Specify index name if you want to store external events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_ztha_events",
+                            "label": "ZTA events",
+                            "help": "Tick to collect zero trust host assessment events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_ztha_events",
+                            "label": "Index for ztha events",
+                            "help": "Specify index name if you want to store ZTA events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_aidmaster",
+                            "label": "Inventory aidmaster events",
+                            "help": "Tick to collect inventory aidmaster events (required for host resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_aidmaster_events",
+                            "label": "Index for aidmaster events",
+                            "help": "Specify index name if you want to store aidmaster events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_managedassets",
+                            "label": "Inventory managedassets events",
+                            "help": "Tick to collect inventory managedassets events (required for host IP and MAC adress resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_managedassets_events",
+                            "label": "Index for managedassets events",
+                            "help": "Specify index name if you want to store managedassets events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_notmanaged",
+                            "label": "Inventory notmanaged events",
+                            "help": "Tick to collect inventory notmanaged events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_notmanaged_events",
+                            "label": "Index for notmanaged events",
+                            "help": "Specify index name if you want to store notmanaged events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_appinfo",
+                            "label": "Inventory appinfo events",
+                            "help": "Tick to collect inventory appinfo events (required for app/file resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_appinfo_events",
+                            "label": "Index for appinfo events",
+                            "help": "Specify index name if you want to store appinfo events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_userinfo",
+                            "label": "Inventory userinfo events",
+                            "help": "Tick to collect inventory userinfo events (required for user resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_userinfo_events",
+                            "label": "Index for userinfo events",
+                            "help": "Specify index name if you want to store userinfo events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "help": "Interval for this input (in seconds)",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 200,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        30,
+                                        3600
+                                    ],
+                                    "errorMsg": "Numeric value between 30 and 3600 is expected"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "managed_consumer_input",
+                    "title": "Crowdstrike FDR managed S3 consumer",
+                    "restHandlerName": "managed_consumer_input_rh",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Managed S3 consumer input name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "manager",
+                            "label": "Manager",
+                            "help": "Select existing Crowdstrike FDR SQS based manager",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "sqs_based_manager"
+                            }
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "help": "Interval for this input (in seconds)",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 30,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        10,
+                                        300
+                                    ],
+                                    "errorMsg": "Numeric value between 10 and 300 is expected"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "sqs_based_manager",
+                    "title": "Crowdstrike FDR SQS based manager",
+                    "restHandlerName": "sqs_based_manager_rh",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "SQS based manager name",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[0-9|a-z|A-Z][\\w\\-]*$",
+                                    "errorMsg": "Characters of Name should start with alphanumeric and contain alphanumeric, dash or underscore only."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "aws_collection",
+                            "label": "FDR AWS Collection",
+                            "help": "Select FDR AWS Collection",
+                            "type": "singleSelect",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "aws_collections"
+                            }
+                        },
+                        {
+                            "field": "aws_sqs_url",
+                            "label": "SQS",
+                            "help": "Type AWS SQS queue URL",
+                            "type": "text",
+                            "required": true
+                        },
+                        {
+                            "field": "aws_sqs_ignore_before",
+                            "label": "Ignore SQS messages older than",
+                            "type": "text",
+                            "help": "Specify a date and time in UTC format (YYYY-MM-DD HH:MM). If no value is entered ingestion will start with the oldest SQS message available.",
+                            "defaultValue": "",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\s*\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2]\\d|3[0-1])\\s+([0-1]\\d|2[0-3]):([0-5]\\d)\\s*$",
+                                    "errorMsg": "Expects UTC datetime value YYYY-MM-DD HH:MM, for example 2022-03-10 09:35"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "aws_sqs_visibility_timeout",
+                            "label": "SQS Message Visibility Timeout",
+                            "help": "Select appropriate SQS Message Visibility Timeout",
+                            "type": "singleSelect",
+                            "required": true,
+                            "defaultValue": "21600",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "30 seconds",
+                                        "value": "30"
+                                    },
+                                    {
+                                        "label": "1 minute",
+                                        "value": "60"
+                                    },
+                                    {
+                                        "label": "2 minutes",
+                                        "value": "120"
+                                    },
+                                    {
+                                        "label": "5 minutes",
+                                        "value": "300"
+                                    },
+                                    {
+                                        "label": "10 minutes",
+                                        "value": "600"
+                                    },
+                                    {
+                                        "label": "15 minutes",
+                                        "value": "900"
+                                    },
+                                    {
+                                        "label": "20 minutes",
+                                        "value": "1200"
+                                    },
+                                    {
+                                        "label": "30 minutes",
+                                        "value": "1800"
+                                    },
+                                    {
+                                        "label": "45 minutes",
+                                        "value": "2700"
+                                    },
+                                    {
+                                        "label": "1 hour",
+                                        "value": "3600"
+                                    },
+                                    {
+                                        "label": "2 hours",
+                                        "value": "7200"
+                                    },
+                                    {
+                                        "label": "3 hours",
+                                        "value": "10800"
+                                    },
+                                    {
+                                        "label": "4 hours",
+                                        "value": "14400"
+                                    },
+                                    {
+                                        "label": "5 hours",
+                                        "value": "18000"
+                                    },
+                                    {
+                                        "label": "6 hours",
+                                        "value": "21600"
+                                    },
+                                    {
+                                        "label": "7 hours",
+                                        "value": "25200"
+                                    },
+                                    {
+                                        "label": "8 hours",
+                                        "value": "28800"
+                                    },
+                                    {
+                                        "label": "9 hours",
+                                        "value": "32400"
+                                    },
+                                    {
+                                        "label": "10 hours",
+                                        "value": "36000"
+                                    },
+                                    {
+                                        "label": "11 hours",
+                                        "value": "39600"
+                                    },
+                                    {
+                                        "label": "12 hours",
+                                        "value": "43200"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_event_encoding",
+                            "label": "Events encoding",
+                            "help": "In most cases it's UTF-8, change it only if events are ingested incorectly",
+                            "type": "singleSelect",
+                            "required": true,
+                            "defaultValue": "utf-8",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "utf-16",
+                                        "label": "All languages (u16, utf-16, utf16)"
+                                    },
+                                    {
+                                        "value": "utf-16-be",
+                                        "label": "All languages (utf-16-be, utf-16be)"
+                                    },
+                                    {
+                                        "value": "utf-16-le",
+                                        "label": "All languages (utf-16-le, utf-16le)"
+                                    },
+                                    {
+                                        "value": "utf-32",
+                                        "label": "All languages (u32, utf-32, utf32)"
+                                    },
+                                    {
+                                        "value": "utf-32-be",
+                                        "label": "All languages (utf-32-be, utf-32be)"
+                                    },
+                                    {
+                                        "value": "utf-32-le",
+                                        "label": "All languages (utf-32-le, utf-32le)"
+                                    },
+                                    {
+                                        "value": "utf-7",
+                                        "label": "All languages (u7, unicode-1-1-utf-7, utf-7)"
+                                    },
+                                    {
+                                        "value": "utf-8",
+                                        "label": "All languages (u8, utf, utf-8, utf8)"
+                                    },
+                                    {
+                                        "value": "utf-8-sig",
+                                        "label": "All languages (utf-8-sig)"
+                                    },
+                                    {
+                                        "value": "cp1256",
+                                        "label": "Arabic (cp1256, windows-1256)"
+                                    },
+                                    {
+                                        "value": "cp720",
+                                        "label": "Arabic (cp720)"
+                                    },
+                                    {
+                                        "value": "cp864",
+                                        "label": "Arabic (cp864, ibm864)"
+                                    },
+                                    {
+                                        "value": "iso8859-6",
+                                        "label": "Arabic (arabic, iso-8859-6)"
+                                    },
+                                    {
+                                        "value": "cp1257",
+                                        "label": "Baltic languages (cp1257, windows-1257)"
+                                    },
+                                    {
+                                        "value": "cp775",
+                                        "label": "Baltic languages (cp775, ibm775)"
+                                    },
+                                    {
+                                        "value": "iso8859-13",
+                                        "label": "Baltic languages (iso-8859-13, l7, latin7)"
+                                    },
+                                    {
+                                        "value": "iso8859-4",
+                                        "label": "Baltic languages (iso-8859-4, l4, latin4)"
+                                    },
+                                    {
+                                        "value": "cp1251",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (cp1251, windows-1251)"
+                                    },
+                                    {
+                                        "value": "cp855",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (855, cp855, ibm855)"
+                                    },
+                                    {
+                                        "value": "iso8859-5",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (cyrillic, iso-8859-5)"
+                                    },
+                                    {
+                                        "value": "mac-cyrillic",
+                                        "label": "Bulgarian, Byelorussian, Macedonian, Russian, Serbian (mac-cyrillic, maccyrillic)"
+                                    },
+                                    {
+                                        "value": "cp863",
+                                        "label": "Canadian (863, cp863, ibm863)"
+                                    },
+                                    {
+                                        "value": "iso8859-14",
+                                        "label": "Celtic languages (iso-8859-14, l8, latin8)"
+                                    },
+                                    {
+                                        "value": "cp1250",
+                                        "label": "Central and Eastern Europe (cp1250, windows-1250)"
+                                    },
+                                    {
+                                        "value": "cp852",
+                                        "label": "Central and Eastern Europe (852, cp852, ibm852)"
+                                    },
+                                    {
+                                        "value": "iso8859-2",
+                                        "label": "Central and Eastern Europe (iso-8859-2, l2, latin2)"
+                                    },
+                                    {
+                                        "value": "mac-latin2",
+                                        "label": "Central and Eastern Europe (mac-latin2, maccentraleurope, maclatin2)"
+                                    },
+                                    {
+                                        "value": "cp865",
+                                        "label": "Danish, Norwegian (865, cp865, ibm865)"
+                                    },
+                                    {
+                                        "value": "ascii",
+                                        "label": "English (646, ascii, us-ascii)"
+                                    },
+                                    {
+                                        "value": "cp037",
+                                        "label": "English (cp037, ibm037, ibm039)"
+                                    },
+                                    {
+                                        "value": "cp437",
+                                        "label": "English (437, cp437, ibm437)"
+                                    },
+                                    {
+                                        "value": "iso8859-3",
+                                        "label": "Esperanto, Maltese (iso-8859-3, l3, latin3)"
+                                    },
+                                    {
+                                        "value": "cp1253",
+                                        "label": "Greek (cp1253, windows-1253)"
+                                    },
+                                    {
+                                        "value": "cp737",
+                                        "label": "Greek (cp737)"
+                                    },
+                                    {
+                                        "value": "cp869",
+                                        "label": "Greek (869, cp-gr, cp869, ibm869)"
+                                    },
+                                    {
+                                        "value": "cp875",
+                                        "label": "Greek (cp875)"
+                                    },
+                                    {
+                                        "value": "iso8859-7",
+                                        "label": "Greek (greek, greek8, iso-8859-7)"
+                                    },
+                                    {
+                                        "value": "mac-greek",
+                                        "label": "Greek (mac-greek, macgreek)"
+                                    },
+                                    {
+                                        "value": "cp1255",
+                                        "label": "Hebrew (cp1255, windows-1255)"
+                                    },
+                                    {
+                                        "value": "cp424",
+                                        "label": "Hebrew (cp424, ebcdic-cp-he, ibm424)"
+                                    },
+                                    {
+                                        "value": "cp856",
+                                        "label": "Hebrew (cp856)"
+                                    },
+                                    {
+                                        "value": "cp862",
+                                        "label": "Hebrew (862, cp862, ibm862)"
+                                    },
+                                    {
+                                        "value": "iso8859-8",
+                                        "label": "Hebrew (hebrew, iso-8859-8)"
+                                    },
+                                    {
+                                        "value": "cp861",
+                                        "label": "Icelandic (861, cp-is, cp861, ibm861)"
+                                    },
+                                    {
+                                        "value": "mac-iceland",
+                                        "label": "Icelandic (mac-iceland, maciceland)"
+                                    },
+                                    {
+                                        "value": "cp932",
+                                        "label": "Japanese (932, cp932, ms-kanji, ms932, mskanji)"
+                                    },
+                                    {
+                                        "value": "euc-jis-2004",
+                                        "label": "Japanese (euc-jis-2004, eucjis2004, jisx0213)"
+                                    },
+                                    {
+                                        "value": "euc-jisx0213",
+                                        "label": "Japanese (euc-jisx0213, eucjisx0213)"
+                                    },
+                                    {
+                                        "value": "euc-jp",
+                                        "label": "Japanese (euc-jp, eucjp, u-jis, ujis)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp",
+                                        "label": "Japanese (csiso2022jp, iso-2022-jp)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-1",
+                                        "label": "Japanese (iso-2022-jp-1)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-2004",
+                                        "label": "Japanese (iso-2022-jp-2004)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-3",
+                                        "label": "Japanese (iso-2022-jp-3)"
+                                    },
+                                    {
+                                        "value": "iso2022-jp-ext",
+                                        "label": "Japanese (iso-2022-jp-ext)"
+                                    },
+                                    {
+                                        "value": "shift-jis",
+                                        "label": "Japanese (csshiftjis, s-jis, shift-jis, shiftjis, sjis)"
+                                    },
+                                    {
+                                        "value": "shift-jis-2004",
+                                        "label": "Japanese (shift-jis-2004, sjis-2004, sjis2004)"
+                                    },
+                                    {
+                                        "value": "shift-jisx0213",
+                                        "label": "Japanese (s-jisx0213, shift-jisx0213, sjisx0213)"
+                                    },
+                                    {
+                                        "value": "iso-2022-jp-2",
+                                        "label": "Japanese, Korean, Simplified Chinese, Western Europe, Greek (iso-2022-jp-2)"
+                                    },
+                                    {
+                                        "value": "ptcp154",
+                                        "label": "Kazakh (cp154, csptcp154, cyrillic-asian, pt154, ptcp154)"
+                                    },
+                                    {
+                                        "value": "cp949",
+                                        "label": "Korean (949, cp949, ms949, uhc)"
+                                    },
+                                    {
+                                        "value": "euc-kr",
+                                        "label": "Korean (euc-kr, euckr, korean, ks-c-5601, ks-c-5601-1987, ks-x-1001, ksc5601, ksx1001)"
+                                    },
+                                    {
+                                        "value": "iso2022-kr",
+                                        "label": "Korean (csiso2022kr, iso-2022-kr)"
+                                    },
+                                    {
+                                        "value": "johab",
+                                        "label": "Korean (cp1361, johab, ms1361)"
+                                    },
+                                    {
+                                        "value": "iso8859-10",
+                                        "label": "Nordic languages (iso-8859-10, iso8859-10, l6, latin6)"
+                                    },
+                                    {
+                                        "value": "cp860",
+                                        "label": "Portuguese (860, cp860, ibm860)"
+                                    },
+                                    {
+                                        "value": "cp866",
+                                        "label": "Russian (866, cp866, ibm866)"
+                                    },
+                                    {
+                                        "value": "koi8-r",
+                                        "label": "Russian (koi8-r)"
+                                    },
+                                    {
+                                        "value": "gb2312",
+                                        "label": "Simplified Chinese (csiso58gb231280, eucgb2312-cn, gb2312, gb2312-1980, gb2312-80)"
+                                    },
+                                    {
+                                        "value": "iso-ir-58",
+                                        "label": "Simplified Chinese (chinese, euc-cn, euccn, iso-ir-58)"
+                                    },
+                                    {
+                                        "value": "hz",
+                                        "label": "Simplified Chinese (hz, hz-gb, hz-gb-2312, hzgb)"
+                                    },
+                                    {
+                                        "value": "iso8859-16",
+                                        "label": "South-Eastern Europe (iso-8859-16, l10, latin10)"
+                                    },
+                                    {
+                                        "value": "cp874",
+                                        "label": "Thai (cp874)"
+                                    },
+                                    {
+                                        "value": "big5",
+                                        "label": "Traditional Chinese (big5, big5-tw, csbig5)"
+                                    },
+                                    {
+                                        "value": "big5hkscs",
+                                        "label": "Traditional Chinese (big5-hkscs, big5hkscs, hkscs)"
+                                    },
+                                    {
+                                        "value": "cp950",
+                                        "label": "Traditional Chinese (950, cp950, ms950)"
+                                    },
+                                    {
+                                        "value": "cp1026",
+                                        "label": "Turkish (cp1026, ibm1026)"
+                                    },
+                                    {
+                                        "value": "cp1254",
+                                        "label": "Turkish (cp1254, windows-1254)"
+                                    },
+                                    {
+                                        "value": "cp857",
+                                        "label": "Turkish (857, cp857, ibm857)"
+                                    },
+                                    {
+                                        "value": "iso8859-9",
+                                        "label": "Turkish (iso-8859-9, l5, latin5)"
+                                    },
+                                    {
+                                        "value": "mac-turkish",
+                                        "label": "Turkish (mac-turkish, macturkish)"
+                                    },
+                                    {
+                                        "value": "koi8-u",
+                                        "label": "Ukrainian (koi8-u)"
+                                    },
+                                    {
+                                        "value": "gb18030",
+                                        "label": "Unified Chinese (gb18030, gb18030-2000)"
+                                    },
+                                    {
+                                        "value": "gbk",
+                                        "label": "Unified Chinese (936, cp936, gbk, ms936)"
+                                    },
+                                    {
+                                        "value": "cp1006",
+                                        "label": "Urdu (cp1006)"
+                                    },
+                                    {
+                                        "value": "cp1258",
+                                        "label": "Vietnamese (cp1258, windows-1258)"
+                                    },
+                                    {
+                                        "value": "latin-1",
+                                        "label": "West Europe (8859, cp819, iso-8859-1, l1, latin, latin-1)"
+                                    },
+                                    {
+                                        "value": "cp1140",
+                                        "label": "Western Europe (cp1140, ibm1140)"
+                                    },
+                                    {
+                                        "value": "cp1252",
+                                        "label": "Western Europe (cp1252, windows-1252)"
+                                    },
+                                    {
+                                        "value": "cp500",
+                                        "label": "Western Europe (cp500, ebcdic-cp-be, ebcdic-cp-ch, ibm500)"
+                                    },
+                                    {
+                                        "value": "cp850",
+                                        "label": "Western Europe (850, cp850, ibm850)"
+                                    },
+                                    {
+                                        "value": "cp858",
+                                        "label": "Western Europe (858, cp858, ibm858)"
+                                    },
+                                    {
+                                        "value": "iso8859-15",
+                                        "label": "Western Europe (iso-8859-15, l9, latin9)"
+                                    },
+                                    {
+                                        "value": "mac-roman",
+                                        "label": "Western Europe (mac-roman, macintosh, macroman)"
+                                    },
+                                    {
+                                        "value": "cp65001",
+                                        "label": "Windows only: Windows UTF-8 (cp-utf8, cp65001)"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_event_filter_name",
+                            "label": "Sensor event filter",
+                            "help": "Select event filter for sensor events (clean out to ingest all)",
+                            "type": "singleSelect",
+                            "required": false,
+                            "defaultValue": "Drop Heartbeats",
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "cs_event_filters"
+                            }
+                        },
+                        {
+                            "field": "cs_ithr_type",
+                            "label": "Ingest time host resolution",
+                            "help": "Select a source for ingest time host resolution",
+                            "type": "singleSelect",
+                            "required": false,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "CrowdStrike device API (recommended)",
+                                        "value": "device_api"
+                                    },
+                                    {
+                                        "label": "CrowdStrike inventory events (not supported by Splunk Cloud)",
+                                        "value": "inventory"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "cs_device_field_filter_name",
+                            "label": "Device field filter",
+                            "help": "Select device field filter for host resolution (used with Device API host resolution only)",
+                            "type": "singleSelect",
+                            "required": false,
+                            "defaultValue": "",
+                            "options": {
+                                "disableSearch": true,
+                                "referenceName": "cs_device_field_filters"
+                            }
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "help": "Specify destination splunk index",
+                            "type": "singleSelect",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_external_events",
+                            "label": "External security events",
+                            "help": "Tick to collect external security events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_external_events",
+                            "label": "Index for external events",
+                            "help": "Specify index name if you want to store external events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_ztha_events",
+                            "label": "ZTA events",
+                            "help": "Tick to collect zero trust host assessment events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_ztha_events",
+                            "label": "Index for ztha events",
+                            "help": "Specify index name if you want to store ZTA events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_aidmaster",
+                            "label": "Inventory aidmaster events",
+                            "help": "Tick to collect inventory aidmaster events (required for host resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_aidmaster_events",
+                            "label": "Index for aidmaster events",
+                            "help": "Specify index name if you want to store aidmaster events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_managedassets",
+                            "label": "Inventory managedassets events",
+                            "help": "Tick to collect inventory managedassets events (required for host IP and MAC adress resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_managedassets_events",
+                            "label": "Index for managedassets events",
+                            "help": "Specify index name if you want to store managedassets events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_notmanaged",
+                            "label": "Inventory notmanaged events",
+                            "help": "Tick to collect inventory notmanaged events",
+                            "type": "checkbox",
+                            "defaultValue": 0
+                        },
+                        {
+                            "field": "index_for_notmanaged_events",
+                            "label": "Index for notmanaged events",
+                            "help": "Specify index name if you want to store notmanaged events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_appinfo",
+                            "label": "Inventory appinfo events",
+                            "help": "Tick to collect inventory appinfo events (required for app/file resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_appinfo_events",
+                            "label": "Index for appinfo events",
+                            "help": "Specify index name if you want to store appinfo events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "collect_inventory_userinfo",
+                            "label": "Inventory userinfo events",
+                            "help": "Tick to collect inventory userinfo events (required for user resolution)",
+                            "type": "checkbox",
+                            "defaultValue": 1
+                        },
+                        {
+                            "field": "index_for_userinfo_events",
+                            "label": "Index for userinfo events",
+                            "help": "Specify index name if you want to store userinfo events separately",
+                            "type": "singleSelect",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "options": {
+                                "endpointUrl": "data/indexes?search=isInternal=0+disabled=0",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "field": "checkpoint_type",
+                            "label": "Checkpoint type",
+                            "help": "Select checkpoint type",
+                            "type": "singleSelect",
+                            "required": true,
+                            "defaultValue": "sqs",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "SQS message (per batch)",
+                                        "value": "sqs"
+                                    },
+                                    {
+                                        "label": "Internal Splunk (per file)",
+                                        "value": "internal"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "help": "Interval for this input (in seconds)",
+                            "type": "text",
+                            "required": true,
+                            "defaultValue": 200,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        30,
+                                        3600
+                                    ],
+                                    "errorMsg": "Numeric value between 30 and 3600 is expected"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                },
+                {
+                    "name": "custom"
+                }
+            ],
+            "settings": {
+                "custom_tab_name": "Modular Inputs Ingestion",
+                "custom_license_usage": {
+                    "determine_by": "sourcetype",
+                    "search_condition": [
+                        "crowdstrike*"
+                    ]
+                }
+            }
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_CrowdStrike_FDR",
+        "restRoot": "splunk_ta_crowdstrike_fdr",
+        "version": "2.0.5",
+        "displayName": "Splunk Add-on for CrowdStrike FDR",
+        "schemaVersion": "0.0.7",
+        "_uccVersion": "5.47.0"
+    }
+}

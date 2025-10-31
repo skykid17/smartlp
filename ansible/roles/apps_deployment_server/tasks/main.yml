@@ -1,0 +1,4 @@
+---
+
+- name: Update deployment apps
+  import_tasks: update_deployment_apps.yml

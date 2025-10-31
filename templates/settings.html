@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<body>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Settings</h2>
+    <p>Configure SmartSOC settings.</p>
+    <!-- SIEM status indicators removed -->
+  </div>
+  <div class="row">
+    <div class="col-2">
+      <div class="nav flex-column nav-pills me-3" id="settings-tabs" role="tablist" aria-orientation="vertical">
+        <button class="nav-link active" id="smartlp-tab" data-bs-toggle="pill" data-bs-target="#smartlp-settings"
+          type="button" role="tab" aria-controls="smartlp-settings" aria-selected="true">SmartLP</button>
+        <button class="nav-link" id="smartuc-tab" data-bs-toggle="pill" data-bs-target="#smartuc-settings" type="button"
+          role="tab" aria-controls="smartuc-settings" aria-selected="false">SmartUC</button>
+        <button class="nav-link" id="siem-tab" data-bs-toggle="pill" data-bs-target="#siem-settings" type="button"
+          role="tab" aria-controls="siem-settings" aria-selected="false">SIEM</button>
+        <button class="nav-link" id="llm-tab" data-bs-toggle="pill" data-bs-target="#llm-settings" type="button"
+          role="tab" aria-controls="llm-settings" aria-selected="false">LLM</button>
+      </div>
+    </div>
+    <div class="col-10">
+      <div class="tab-content" id="settings-content">
+
+        <!-- General Settings -->
+        <div class="tab-pane fade show active" id="smartlp-settings" role="tabpanel" aria-labelledby="smartlp-tab">
+          <h3>SmartLP Settings</h3>
+          <div class="row">
+            <div class="col">
+              <div class="form-check form-switch mb-2">
+                <label class="form-check-label" for="ingestOn" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Enable to ingest unparsed logs">Ingestion</label>
+                <input class="form-check-input" type="checkbox" role="switch" id="ingestOn">
+              </div>
+              <div id="ingestGroup">
+                <div class="form-group mb-3">
+                  <label for="ingestAlgoVersion" class="form-label">Parsing Algorithm Version</label>
+                  <select id="ingestAlgoVersion" class="form-select">
+                    <option value="v1">Version 1</option>
+                    <option value="v2">Version 2</option>
+                  </select>
+                </div>
+                <div class="form-group mb-3">
+                  <label for="ingestFrequency" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="How often to ingest unparsed logs (in minutes).">Ingest Frequency (minutes):</label>
+                  <input type="number" id="ingestFrequency" class="form-control" min="1" max="60">
+                  <div id="ingestFrequencyError"></div>
+                </div>
+                <div class="form-group mb-2">
+                  <div class="form-check form-switch">
+                    <label class="form-check-label" for="similarityCheck" data-bs-toggle="tooltip"
+                      data-bs-placement="top" data-bs-title="Enable to skip logs similar to existing ones.">Similarity
+                      Check</label>
+                    <input class="form-check-input" type="checkbox" role="switch" id="similarityCheck">
+                  </div>
+                </div>
+                <div class="form-group mb-3" id="similarityThresholdGroup">
+                  <label for="similarityThreshold" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Skip logs if similarity exceeds this value (0–1).">Similarity Threshold</label>
+                  <input type="number" id="similarityThreshold" class="form-control" step="0.05" min="0" max="1">
+                  <div id="similarityThresholdError"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group mb-3">
+                <label for="activeSiem" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Current SIEM for ingestion">Active SIEM:</label>
+                <select id="activeSiem" class="form-select">
+                </select>
+              </div>
+
+            </div>
+            <div class="col">
+              <div class="form-group mb-3">
+                <label for="activeLlmEndpoint" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Service running the model">Active LLM Endpoint:</label>
+                <select id="activeLlmEndpoint" class="form-select">
+                </select>
+              </div>
+              <div class="form-group mb-3">
+                <label for="activeLlm" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Current running model for all queries">Active LLM Model:</label>
+                <select id="activeLlm" class="form-select">
+                </select>
+              </div>
+              <div class="form-group mb-3">
+                <label for="fixCount" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Number of requeries to the LLM to fix the regex generated (0-100)">Regex Fix
+                  Count:</label>
+                <input type="number" id="fixCount" class="form-control" min="0" max="100">
+                <div id="fixCountError"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SmartUC Settings-->
+        <div class="tab-pane fade" id="smartuc-settings" role="tabpanel" aria-labelledby="smartuc-tab">
+          <h3>SmartUC Settings</h3>
+          <div class="row">
+            <div class="col">
+              <div class="form-group mb-3">
+                <label for="smartucActiveLlmEndpoint" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Service running the model">Active LLM Endpoint:</label>
+                <select id="smartucActiveLlmEndpoint" class="form-select">
+                </select>
+              </div>
+              <div class="form-group mb-3">
+                <label for="smartucActiveLlm" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-title="Current running model for all queries">Active LLM Model:</label>
+                <select id="smartucActiveLlm" class="form-select">
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- SIEM Settings -->
+        <div class="tab-pane fade" id="siem-settings" role="tabpanel" aria-labelledby="siem-tab">
+          <h3>SIEM Settings</h3>
+          <div class="row">
+            <div class="col-4">
+              <div class="form-group mb-3">
+                <label for="siem" class="form-label">SIEM:</label>
+                <select id="siem" class="form-select">
+                </select>
+              </div>
+              <div class="form-group mb-3" id="searchIndexGroup">
+                <label for="searchIndex">Search Index:</label>
+                <input type="text" id="searchIndex" class="form-control" placeholder="Search index name">
+              </div>
+              <div class="form-group mb-3" id="searchEntryGroup">
+                <label for="searchEntryCount">Number of Entries:</label>
+                <input type="text" id="searchEntryCount" class="form-control" placeholder="Search entry count">
+              </div>
+              <div class="form-group mb-3">
+                <div id="searchQueryLogger"></div>
+              </div>
+            </div>
+            <div class="col-8">
+              <div class="form-group mb-3">
+                <label for="searchQuery" class="form-label">Search Query:</label>
+                <textarea type="text" id="searchQuery" class="form-control text-break"
+                  placeholder="Search string"></textarea>
+              </div>
+              <div class="form-group mb-3 d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary" onclick="testConnection()">
+                  <i class="fa fa-plug me-1"></i>Test Connection
+                </button>
+                <button class="btn btn-secondary" onclick="testQuery()">
+                  <i class="fa fa-comment me-1"></i>Test Query
+                </button>
+              </div>
+
+              <div class="form-group mb-3">
+                <div id="connectionTestLogger"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LLM Settings -->
+        <div class="tab-pane fade" id="llm-settings" role="tabpanel" aria-labelledby="llm-tab">
+          <h3>LLM Settings</h3>
+
+          <!-- LLM Endpoint Tabs -->
+          <div class="mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <label class="form-label mb-0">LLM Endpoints:</label>
+              <div id="llmEndpointTabs" class="d-flex gap-1 flex-wrap align-items-center">
+                <!-- Endpoint tabs will be populated here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- LLM Endpoint Content -->
+          <div id="llmEndpointContent">
+            <div class="row">
+              <div class="col-8">
+                <div class="form-group mb-3">
+                  <label for="llmUrl" class="form-label">LLM URL:</label>
+                  <textarea id="llmUrl" class="form-control" placeholder="API URL"></textarea>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="form-group mb-3">
+                  <div class="form-label">LLM Models:</div>
+                  <div class="input-group mb-3">
+                    <input type="text" id="newModelInput" class="form-control" placeholder="Enter new model">
+                    <button class="btn btn-outline-primary" type="button" onclick="addModel()">
+                      <i class="fa fa-plus" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div id="models" class="mb-3"></div>
+                  <div class="form-group mb-3">
+                    <div id="testModelLogger"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning Modal for SIEM Change -->
+  <div class="modal fade" id="siemChangeWarningModal" tabindex="-1" aria-labelledby="siemChangeWarningModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="siemChangeWarningModalLabel"><i class="fa fa-exclamation-triangle"
+              style="color: orange;"></i> Warning: Changing Active SIEM</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Any parsing/detection rule configurations left undone might return unintended results. Would you like to
+          proceed?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="cancelSiemChange">Cancel</button>
+          <button type="button" class="btn btn-success" data-bs-dismiss="modal" id="confirmSiemChange">Proceed</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Modal for Settings Change -->
+  <div class="modal fade" id="settingChangeModal" tabindex="-1" aria-labelledby="siemChangeWarningModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingChangeModalLabel"></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center my-4">
+    <button id="saveSettingsButton" class="btn btn-primary" onclick="saveSettings()">Save</button>
+    <div id="logger"></div>
+  </div>
+
+  <!-- Initialize Bootstrap tooltips -->
+  <script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function () {
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+      });
+    });
+  </script>
+
+</body>
+{% endblock %}

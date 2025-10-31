@@ -1,0 +1,203 @@
+<form version="1.1" stylesheet="victorops.css" hideFooter="true" hideEdit="false" hideTitle="false">
+  <label>Incident Analysis</label>
+  <search id="vo_search">
+    <query>
+      `victorops_incidents` | sort lastAlertTime desc | dedup incidentNumber | fields *
+    </query>
+    <earliest>$time_period.earliest$</earliest>
+    <latest>$time_period.latest$</latest>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="org_field">
+      <label>Organization</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org != '' | eval name = org | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="time" token="time_period">
+      <label>Date Range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="routing_key_field" searchWhenChanged="true">
+      <label>Routing Key</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>routingKeyName</fieldForLabel>
+      <fieldForValue>routingKey</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org="$org_field$" | stats count by routingKey | eval routingKeyName = substr(routingKey, 8)  | table routingKeyName routingKey</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="team_field" searchWhenChanged="true">
+      <label>Team</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>info.name</fieldForLabel>
+      <fieldForValue>info.name</fieldForValue>
+      <search>
+        <query>`victorops_teams` org="$org_field$" | dedup info.name | sort info.name | table info.name info.slug</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="monitoring_tool_field" searchWhenChanged="true">
+      <label>Monitoring Tool</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>monitorType</fieldForLabel>
+      <fieldForValue>monitorType</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org="$org_field$" | stats count by monitorType | table monitorType</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>Live Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" (currentPhase=UNACKED OR currentPhase=ACKED) monitorType=$monitoring_tool_field$ routingKey=$routing_key_field$
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Resolved Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" currentPhase=RESOLVED monitorType=$monitoring_tool_field$ routingKey=$routing_key_field$
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Incident Trend</title>
+        <search base="vo_search">
+          <query>
+            search  org="$org_field$" monitorType=$monitoring_tool_field$  routingKey=$routing_key_field$
+            | eval teamFilter = "$team_field$"
+            | eval teamFilter = if (teamFilter == "*","",teamFilter)
+            | eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+            | timechart count span=1h
+            | streamstats sum(count)</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <viz type="treemap_app.treemap">
+        <title>Incidents By EntityID and Team</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" routingKey="$routing_key_field$" | eval teamFilter = "$team_field$"
+                | eval teamFilter = if (teamFilter == "*","",teamFilter)
+                | eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+                | stats count by entityId, pagedPolicies{}.team.name</query>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="treemap_app.treemap.colorMode">categorical</option>
+        <option name="treemap_app.treemap.maxCategories">100</option>
+        <option name="treemap_app.treemap.maxColor">#3fc77a</option>
+        <option name="treemap_app.treemap.minColor">#d93f3c</option>
+        <option name="treemap_app.treemap.numOfBins">6</option>
+        <option name="treemap_app.treemap.showLabels">true</option>
+        <option name="treemap_app.treemap.showLegend">true</option>
+        <option name="treemap_app.treemap.showTooltip">true</option>
+        <option name="treemap_app.treemap.useColors">true</option>
+        <option name="treemap_app.treemap.useZoom">true</option>
+      </viz>
+    </panel>
+    <panel>
+      <viz type="sankey_diagram_app.sankey_diagram">
+        <title>Monitoring Tool to Team</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" routingKey="$routing_key_field$" | eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| eval n = mvfind('pagedPolicies{}.team.name', teamFilter)
+| where isnotnull(n)
+| stats count by monitorType, pagedPolicies{}.team.name</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Live Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" currentPhase != "RESOLVED" monitorType=$monitoring_tool_field$  routingKey=$routing_key_field$
+| eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at') 
+| fillnull value=" " transitions 
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+| mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1) | eval transition_time=mvindex(transitions,2)
+| eval startTimeEpoch =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ")  | eval transition_time_epoch =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval ack_duration = transition_time_epoch - startTimeEpoch
+| rename org as Organization incidentNumber as Incident entityState as State entityDisplayName as Entity currentPhase as Phase alertCount as "Alert Count" startTime as "Start Time" lastAlertTime as "Last Alert Time" transition_user as "Acked By" ack_duration as "Time To Ack" transition_time as "Acked Time"
+| table Organization, Incident, State, Entity, Phase, "Alert Count", "Start Time", "Last Alert Time", "Acked Time" "Time To Ack" "Acked By"</query>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Resolved Incidents</title>
+        <search base="vo_search">
+          <query>
+| search org="$org_field$" currentPhase = "RESOLVED" monitorType=$monitoring_tool_field$  routingKey=$routing_key_field$
+| eval start = strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") 
+| eval end = strptime(lastAlertTime,"%Y-%m-%dT%H:%M:%SZ") 
+| eval duration = round((end - start) * 60)
+| eval transitions = mvzip('transitions{}.name','transitions{}.by') 
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| eval n = mvfind('pagedPolicies{}.team.name', teamFilter) | where isnotnull(n)
+| eval n = mvfind(transitions,"RESOLVED") 
+| eval tmp = if (isnotnull(n), mvindex(transitions,n),'')
+| eval resolvedBy = if (tmp == '', tmp, replace(tmp,"RESOLVED,",""))
+| rename org as Organization incidentNumber as Incident entityState as State entityDisplayName as Entity currentPhase as Phase alertCount as "Alert Count" startTime as "Start Time" lastAlertTime as "Resolved Time" duration as "Time to Resolve" resolvedBy as "Resolved By"
+| table Organization, Incident, Entity, "Alert Count", "Start Time", "Resolved Time", "Time to Resolve" "Resolved By"</query>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

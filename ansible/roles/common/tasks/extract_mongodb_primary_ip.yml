@@ -1,0 +1,17 @@
+---
+
+- name: Get replica set status
+  community.mongodb.mongodb_shell:
+    login_host: "{{ base.mongo_primary_ip }}"
+    db: "admin"
+    eval: "JSON.stringify(rs.isMaster())"
+  register: mongo_rs_status
+
+- name: Extract primary node hostname
+  set_fact:
+    mongo_primary: "{{ (mongo_rs_status.transformed_output[0] | from_json | from_json).primary }}"
+
+- name: Extract only IP from primary
+  set_fact:
+    mongo_primary_ip: "{{ mongo_primary.split(':')[0] }}"
+

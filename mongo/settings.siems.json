@@ -1,0 +1,20 @@
+[{
+  "_id": {
+    "$oid": "67f48acf18cde7a9e3d63164"
+  },
+  "id": "splunk",
+  "name": "Splunk",
+  "amendments": [],
+  "search_index": "unparsed",
+  "search_query": "index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1"
+},
+{
+  "_id": {
+    "$oid": "67f48b2618cde7a9e3d6316e"
+  },
+  "id": "elastic",
+  "name": "Elastic",
+  "amendments": [],
+  "search_index": "logs-zone8003*",
+  "search_query": "{\n  \"query\": {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"now\"\n            }\n        }\n    }\n}\n"
+}]

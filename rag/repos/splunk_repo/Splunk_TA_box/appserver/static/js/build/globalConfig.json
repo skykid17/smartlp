@@ -1,0 +1,821 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Account Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Client ID",
+                                "field": "client_id"
+                            }
+                        ]
+                    },
+                    "name": "account",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Account Name",
+                            "required": true,
+                            "help": "Enter a unique name for this box account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "errorMsg": "Account Name must not exceed 50 characters.",
+                                    "minLength": 1
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Endpoint URL",
+                            "help": "Enter the endpoint URL.",
+                            "field": "endpoint",
+                            "defaultValue": "account.box.com",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "oauth",
+                            "label": "Authentication",
+                            "field": "oauth",
+                            "help": "",
+                            "options": {
+                                "auth_type": [
+                                    "oauth"
+                                ],
+                                "oauth": [
+                                    {
+                                        "oauth_field": "client_id",
+                                        "label": "Client ID",
+                                        "field": "client_id",
+                                        "encrypted": false,
+                                        "help": "Enter Box Client ID."
+                                    },
+                                    {
+                                        "oauth_field": "client_secret",
+                                        "label": "Client Secret",
+                                        "field": "client_secret",
+                                        "encrypted": true,
+                                        "help": "Enter Box Client Secret."
+                                    },
+                                    {
+                                        "oauth_field": "redirect_url",
+                                        "label": "Redirect URL",
+                                        "field": "redirect_url",
+                                        "encrypted": false,
+                                        "help": "Copy and paste this URL into \"OAuth 2.0 Redirect URI\" field on Box Application configuration page."
+                                    }
+                                ],
+                                "auth_code_endpoint": "/api/oauth2/authorize",
+                                "access_token_endpoint": "/api/oauth2/token",
+                                "oauth_timeout": 90,
+                                "oauth_state_enabled": true
+                            }
+                        }
+                    ],
+                    "title": "Box Account",
+                    "hook": {
+                        "src": "account_hook.2.0.0",
+                        "type": "external"
+                    }
+                },
+                {
+                    "title": "Proxy",
+                    "name": "proxy",
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host is invalid",
+                                    "type": "regex"
+                                }
+                            ],
+                            "field": "proxy_url",
+                            "label": "Proxy Host",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Proxy Port",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Proxy Username"
+                        },
+                        {
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for password is 8192"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Proxy Password"
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_rdns",
+                            "label": "Use Proxy for DNS Resolution"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "socks5",
+                                        "label": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http",
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Logging level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARN",
+                                        "label": "WARN"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "help": "(DEBUG, INFO, WARN, ERROR or CRITICAL)"
+                        }
+                    ]
+                }
+            ],
+            "description": "Set up your add-on",
+            "title": "Configuration"
+        },
+        "inputs": {
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account",
+                        "customCell": {
+                            "src": "custom_input_cell",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "label": "Endpoint",
+                        "field": "rest_endpoint",
+                        "customCell": {
+                            "src": "custom_input_cell",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval",
+                        "customCell": {
+                            "src": "custom_input_cell",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status",
+                        "mapping": {
+                            "false": "Active",
+                            "true": "Inactive"
+                        }
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Input name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "label": "Endpoint",
+                        "field": "rest_endpoint"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    }
+                ]
+            },
+            "description": "",
+            "services": [
+                {
+                    "hook": {
+                        "src": "input_hook.2.0.0",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "name",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "Input Name",
+                            "required": false,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "input_name",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Box Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Endpoint",
+                            "field": "rest_endpoint",
+                            "help": "Select endpoint",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "events",
+                                        "label": "Events (admin_logs)"
+                                    },
+                                    {
+                                        "value": "users",
+                                        "label": "Users"
+                                    },
+                                    {
+                                        "value": "folders",
+                                        "label": "Folders"
+                                    },
+                                    {
+                                        "value": "groups",
+                                        "label": "Groups"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "collect_folder",
+                            "label": "Collect folder metadata",
+                            "defaultValue": 1,
+                            "required": false
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "collect_collaboration",
+                            "label": "Collect folder collaboration",
+                            "defaultValue": 1,
+                            "required": false
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "collect_file",
+                            "label": "Collect file metadata",
+                            "defaultValue": 1,
+                            "required": false
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "collect_task",
+                            "label": "Collect tasks and comments",
+                            "defaultValue": 1,
+                            "required": false
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "reuse_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "A data input with this name already exists. Would you like to continue collecting data using this input?",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "created_after",
+                            "required": false,
+                            "label": "Collect since timestamp",
+                            "help": "The date and time, after converting to UTC in \"YYYY-MM-DDThh:mm:ss\" format e.g. 2020-01-30T14:00:30, after which to collect data. \nThe default is last 90 days.",
+                            "tooltip": "Changing this parameter may result in gaps or duplication in data collection.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^([0-9]{4})-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$",
+                                    "errorMsg": "Enter valid date format \"YYYY-MM-DDThh:mm:ss\""
+                                }
+                            ]
+                        },
+                        {
+                            "field": "duration",
+                            "label": "Duration",
+                            "type": "text",
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": false,
+                            "defaultValue": "Deprecated - Please use the interval field instead",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": 0
+                        },
+                        {
+                            "type": "text",
+                            "label": "Delay",
+                            "field": "event_delay",
+                            "required": false,
+                            "defaultValue": 0,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Delay must be an integer.",
+                                    "pattern": "^[1-9]\\d*$|^\\d*$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "folder_fields",
+                            "label": "Folder Fields",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "file_fields",
+                            "label": "File Fields",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "task_fields",
+                            "label": "Task Fields",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "comment_fields",
+                            "label": "Comment Fields",
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "user_fields",
+                            "label": "User Fields",
+                            "options": {
+                                "display": false
+                            }
+                        }
+                    ],
+                    "name": "box_service",
+                    "title": "Historical Querying Inputs"
+                },
+                {
+                    "hook": {
+                        "src": "input_hook_lmservice",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Box Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Endpoint",
+                            "field": "rest_endpoint",
+                            "defaultValue": "events",
+                            "help": "Live Monitoring Input only support Events endpoint using admin_logs_streaming API. To use other endpoints, please select Historical Querying Inputs option from Create New Input button on Inputs page.",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "events",
+                                        "label": "Events (admin_logs_streaming)"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "reuse_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "A data input with this name already exists. Would you like to continue collecting data using this input?",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": 120
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "box_live_monitoring_service",
+                    "title": "Live Monitoring Inputs"
+                },
+                {
+                    "entity": [
+                        {
+                            "field": "name",
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "help": "Enter a unique name for the input",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "errorMsg": "Maximum length allowed for name is 100",
+                                    "minLength": 1
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Box Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Endpoint",
+                            "field": "rest_endpoint",
+                            "defaultValue": "folders",
+                            "help": "File Ingestion Input only support Folders endpoint using get-files-id-content API. To use other endpoints, please select Historical Querying Inputs option from Create New Input button on Inputs page.",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "folders",
+                                        "label": "Folders (get-files-id-content)"
+                                    }
+                                ],
+                                "disableSearch": true,
+                                "display": false
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "label": "File/Folder ID",
+                            "required": true,
+                            "help": "Enter the File/Folder ID found in the Box portal URL (e.g., https://app.box.com/folder/123456789), where the numbers at the end represent the ID.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Field File/Folder ID must be an integer",
+                                    "pattern": "^\\d+$"
+                                }
+                            ],
+                            "field": "file_or_folder_id",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": 86400
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "name": "box_file_ingestion_service",
+                    "title": "File Ingestion Input"
+                }
+            ],
+            "title": "Inputs"
+        }
+    },
+    "meta": {
+        "version": "3.12.1",
+        "displayName": "Splunk_TA_box",
+        "restRoot": "Splunk_TA_box",
+        "name": "Splunk_TA_box",
+        "_uccVersion": "5.51.1",
+        "schemaVersion": "0.0.8"
+    }
+}

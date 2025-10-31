@@ -1,0 +1,4 @@
+---
+
+- name: Update search head apps
+  import_tasks: configure_search_head_apps.yml

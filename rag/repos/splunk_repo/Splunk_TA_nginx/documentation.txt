@@ -1,0 +1,11 @@
+ 
+
+ The Splunk Add-on for NGINX allows a Splunk software administrator to collect Web Server activity, performance metrics, and error logs using file monitoring and API inputs. After the Splunk platform indexes the events, you can analyze the data using the add-on. 
+
+This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence. 
+
+Download the Splunk Add-on for NGINX from Splunkbase at http://splunkbase.splunk.com/app/3258. 
+
+Discuss the Splunk Add-on for NGINX on Splunk Community. 
+
+ 
