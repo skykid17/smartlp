@@ -78,4 +78,5 @@ def update_local_repository(local_path):
         except:
             pass
 
-# update_elastic_repo()
+if __name__ == "__main__":
+    update_elastic_repo()

@@ -1,34 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartLP Report</title>
-    <link rel="icon" type="image/x-icon" href="/logos/logo.png">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/font-awesome.css">
-    <link rel="stylesheet" href="/css/custom.css">
-</head>
-<body class="bg-light">
-    <!-- Top Navigation -->
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <img src="/logos/logo_white.png" height="20" alt="Logo" class="me-2">
-                SmartLP Report
-            </a>
-            <a href="/" class="btn btn-outline-light btn-sm">
-                <i class="fa fa-arrow-left me-1"></i>Back to Dashboard
-            </a>
-        </div>
-    </nav>
-
+{% set is_embedded = embedded | default(false) %}
+<div class="report-wrapper bg-light py-4 {% if is_embedded %}px-3 rounded{% else %}min-vh-100{% endif %}">
     <div class="container mt-4">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-1">SmartLP Summary Report</h2>
             <div class="d-flex gap-2 align-items-center">
-                <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Refresh data">
+                <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Refresh data">
                     <i class="fa fa-refresh me-1"></i>Refresh
                 </button>
             </div>
@@ -39,7 +17,7 @@
             <!-- Report header -->
             <div class="pdf-only flex-column justify-content-between align-items-center" id="content1">
                 <h1 class="data-bs-title mt-5">SMARTLP Report</h1>
-                <img class="mt-5" src="/logos/logo.png" height="200">
+                <img class="mt-5" src="/logos/logo.png" height="200" alt="Logo">
                 <div class="mt-5">Generated at <time id="datetime"></time></div>
             </div>
 
@@ -53,7 +31,10 @@
                     <div class="table-responsive mb-2">
                         <table class="table" id="logParsedTable">
                             <thead class="table-light sticky-top">
-                                <tr><th>Type of Log</th><th>LogType Count</th></tr>
+                                <tr>
+                                    <th>Type of Log</th>
+                                    <th>LogType Count</th>
+                                </tr>
                             </thead>
                             <tbody id="logParsedBody">
                                 <!-- Results will be dynamically inserted here -->
@@ -69,7 +50,10 @@
                 <div class="table-responsive mb-2">
                     <table class="table" id="logStatsTable">
                         <thead class="table-light sticky-top">
-                            <tr><th>Log Type</th><th>Count</th></tr>
+                            <tr>
+                                <th>Log Type</th>
+                                <th>Count</th>
+                            </tr>
                         </thead>
                         <tbody id="logStatsBody">
                             <!-- Results will be dynamically inserted here -->
@@ -79,25 +63,13 @@
             </div>
         </div>
 
-        <!-- Footer -->
+        <!-- Footer Tools -->
         <div class="d-flex justify-content-end align-items-center mt-2 gap-3 mb-4">
-            <div id=logger></div>
-            <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Save Report">
+            <div id="reportLogger" class="text-muted small"></div>
+            <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="Save Report">
                 <i class="fa fa-save me-1"></i>Save Report
             </button>
         </div>
     </div>
-
-    <footer class="bg-dark text-white text-center py-3 mt-4">
-        <p class="mb-0">SmartSOC &copy; 2025. All Rights Reserved.</p>
-    </footer>
-
-    <!-- JavaScript -->
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/popper.min.js"></script>
-    <script src="/js/bootstrap.min.js"></script>
-    <script src="/js/html2pdf.bundle.min.js"></script>
-    <script src="/js/chart.js"></script>
-    <script src="/js/smartlp/report.js"></script>
-</body>
-</html>
+</div>
