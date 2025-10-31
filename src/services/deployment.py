@@ -24,7 +24,7 @@ class DeploymentService(BaseService):
         
         Args:
             rule_ids: List of rule IDs to deploy
-            deployment_type: Type of deployment (smartlp, smartuc, etc.)
+            deployment_type: Type of deployment (smartlp)
             siem_type: Target SIEM type (splunk, elastic)
             
         Returns:
@@ -71,7 +71,6 @@ class DeploymentService(BaseService):
         """
         playbook_mapping = {
             ("smartlp", "splunk"): "./ansible/9_smartsoc.yml",
-            ("smartuc", "splunk"): "./ansible/9_smartsoc_smartuc.yml",
             # Add more mappings as needed
         }
         
