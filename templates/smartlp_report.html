@@ -1,40 +1,77 @@
-{% extends "base.html" %}
-
-{% block content %}
-<body>
-<div class="container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-1">SmartLP Summary Report</h2>
-        <div class="d-flex gap-2 align-items-center">
-            <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Refresh data">
-                Refresh
-            </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLP Report</title>
+    <link rel="icon" type="image/x-icon" href="/logos/logo.png">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.css">
+    <link rel="stylesheet" href="/css/custom.css">
+</head>
+<body class="bg-light">
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="/logos/logo_white.png" height="20" alt="Logo" class="me-2">
+                SmartLP Report
+            </a>
+            <a href="/" class="btn btn-outline-light btn-sm">
+                <i class="fa fa-arrow-left me-1"></i>Back to Dashboard
+            </a>
         </div>
-    </div>
+    </nav>
 
-    <!-- Main Content -->
-    <div class="row p-4">
-        <!-- Report header -->
-        <div class="pdf-only flex-column justify-content-between align-items-center" id="content1">
-            <h1 class="data-bs-title mt-5">SMARTLP Report</h1>
-            <img class="mt-5" src="/logos/logo.png" height="200"></image>
-            <div class="mt-5">Generated at <time id="datetime"></time></div>
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-1">SmartLP Summary Report</h2>
+            <div class="d-flex gap-2 align-items-center">
+                <button id="refreshButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Refresh data">
+                    <i class="fa fa-refresh me-1"></i>Refresh
+                </button>
+            </div>
         </div>
 
-        <!-- Logs Parsed Chart Section -->
-        <div class="d-flex flex-column mb-4 align-items-center" id="content2">
-            <h2 class="data-bs-title mt-5 mb-5">Percentage of Unparsed Logs</h4>
-            <div>
-                <div class="mb-5">
-                    <canvas id="parsed-chart"></canvas>
+        <!-- Main Content -->
+        <div class="row p-4">
+            <!-- Report header -->
+            <div class="pdf-only flex-column justify-content-between align-items-center" id="content1">
+                <h1 class="data-bs-title mt-5">SMARTLP Report</h1>
+                <img class="mt-5" src="/logos/logo.png" height="200">
+                <div class="mt-5">Generated at <time id="datetime"></time></div>
+            </div>
+
+            <!-- Logs Parsed Chart Section -->
+            <div class="d-flex flex-column mb-4 align-items-center" id="content2">
+                <h2 class="data-bs-title mt-5 mb-5">Percentage of Unparsed Logs</h2>
+                <div>
+                    <div class="mb-5">
+                        <canvas id="parsed-chart"></canvas>
+                    </div>
+                    <div class="table-responsive mb-2">
+                        <table class="table" id="logParsedTable">
+                            <thead class="table-light sticky-top">
+                                <tr><th>Type of Log</th><th>LogType Count</th></tr>
+                            </thead>
+                            <tbody id="logParsedBody">
+                                <!-- Results will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Top Logtype Chart Section -->
+            <div class="d-flex flex-column mb-4 align-items-center" id="content3">
+                <h2 class="data-bs-title mt-5 mb-5">Top 5 types of Unparsed Log</h2>
                 <div class="table-responsive mb-2">
-                    <table class="table" id="logParsedTable">
+                    <table class="table" id="logStatsTable">
                         <thead class="table-light sticky-top">
-                            <tr><th>Type of Log</th><th>LogType Count</th></tr>
+                            <tr><th>Log Type</th><th>Count</th></tr>
                         </thead>
-                        <tbody id="logParsedBody">
+                        <tbody id="logStatsBody">
                             <!-- Results will be dynamically inserted here -->
                         </tbody>
                     </table>
@@ -42,33 +79,25 @@
             </div>
         </div>
 
-        <!-- Top Logtype Chart Section -->
-        <div class="d-flex flex-column mb-4 align-items-center" id="content3">
-            <h2 class="data-bs-title mt-5 mb-5">Top 5 types of Unparsed Log</h4>
-            <div class="table-responsive mb-2">
-                <table class="table" id="logStatsTable">
-                    <thead class="table-light sticky-top">
-                        <tr><th>Log Type</th><th>Count</th></tr>
-                    </thead>
-                    <tbody id="logStatsBody">
-                        <!-- Results will be dynamically inserted here -->
-                    </tbody>
-                </table>
-            </div>
+        <!-- Footer -->
+        <div class="d-flex justify-content-end align-items-center mt-2 gap-3 mb-4">
+            <div id=logger></div>
+            <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Save Report">
+                <i class="fa fa-save me-1"></i>Save Report
+            </button>
         </div>
     </div>
 
-    <!-- Footer -->
-    <div class="d-flex justify-content-between align-items-center mt-2">
-        <button id="backButton" class="btn btn-outline-secondary" onclick="window.location.href='/smartlp'">
-            &lt; Back
-        </button>
-        <div id=logger></div>
-        <button id="saveButton" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Save Report">
-            <i class="fa fa-save"></i> Save Report
-        </button>
-    </div>
-</div>
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+        <p class="mb-0">SmartSOC &copy; 2025. All Rights Reserved.</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/html2pdf.bundle.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <script src="/js/smartlp/report.js"></script>
 </body>
-<script src="/js/smartlp/report.js"></script>
-{% endblock %}
+</html>
