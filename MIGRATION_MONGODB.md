@@ -8,7 +8,7 @@ The SmartLP RAG system has been refactored to use MongoDB as the vector store ba
 
 - **Unified data storage**: All data (application data + vector embeddings) in one database
 - **Better scalability**: MongoDB Atlas provides enterprise-grade scalability
-- **Hybrid search capabilities**: Future support for combining vector and text search
+- **Hybrid search capabilities**: Combines vector search (semantic) with full-text search (keyword matching) using Reciprocal Rank Fusion (RRF)
 - **Simplified deployment**: No need to manage separate ChromaDB instances
 
 ## What Changed
@@ -230,11 +230,65 @@ For issues or questions:
 3. Review MongoDB connection: `python mongo_setup_indexes.py`
 4. Open GitHub issue with logs and error messages
 
+## Hybrid Search
+
+The RAG system now uses **MongoDB Atlas Hybrid Search** via `MongoDBAtlasHybridSearchRetriever`:
+
+### How It Works
+- **Vector Search**: Semantic similarity using embeddings (finds conceptually similar content)
+- **Full-Text Search**: Keyword matching using Atlas Search (finds exact matches)
+- **RRF Ranking**: Results from both searches are combined using Reciprocal Rank Fusion algorithm
+
+### Index Requirements
+Two Atlas Search indexes are required:
+
+**1. Vector Search Index (`vector_index`)**
+```json
+{
+  "fields": [
+    {
+      "type": "vector",
+      "path": "embedding",
+      "numDimensions": 384,
+      "similarity": "cosine"
+    },
+    {
+      "type": "filter",
+      "path": "source"
+    }
+  ]
+}
+```
+
+**2. Full-Text Search Index (`fulltext_index`)**
+```json
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "page_content": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  }
+}
+```
+
+### Tuning Parameters
+You can adjust the balance between vector and full-text search:
+- `vector_penalty`: Lower = more weight on semantic similarity (default: 60.0)
+- `fulltext_penalty`: Lower = more weight on keyword matching (default: 60.0)
+- `vector_weight`: Multiplier for vector scores (default: 1.0)
+- `fulltext_weight`: Multiplier for full-text scores (default: 1.0)
+
 ## Future Enhancements
 
 Planned improvements:
-- Hybrid search (vector + text) with reciprocal rank fusion (RRF)
 - Multi-language embedding support
 - Real-time incremental updates
 - Better metadata filtering and faceting
 - Query result caching
+- Tunable hybrid search parameters via API

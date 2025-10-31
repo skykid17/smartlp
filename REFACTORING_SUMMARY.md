@@ -184,14 +184,21 @@ All existing functions maintain their signatures:
 - Logging patterns
 
 ### What Requires Action
-- **MongoDB Setup**: Must create vector search index manually via Atlas UI
+- **MongoDB Setup**: Must create TWO search indexes manually via Atlas UI:
+  - `vector_index` for vector similarity search
+  - `fulltext_index` for full-text keyword search
 - **Data Migration**: Must re-ingest all documents (data models differ)
 - **Cluster Tier**: Atlas M10+ required for vector search (not free M0)
 
+### What's Included
+- ✅ **Hybrid search** (vector + text with RRF) - Using MongoDBAtlasHybridSearchRetriever
+- ✅ **Comprehensive tests** - test_hybrid_search.py and test_hybrid_unit.py
+- ✅ **Documentation** - Index setup instructions in mongo_setup_indexes.py
+
 ### What's Not Included
-- Hybrid search (vector + text with RRF) - Future enhancement
 - Automatic index creation - MongoDB API limitation
 - Performance benchmarks - Requires live deployment
+- Tunable hybrid search parameters via API - Can be added in future
 
 ## 🔍 Verification Status
 
@@ -220,17 +227,20 @@ These require an actual MongoDB Atlas M10+ deployment to test.
 
 ### For Deployment
 1. Setup MongoDB Atlas M10+ cluster
-2. Create vector search index via UI
-3. Run index setup script
-4. Execute full RAG ingestion
+2. Create TWO search indexes via UI:
+   - `vector_index` for vector search
+   - `fulltext_index` for full-text search
+3. Run index setup script: `python mongo_setup_indexes.py`
+4. Execute full RAG ingestion: `python setup_rag.py --siem both`
 5. Validate queries work correctly
+6. Test hybrid search: `python test_hybrid_search.py`
 
 ### For Future Enhancements
-1. Implement hybrid search with RRF
-2. Add performance monitoring
-3. Create automated benchmarks
-4. Support local MongoDB with Atlas Search
-5. Add vector index health checks
+1. Add performance monitoring
+2. Create automated benchmarks
+3. Support local MongoDB with Atlas Search
+4. Add index health checks
+5. Make hybrid search parameters tunable via API
 
 ## 🎯 Success Criteria
 
@@ -242,6 +252,8 @@ All criteria have been met:
 - ✅ Setup and test utilities provided
 - ✅ No ChromaDB dependencies remain
 - ✅ Code ready for deployment
+- ✅ Hybrid search implemented using MongoDBAtlasHybridSearchRetriever
+- ✅ Comprehensive test coverage (test_hybrid_search.py, test_hybrid_unit.py)
 
 ## 📚 Reference Documents
 

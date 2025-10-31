@@ -287,7 +287,12 @@ Located under `rag/` with orchestration in `setup_rag.py`:
 - Splunk add-ons must be downloaded manually and extracted into `rag/repos/splunk_repo/` due to licensing.
 
 **MongoDB RAG Setup:**
-The RAG system uses MongoDB as the vector store backend. Documents are stored in the `rag` database (configurable via `MONGO_RAG_DB`) in the `rag` collection (configurable via `MONGO_RAG_COLLECTION`). Each document includes:
+The RAG system uses MongoDB Atlas Hybrid Search combining:
+- **Vector Search**: Semantic similarity using embeddings
+- **Full-Text Search**: Keyword matching via Atlas Search
+- **RRF Ranking**: Results combined using Reciprocal Rank Fusion
+
+Documents are stored in the `rag` database (configurable via `MONGO_RAG_DB`) in the `rag` collection (configurable via `MONGO_RAG_COLLECTION`). Each document includes:
 - `_id`: Unique identifier (format: `{source}#{relative_path}#{chunk_index}`)
 - `page_content`: The actual text content
 - `embedding`: Vector embedding (list of floats, dimension: 384)
@@ -295,7 +300,7 @@ The RAG system uses MongoDB as the vector store backend. Documents are stored in
 - `metadata`: File metadata including path, hash, modification time, etc.
 
 **Required MongoDB Indexes:**
-For optimal vector search performance, create a vector search index on the `rag` collection:
+For hybrid search, create TWO search indexes on the `rag` collection:
 
 1. **Vector Search Index** (via MongoDB Atlas UI):
    - Navigate to Database → Search → Create Search Index
@@ -318,7 +323,27 @@ For optimal vector search performance, create a vector search index on the `rag`
    ```
    - Name the index: `vector_index`
 
-2. **Compound Index for filtering** (via MongoDB shell or Compass):
+2. **Full-Text Search Index** (via MongoDB Atlas UI):
+   - Navigate to Database → Search → Create Search Index
+   - Select "JSON Editor" and use:
+   ```json
+   {
+     "mappings": {
+       "dynamic": false,
+       "fields": {
+         "page_content": {
+           "type": "string"
+         },
+         "source": {
+           "type": "string"
+         }
+       }
+     }
+   }
+   ```
+   - Name the index: `fulltext_index`
+
+3. **Compound Index for filtering** (via MongoDB shell or Compass):
    ```javascript
    db.rag.createIndex({ "source": 1, "metadata.relative_path": 1 })
    ```
