@@ -373,7 +373,7 @@
                     });
                     
                     // Update page URL without reload
-                    history.pushState(null, '', `/smartlp#${sectionId}`);
+                    history.pushState(null, '', `/#${sectionId}`);
                     
                     // Trigger section-specific initialization if needed
                     initializeSection(sectionId);
@@ -406,10 +406,28 @@
                     }
                     break;
                 case 'parser':
-                    // Parser initialization handled by parser.js
+                    // Initialize parser with session data
+                    const logDisplay = document.getElementById("logDisplay");
+                    const regexDisplay = document.getElementById("regexDisplay");
+                    const logger = document.getElementById("logger");
+                    
+                    if (logDisplay && regexDisplay && logger) {
+                        logger.innerText = `Entry: ${getSessionItem("id", "New Entry")}`;
+                        logDisplay.innerText = getSessionItem("log");
+                        regexDisplay.value = getSessionItem("regex");
+                        if (typeof findMatch === 'function') {
+                            findMatch();
+                        }
+                        if (typeof loadEntryStatistics === 'function') {
+                            loadEntryStatistics();
+                        }
+                    }
                     break;
                 case 'prefix':
-                    // Prefix initialization handled by prefix.js
+                    // Prefix initialization handled by prefix.js on load
+                    if (typeof loadPrefixes === 'function') {
+                        loadPrefixes();
+                    }
                     break;
             }
         }

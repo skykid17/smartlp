@@ -493,7 +493,14 @@ async function openParserWindow() {
     setSessionItem("log", selected.childNodes[2].title)
     setSessionItem("regex", selected.childNodes[3].title)
 
-    window.location.href = "/smartlp/parser";
+    // Switch to parser section in unified interface
+    const parserLink = document.querySelector('[data-section="parser"]');
+    if (parserLink) {
+        parserLink.click();
+    } else {
+        // Fallback to old behavior if not in unified interface
+        window.location.href = "/smartlp/parser";
+    }
 }
 
 // Helper function to update main table selection display
