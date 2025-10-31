@@ -1,0 +1,44 @@
+---
+
+- name: Set value from MongoDB query results
+  set_fact:
+    sh_props_report_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+    hf_props_catchall_index_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_route_index_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+    hf_props_catchall_sourcetype_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_route_sourcetype_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+
+- name: Set SIEM Config
+  set_fact:
+    siem_config: "### SH props.conf\\n
+[{{ item.source_type }}]\\n
+REPORT-smartsoc = {{ sh_props_report_transname }}\\n
+\\n
+### SH transforms.conf\\n
+[{{ sh_props_report_transname }}]\\n
+REGEX = {{ item.regex }}\\n
+\\n
+### HF props.conf\\n
+[catchall]\\n
+TRANSFORMS-catchallindex = {{ hf_props_catchall_index_transname }}\\n
+TRANSFORMS-catchallsourcetype = {{ hf_props_catchall_sourcetype_transname }}\\n
+\\n
+### HF transforms.conf\\n
+[{{ hf_props_catchall_index_transname }}]\\n
+REGEX = {{ item.regex }}\\n
+DEST_KEY = _MetaData:Index\\n
+FORMAT = {{ item.index }}\\n
+\\n
+[{{ hf_props_catchall_sourcetype_transname }}]\\n
+REGEX = {{ item.regex }}\\n
+DEST_KEY = MetaData:Sourcetype\\n
+FORMAT = {{ 'sourcetype::' + item.source_type }}\\n"
+
+- name: Trim empty space for SIEM Config
+  set_fact:
+    replace_siem_config: "{{ siem_config | regex_replace('\\\\n ', '\\\\n') }}"
+
+- name: Update Record Status and SIEM Config in MongoDB
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "parser_db"
+    eval: "db.entries.updateOne({ _id: ObjectId('{{ item._id['$oid'] }}') }, { $set: { 'config': '{{ replace_siem_config }}', 'status': 'Generated' } })"
+

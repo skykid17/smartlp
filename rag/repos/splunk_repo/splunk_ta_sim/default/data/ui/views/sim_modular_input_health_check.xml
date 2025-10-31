@@ -1,0 +1,471 @@
+<form version="1.1">
+  <label>Splunk Infrastructure Monitoring Modular Input Health Check</label>
+  <description>This dashboard displays the overall health of all Splunk Infrastructure Monitoring(SIM) Modular Inputs. 
+  SIM Modular inputs are responsible for ingesting metrics data into Splunk. </description>
+  <fieldset submitButton="false">
+    <input type="time" token="time_token" searchWhenChanged="true">
+      <label>Time range:</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="org_id" searchWhenChanged="true">
+      <label>Organization ID:</label>
+      <fieldForLabel>Organization ID</fieldForLabel>
+      <fieldForValue>org_id</fieldForValue>
+      <search>
+        <query>index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id!=None | stats first(_time) by org_id | fields org_id</query>
+        <earliest>$time_token.earliest$</earliest>
+        <latest>$time_token.latest$</latest>
+      </search>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
+  <row>
+  <panel>
+      <!-- <title>Modular Input Statistics</title>
+      <html>
+        <h2>Modular Input is responsible for ingesting data from to Splunk.</h2>
+      </html> -->
+      <chart>
+        <title>Splunk Infrastructure Monitoring Modular Input - MTS Collection</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running 
+            | timechart span=10m sum(mts_in_data_msg) as "MTS Collected" by host
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+      <chart>
+        <title>Splunk Infrastructure Monitoring Modular Input - Top 15 Metrics by MTS Count</title>
+        <search>
+          <query>
+            | mstats count(_value) as mts_count WHERE index=sim_metrics AND metric_name=* AND sf_organizationID="$org_id$" BY metric_name span=10m
+            | timechart useother=f limit=15 span=10m sum(mts_count) by metric_name
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+      <chart>
+        <title>Splunk Infrastructure Monitoring Modular Input - Instance and Computations Running</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" 
+            | timechart span=10m dc(RequestId) as "Modular Input Count", dc(thread_id) as "Computations Count", count(error_msg) as "Error Count" by host
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+      <table>
+        <title>Splunk Infrastructure Monitoring Modular Input - Overall Statistics</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" 
+            | stats latest(instance_name) as instance_name, latest(signalflow_program) as signalflow_program_val, latest(metadata_msg_count) as latest_metadata_msg_count,latest(data_msg_count) as latest_data_msg_count,latest(mts_count) as latest_mts_count, sum(mts_in_data_msg) as mts_sum, latest(other_msg_count) as latest_other_msg_count,latest(_time) as latest_dp_comp_time, avg(mts_delay) as mid_mts_delay by host, RequestId, thread_id, computation_id 
+            | stats values(instance_name) as "Modular Input Names",dc(instance_name) as "Modular Input Count", dc(RequestId) as "Modular Input Runs", dc(signalflow_program_val) as "Computations Count", dc(computation_id) as "Computation Runs", sum(latest_metadata_msg_count) as "Cumulative Metadata Messages Collected", sum(latest_data_msg_count) as "Cumulative Data Messages Collected", sum(latest_mts_count) as "Cumulative MTS Collected", sum(mts_sum) as "MTS Collected", sum(latest_other_msg_count) as "Cumulative Other Messages Collected", max(latest_dp_comp_time) as latest_dp_time, avg(mid_mts_delay) as "Avg. MTS Delay" by host 
+            | appendcols 
+                [ search index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running earliest=-15m 
+                | stats dc(RequestId) as "Modular Inputs Active", dc(computation_id) as "Computations Active" by host] 
+            | appendcols 
+                [ | mstats latest_time(_value) as latest_index_time WHERE index=sim_metrics AND metric_name=* AND sf_organizationID="$org_id$" ] 
+            | eval "Latest Activity Time" =tostring(now()-latest_dp_time, "duration") , "Splunk Host"=host, "Latest MTS In Index" = tostring(now()-latest_index_time, "duration") | sort -latest_dp_time 
+            | table "Splunk Host", "Latest Activity Time", "Latest MTS In Index", "Modular Input Names", "Modular Input Count", "Modular Input Runs", "Modular Inputs Active", "Computations Count","Computation Runs","Computations Active","Cumulative Metadata Messages Collected","Cumulative Data Messages Collected", "Cumulative Other Messages Collected", "Cumulative MTS Collected", "MTS Collected", "Avg. MTS Delay"
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Modular Input Count">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">10,20</scale>
+        </format>
+        <format type="color" field="Modular Input Runs">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">30,60</scale>
+        </format>
+        <format type="color" field="Computation Runs">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">300,450</scale>
+        </format>
+        <format type="color" field="Modular Active">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">10,20</scale>
+        </format>
+        <format type="color" field="Computations Active">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">100,200</scale>
+        </format>
+        <format type="color" field="Total MTS Collected">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">100000000 ,150000000</scale>
+        </format>
+      </table>
+
+      <chart>
+        <title>Splunk Infrastructure Monitoring Computations Running Per Instance</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running
+            | eval mod_input = instance_name." : ".host
+            | timechart span=10m dc(thread_id) as "Computations Count" by mod_input
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+
+
+      <chart>
+        <title>Splunk Infrastructure Monitoring Modular Input - MTS Collection Per Instance</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running 
+            | eval mod_input = instance_name." : ".host
+            | timechart span=10m sum(mts_in_data_msg) as "MTS Collected" by mod_input
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+
+      <chart>
+        <title>Splunk Infrastructure Monitoring Modular Input - MTS Collection Total Delay(in sec.)</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running 
+            | eval mod_input = instance_name." : ".host 
+            | timechart span=10m avg(mts_delay) as "Avg. MTS Delay" by mod_input
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+      
+      <table>
+        <title>Splunk Infrastructure Monitoring Modular Input - Instance-Level Statistics</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running 
+            | stats latest(instance_name) as instance_name, latest(signalflow_program) as signalflow_program_val, latest(metadata_msg_count) as latest_metadata_msg_count,latest(data_msg_count) as latest_data_msg_count, latest(other_msg_count) as latest_other_msg_count, latest(mts_count) as latest_mts_count, sum(mts_in_data_msg) as mts_sum, latest(_time) as latest_dp_comp_time, avg(mts_delay) as mid_mts_delay by host, RequestId, thread_id, computation_id 
+            | stats values(host) as "Splunk Host", dc(RequestId) as "Modular Input Runs", dc(signalflow_program_val) as "Computations Count", dc(computation_id) as "Computation Runs", sum(latest_metadata_msg_count) as "Cumulative Metadata Messages Collected", sum(latest_data_msg_count) as "Cumulative Data Messages Collected", sum(latest_other_msg_count) as "Cumulative Other Messages Collected", sum(latest_mts_count) as "Cumulative MTS Collected", sum(mts_sum) as "MTS Collected", values(signalflow_program_val) as "Signalflow Computations", max(latest_dp_comp_time) as latest_dp_time, avg(mid_mts_delay) as "Avg. MTS Delay" by instance_name 
+            | appendcols 
+                [ search index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=running earliest=-10m 
+                | stats dc(RequestId) as "Modular Active", dc(computation_id) as "Computations Active" by instance_name] 
+            | sort -latest_dp_time 
+            | eval "Latest Activity Time" =tostring(now()-latest_dp_time, "duration") , "Modular Input Name"=instance_name 
+            | table "Modular Input Name", "Signalflow Computations", "Latest Activity Time", "Splunk Host", "Modular Input Runs", "Modular Active", "Computations Count","Computation Runs","Computations Active","Cumulative Metadata Messages Collected","Cumulative Data Messages Collected","Cumulative Other Messages Collected", "Cumulative MTS Collected", "MTS Collected", "Avg. MTS Delay"
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Modular Input Runs">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">3,9</scale>
+        </format>
+        <format type="color" field="Computation Runs">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">30,90</scale>
+        </format>
+        <format type="color" field="Modular Active">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">2,3</scale>
+        </format>
+        <format type="color" field="Computations Active">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">10,15</scale>
+        </format>
+        <format type="color" field="Total MTS Collected">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">10000000 ,15000000</scale>
+        </format>
+      </table>
+      <table>
+        <title>Splunk Infrastructure Monitoring Modular Input - Computation-Level Statistics</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" 
+            | stats latest(instance_name) as instance_name, latest(organization_id) as OrganizationId, latest(signalflow_program) as "Signalflow Computation", latest(metadata_msg_count) as "Cumulative Metadata Msgs Collected",latest(data_msg_count) as "Cumulative Data Msgs Collected", latest(other_msg_count) as "Cumulative Other Msgs Collected", latest(mts_count) as "Cumulative MTS Collected", sum(mts_in_data_msg) as "MTS Collected", latest(_time) as latest_dp_time, latest(Pid) as PId, avg(mts_delay) as "Avg. MTS Delay", latest(retry_count) as "Retry Count", count(eval(searchmatch("status=error"))) as "Error Count" by host,RequestId, thread_id, computation_id 
+            | sort -latest_dp_time 
+            | eval "Latest Activity Time" =tostring(now()-latest_dp_time, "duration") , ModularInputName=instance_name,ThreadId=thread_id, ComputationId=computation_id, "Splunk Host"=host 
+            | join type=left ComputationId 
+                [| mstats count(_value) as mts_count, latest_time(_value) as latest_m_index_time WHERE index=sim_metrics AND metric_name=* AND sf_organizationID="$org_id$" BY computationId, metric_name 
+                | eval mts_by_name = metric_name + " - " + mts_count , ComputationId = computationId 
+                | stats values(mts_by_name) as mts_by_name_count, max(latest_m_index_time) as latest_index_time by ComputationId 
+                | eval "MTS Count By Metric Name" = mvindex(mts_by_name_count, 0, 20) 
+                | table ComputationId, "MTS Count By Metric Name", latest_index_time] 
+            | eval "Latest MTS Index Time" = tostring(now()-latest_index_time, "duration") 
+            | table OrganizationId, ModularInputName, "Splunk Host", "Signalflow Computation", "Latest Activity Time", "Latest MTS Index Time", RequestId, PId, ThreadId, ComputationId, "Cumulative Metadata Msgs Collected","Cumulative Data Msgs Collected","Cumulative Other Msgs Collected","Cumulative MTS Collected", "MTS Collected", "Avg. MTS Delay" , "Retry Count", "Error Count", "MTS Count By Metric Name"
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>$time_token.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Retry Count">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">1,3</scale>
+        </format>
+        <format type="color" field="Error Count">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">1,3</scale>
+        </format>
+        <format type="color" field="Total MTS">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">100000000 ,150000000</scale>
+        </format>
+      </table>
+      <table>
+        <title>Splunk Infrastructure Monitoring Modular Input - Errors</title>
+        <search>
+          <query>
+            index="_internal" sourcetype="*splunk_ta_sim*" sim_modular_input org_id="$org_id$" status=error 
+            | stats count as error_count, latest(_time) as latest_dp_time, values(_raw) as error_sample_logs by action 
+            | eval "Error sample logs"=mvindex(error_sample_logs, 0, 5), "Last Error Time" =tostring(now()-latest_dp_time, "duration") 
+            | sort "Last Error Time"
+            | table action, error_count, "Last Error Time", "Error sample logs"
+          </query>
+          <earliest>$time_token.earliest$</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

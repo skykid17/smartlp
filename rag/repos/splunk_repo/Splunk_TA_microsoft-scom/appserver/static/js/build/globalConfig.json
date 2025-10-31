@@ -1,0 +1,696 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "template",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Description",
+                                "field": "description"
+                            },
+                            {
+                                "label": "Metrics",
+                                "field": "content"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of template name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this Template.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Description",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of description should be between 1 and 8192",
+                                    "minLength": 1,
+                                    "maxLength": 8192
+                                }
+                            ],
+                            "field": "description",
+                            "help": "Enter a description for this Template.",
+                            "required": false
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Metrics",
+                            "field": "content",
+                            "options": {
+                                "delimiter": ",",
+                                "items": [
+                                    {
+                                        "value": "group=alert",
+                                        "label": "Alert"
+                                    },
+                                    {
+                                        "value": "group=monitor",
+                                        "label": "Monitor"
+                                    },
+                                    {
+                                        "value": "group=diagnostic",
+                                        "label": "Diagnostic"
+                                    },
+                                    {
+                                        "value": "group=task",
+                                        "label": "Task"
+                                    },
+                                    {
+                                        "value": "group=recovery",
+                                        "label": "Recovery"
+                                    },
+                                    {
+                                        "value": "group=discovery",
+                                        "label": "Discovery"
+                                    },
+                                    {
+                                        "value": "group=override",
+                                        "label": "Override"
+                                    },
+                                    {
+                                        "value": "group=event",
+                                        "label": "Event"
+                                    },
+                                    {
+                                        "value": "group=rule",
+                                        "label": "Rule"
+                                    },
+                                    {
+                                        "value": "group=network",
+                                        "label": "Network"
+                                    },
+                                    {
+                                        "value": "group=mgmt",
+                                        "label": "Management"
+                                    },
+                                    {
+                                        "value": "group=internal",
+                                        "label": "Internal"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAlert",
+                                        "label": "Get-SCOMAlert"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAlert | Get-SCOMAlertHistory",
+                                        "label": "Get-SCOMAlert | Get-SCOMAlertHistory"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMMonitor",
+                                        "label": "Get-SCOMMonitor"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMDiagnostic",
+                                        "label": "Get-SCOMDiagnostic"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMTask",
+                                        "label": "Get-SCOMTask"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMTaskResult",
+                                        "label": "Get-SCOMTaskResult"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRecovery",
+                                        "label": "Get-SCOMRecovery"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMDiscovery",
+                                        "label": "Get-SCOMDiscovery"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMOverride",
+                                        "label": "Get-SCOMOverride"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMOverrideResult -Instance (Get-SCOMClassInstance) -Monitor (Get-SCOMMonitor)",
+                                        "label": "Get-SCOMOverrideResult -Instance (Get-SCOMClassInstance) -Monitor (Get-SCOMMonitor)"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMEvent",
+                                        "label": "Get-SCOMEvent"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRule",
+                                        "label": "Get-SCOMRule"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMClass",
+                                        "label": "Get-SCOMClass"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMClassInstance",
+                                        "label": "Get-SCOMClassInstance"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRelationship",
+                                        "label": "Get-SCOMRelationship"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRelationshipInstance",
+                                        "label": "Get-SCOMRelationshipInstance"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMMonitoringObject",
+                                        "label": "Get-SCOMMonitoringObject"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMConnector",
+                                        "label": "Get-SCOMConnector"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAgent",
+                                        "label": "Get-SCOMAgent"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAgentlessManagedComputer",
+                                        "label": "Get-SCOMAgentlessManagedComputer"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCAdvisorProxy",
+                                        "label": "Get-SCAdvisorProxy"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMParentManagementServer -Agent (Get-SCOMAgent)",
+                                        "label": "Get-SCOMParentManagementServer -Agent (Get-SCOMAgent)"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCAdvisorAgent",
+                                        "label": "Get-SCAdvisorAgent"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMADAgentAssignment",
+                                        "label": "Get-SCOMADAgentAssignment"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMGatewayManagementServer",
+                                        "label": "Get-SCOMGatewayManagementServer"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMManagementPack",
+                                        "label": "Get-SCOMManagementPack"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRunAsAccount",
+                                        "label": "Get-SCOMRunAsAccount"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRunAsProfile",
+                                        "label": "Get-SCOMRunAsProfile"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRunAsAccount | Get-SCOMRunAsDistribution",
+                                        "label": "Get-SCOMRunAsAccount | Get-SCOMRunAsDistribution"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMHeartbeatSetting",
+                                        "label": "Get-SCOMHeartbeatSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMManagementGroup",
+                                        "label": "Get-SCOMManagementGroup"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMManagementServer",
+                                        "label": "Get-SCOMManagementServer"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMUserRole",
+                                        "label": "Get-SCOMUserRole"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAlertResolutionSetting",
+                                        "label": "Get-SCOMAlertResolutionSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAlertResolutionState",
+                                        "label": "Get-SCOMAlertResolutionState"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMManagementGroupConnection",
+                                        "label": "Get-SCOMManagementGroupConnection"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAccessLicense",
+                                        "label": "Get-SCOMAccessLicense"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMDatabaseGroomingSetting",
+                                        "label": "Get-SCOMDatabaseGroomingSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMDataWarehouseSetting",
+                                        "label": "Get-SCOMDataWarehouseSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMErrorReportingSetting",
+                                        "label": "Get-SCOMErrorReportingSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMReportingSetting",
+                                        "label": "Get-SCOMReportingSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMResourcePool",
+                                        "label": "Get-SCOMResourcePool"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMRMSEmulator",
+                                        "label": "Get-SCOMRMSEmulator"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMGroup",
+                                        "label": "Get-SCOMGroup"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMWebAddressSetting",
+                                        "label": "Get-SCOMWebAddressSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAgentApprovalSetting",
+                                        "label": "Get-SCOMAgentApprovalSetting"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMLocation",
+                                        "label": "Get-SCOMLocation"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMTieredManagementGroup",
+                                        "label": "Get-SCOMTieredManagementGroup"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMNotificationChannel",
+                                        "label": "Get-SCOMNotificationChannel"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMNotificationSubscriber",
+                                        "label": "Get-SCOMNotificationSubscriber"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMNotificationSubscription",
+                                        "label": "Get-SCOMNotificationSubscription"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMMaintenanceMode",
+                                        "label": "Get-SCOMMaintenanceMode"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMPendingManagement",
+                                        "label": "Get-SCOMPendingManagement"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMTieredManagementGroup | Get-SCOMTierConnector",
+                                        "label": "Get-SCOMTieredManagementGroup | Get-SCOMTierConnector"
+                                    },
+                                    {
+                                        "value": "cmd=Get-SCOMAllPerfData",
+                                        "label": "Get-SCOMAllPerfData"
+                                    }
+                                ]
+                            },
+                            "help": "Select one or more metrics to add to this Template.",
+                            "required": true
+                        }
+                    ],
+                    "title": "Microsoft SCOM Template"
+                },
+                {
+                    "name": "server",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Host",
+                                "field": "host"
+                            },
+                            {
+                                "label": "Username",
+                                "field": "username"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of server name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this Server.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Host",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of host should be between 1 and 250",
+                                    "minLength": 1,
+                                    "maxLength": 250
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Host is invalid",
+                                    "type": "regex"
+                                }
+                            ],
+                            "field": "host",
+                            "help": "Enter a host for this Server.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Username",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of username should be between 1 and 250",
+                                    "minLength": 1,
+                                    "maxLength": 250
+                                }
+                            ],
+                            "field": "username",
+                            "help": "Enter a  Username for this Server.",
+                            "required": true
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "help": "Enter the password for this Server.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Length of password should be between 1 and 8192"
+                                }
+                            ]
+                        }
+                    ],
+                    "title": "Microsoft SCOM Server"
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "WARN",
+                                        "label": "WARN"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "WARN",
+                            "field": "log_level",
+                            "required": true,
+                            "help": "(DEBUG, WARN or ERROR)"
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Configure your Microsoft SCOM template, server and logging level."
+        },
+        "inputs": {
+            "services": [
+                {
+                    "name": "task",
+                    "hook": {
+                        "src": "inputs_hook.4.1.0",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for the input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Description",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of description should be between 1 and 8192",
+                                    "minLength": 1,
+                                    "maxLength": 8192
+                                }
+                            ],
+                            "field": "description",
+                            "help": "Enter a description for this input.",
+                            "required": false
+                        },
+                        {
+                            "field": "templates",
+                            "label": "Template",
+                            "type": "multipleSelect",
+                            "required": true,
+                            "options": {
+                                "delimiter": "|",
+                                "referenceName": "template"
+                            },
+                            "help": "Select template(s) for input."
+                        },
+                        {
+                            "field": "filter_parameters",
+                            "label": "Filter Parameters",
+                            "type": "text",
+                            "defaultValue": "CounterName IS NOT NULL",
+                            "required": false,
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "server",
+                            "label": "Server",
+                            "type": "multipleSelect",
+                            "required": true,
+                            "options": {
+                                "referenceName": "server"
+                            },
+                            "help": "Select server for input. Additional Servers will be used as a fallback solution"
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter the interval in Quartz Cron format (e.g., 0 0 0 ? * *)"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$",
+                                "createSearchChoice": true
+                            },
+                            "field": "index",
+                            "required": true
+                        },
+                        {
+                            "field": "starttime",
+                            "label": "Start Time",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Field 'Start Time' is not in format: YYYY-MM-DDThh:mm:ssZ.",
+                                    "pattern": "^(19|20)\\d\\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])T([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](Z|[+-][0-5][0-9]:[0-5][0-9])$"
+                                }
+                            ],
+                            "required": false,
+                            "help": "The add-on starts collecting data with later than provided UTC time. Default: one day before current UTC time. Format: YYYY-MM-DDThh:mm:ssZ"
+                        }
+                    ],
+                    "title": "Microsoft SCOM Inputs"
+                }
+            ],
+            "title": "Inputs",
+            "description": "Create data inputs to collect data from Microsoft SCOM.",
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Description",
+                        "field": "description"
+                    },
+                    {
+                        "label": "Template",
+                        "field": "templates",
+                        "customCell": {
+                            "src": "custom_input_account_cell.4.1.0",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "label": "Server",
+                        "field": "server",
+                        "customCell": {
+                            "src": "custom_input_account_cell.4.1.0",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Description",
+                        "field": "description"
+                    },
+                    {
+                        "label": "Template",
+                        "field": "templates"
+                    },
+                    {
+                        "label": "Server",
+                        "field": "server"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Start Time",
+                        "field": "starttime"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "true": "Disabled",
+                            "false": "Enabled"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_microsoft-scom",
+        "restRoot": "splunk_ta_ms_scom",
+        "version": "4.5.0",
+        "displayName": "Splunk Add-on for Microsoft SCOM",
+        "schemaVersion": "0.0.8",
+        "_uccVersion": "5.48.2"
+    }
+}

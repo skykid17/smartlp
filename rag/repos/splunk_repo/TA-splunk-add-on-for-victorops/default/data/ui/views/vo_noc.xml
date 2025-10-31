@@ -1,0 +1,246 @@
+<form version="1.1" hideEdit="false" hideTitle="false">
+  <label>Overview</label>
+  <search id="vo_search">
+    <query>
+      `victorops_incidents`  | sort lastAlertTime desc | dedup incidentNumber | fields *
+    </query>
+    <earliest>$time_period.earliest$</earliest>
+    <latest>$time_period.latest$</latest>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="org_field">
+      <label>Organization</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org != '' | eval name = org | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="time" token="time_period">
+      <label>Date Range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+      <change>
+        <condition match="isnum($earliest$) OR isnum($latest$)">
+          <eval token="earliest_time">$earliest$</eval>
+          <eval token="latest_time">$latest$</eval>
+        </condition>
+        <condition>
+          <eval token="earliest_time">relative_time(now(), $earliest$)</eval>
+          <eval token="latest_time">relative_time(now(), $latest$)</eval>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="routing_key_field">
+      <label>Routing Key</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>routingKeyName</fieldForLabel>
+      <fieldForValue>routingKey</fieldForValue>
+      <search>
+        <query>`victorops_incidents` org="$org_field$" | stats count by routingKey | table routingKey | eval routingKeyName = replace(routingKey,"routing","")</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="team_field">
+      <label>Team</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>info.name</fieldForLabel>
+      <fieldForValue>info.name</fieldForValue>
+      <search>
+        <query>`victorops_teams` org="$org_field$" | dedup info.name | sort info.name | table info.name info.slug</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="last_update" searchWhenChanged="true" depends="$justHideMe$">
+      <label>last_update</label>
+      <search>
+        <query>`victorops_incidents` org="$org_field$" | head 1 | convert timeformat="%H:%M:%S on %m/%d/%Y" ctime(_time) AS last_update | table last_update</query>
+      </search>
+      <fieldForLabel>last_update</fieldForLabel>
+      <fieldForValue>last_update</fieldForValue>
+      <selectFirstChoice>true</selectFirstChoice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Last Incident Received at $last_update$</title>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title></title>
+      <single>
+        <title>New Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" routingKey="$routing_key_field$"
+| search currentPhase = UNACKED 
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Acknowledged Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" routingKey="$routing_key_field$"
+| search currentPhase = ACKED
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Resolved Incidents</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" routingKey="$routing_key_field$"
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| search  currentPhase=RESOLVED 
+| stats count
+          </query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>MTTA SLA Violations</title>
+        <search base="vo_search">
+          <query>
+search org="$org_field$" routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1)  | search transition_type=ACKED | eval transition_time=mvindex(transitions,2) | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ")  | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval duration = transition_time - startTime | table incidentNumber startTime transition_time duration pagedPolicies{}.team.name
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$ currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval duration = current - startTime | eval transition_time = current | table incidentNumber startTime transition_time duration pagedPolicies{}.team.name]
+| join [  | inputlookup victorops_sla_lookup | eval mtta = mtta * 60]
+| where duration &gt; mtta
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>MTTR SLA Violations</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" routingKey=$routing_key_field$ | eval transitions = mvzip('transitions{}.by', 'transitions{}.name') | eval transitions = if (transitions not null, transitions, "") | eval transitions = mvzip(transitions,'transitions{}.at')  | mvexpand transitions | makemv transitions delim="," | eval transition_user=mvindex(transitions, 0) | eval transition_type=mvindex(transitions,1)  | search transition_type=RESOLVED | eval transition_time=mvindex(transitions,2) | eval startTime =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ")  | eval transition_time =strptime(transition_time,"%Y-%m-%dT%H:%M:%SZ") | eval duration = transition_time - startTime | table incidentNumber startTime transition_time duration pagedPolicies{}.team.name
+| append [search `victorops_incidents` org="$org_field$" earliest=$earliest_time$ latest=$latest_time$ routingKey=$routing_key_field$  currentPhase=UNACKED NOT transitions*=* | sort lastAlertTime desc | dedup incidentNumber | eval t =strptime(startTime,"%Y-%m-%dT%H:%M:%SZ") | eval startTime = strptime(strftime(t,"%m/%d/%Y %H:%M:%S UTC"),"%m/%d/%Y %H:%M:%S %Z")  | eval current = time() | eval duration = current - startTime | eval transition_time = current | table incidentNumber startTime transition_time duration pagedPolicies{}.team.name]
+   | join [  | inputlookup victorops_sla_lookup | eval mttr = mttr * 60]
+| where duration &gt; mttr
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Incidents By Routing Key</title>
+        <search base="vo_search">
+          <query>search org="$org_field$"| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| search routingKey="$routing_key_field$"
+| eval routingKey = substr(routingKey, 8)  
+| stats count by routingKey
+| xyseries routingKey routingKey count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Incidents</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Incidents By State</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" routingKey="$routing_key_field$"
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count by currentPhase
+| xyseries currentPhase currentPhase count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Incidents</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.fieldColors">{"RESOLVED": 0x4a7f2c, "ACKNOWLEDGED": 0xFFCD00, "UNACKED":0xDA291C}</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Incidents By Monitoring Tool</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" routingKey="$routing_key_field$"
+| eval teamFilter = "$team_field$"
+| eval teamFilter = if (teamFilter == "*","",teamFilter)
+| stats count by monitorType
+| xyseries monitorType monitorType count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Incidents</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <title>Incidents By Team</title>
+        <search base="vo_search">
+          <query>search org="$org_field$" | mvexpand pagedPolicies{}.team.name | search pagedPolicies{}.team.name = "$team_field$" | table incidentNumber pagedPolicies{}.team.name routingKey
+| eval name = 'pagedPolicies{}.team.name'
+| dedup incidentNumber,name
+| search routingKey="$routing_key_field$"
+| stats count by name
+| xyseries name name count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Incidents</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>

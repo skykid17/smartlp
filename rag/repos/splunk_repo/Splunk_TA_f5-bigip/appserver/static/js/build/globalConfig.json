@@ -1,0 +1,490 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "server",
+                    "title": "Server",
+                    "conf": "f5_servers",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Description",
+                                "field": "description"
+                            },
+                            {
+                                "label": "Connection",
+                                "field": "f5_bigip_url"
+                            },
+                            {
+                                "label": "Account",
+                                "field": "account_name"
+                            },
+                            {
+                                "label": "Interval",
+                                "field": "interval"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of ID should be between 1 and 255",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Please enter a valid name containing alphanumeric and underscore characters only",
+                                    "pattern": "^[\\w]*$"
+                                }
+                            ],
+                            "field": "name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Description",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "The maximum length for F5 Description field value must be less than equal to 255",
+                                    "minLength": 0,
+                                    "maxLength": 255
+                                }
+                            ],
+                            "field": "description",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
+                            "label": "Host",
+                            "field": "f5_bigip_url",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^([a-zA-Z0-9\\-\\.]+|\\[[a-fA-F0-9:]+\\])(:\\d+)?$",
+                                    "errorMsg": "Host should not have special characters"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Max Host length is 4096",
+                                    "minLength": 1,
+                                    "maxLength": 4096
+                                }
+                            ],
+                            "help": "Hostname: www.example.com, 192.0.1.1, [1111:2222:3333:4444:CCCC:DDDD:EEEE:FFFF], www.example.com:443, 192.0.1.1:443, [1111:2222:3333:4444:CCCC:DDDD:EEEE:FFFF]:443",
+                            "required": true
+                        },
+                        {
+                            "field": "account_name",
+                            "label": "Username",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Username field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "field": "account_password",
+                            "label": "Password",
+                            "type": "text",
+                            "required": true,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Password field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "field": "confirm_account_password",
+                            "label": "Confirm Password",
+                            "type": "text",
+                            "required": true,
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Password field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Data Collection Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Data Collection Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        10000000
+                                    ],
+                                    "errorMsg": "Data Collection Interval must be between 1 and 10000000"
+                                }
+                            ],
+                            "required": false
+                        },
+                        {
+                            "field": "example_help_link",
+                            "label": "",
+                            "type": "helpLink",
+                            "options": {
+                                "text": "Learn how to configure Inputs",
+                                "link": "https://docs.splunk.com/Documentation/AddOns/released/F5BIGIP/Configureinputs"
+                            }
+                        }
+                    ],
+                    "hook": {
+                        "src": "f5_bigip_url_server_hook",
+                        "type": "external"
+                    }
+                },
+                {
+                    "name": "template",
+                    "title": "Template",
+                    "conf": "f5_templates_ts",
+                    "table": {
+                        "header": [
+                            {
+                                "field": "name",
+                                "label": "Name"
+                            },
+                            {
+                                "field": "description",
+                                "label": "Description"
+                            }
+                        ],
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length for Name field value must be between 1 and 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[\\w]*$",
+                                    "errorMsg": "Please enter a valid name containing alphanumeric and underscore characters only"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "description",
+                            "label": "Description",
+                            "type": "text",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "The maximum length for Description field value must be less than equal to 255.",
+                                    "minLength": 0,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "field": "content",
+                            "label": "Content",
+                            "type": "custom",
+                            "required": true,
+                            "options": {
+                                "src": "custom_account_cell.4.4.0",
+                                "type": "external"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log Level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Manage F5 Servers and Collection Templates"
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage F5 Inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "description",
+                        "label": "Description"
+                    },
+                    {
+                        "field": "servers",
+                        "label": "Servers"
+                    },
+                    {
+                        "field": "templates",
+                        "label": "Templates"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "hec_name",
+                        "label": "HEC Token Name"
+                    },
+                    {
+                        "field": "splunk_host",
+                        "label": "Splunk Host"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status",
+                        "mapping": {
+                            "false": "Enabled",
+                            "true": "Disabled"
+                        }
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "description",
+                        "label": "Description"
+                    },
+                    {
+                        "field": "servers",
+                        "label": "Servers"
+                    },
+                    {
+                        "field": "templates",
+                        "label": "Templates"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "hec_name",
+                        "label": "HEC Token Name"
+                    },
+                    {
+                        "field": "splunk_host",
+                        "label": "Splunk Host"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    }
+                ]
+            },
+            "services": [
+                {
+                    "name": "f5_task",
+                    "title": "Input",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255,
+                                    "errorMsg": "Length of Name is restricted from 1 to 255."
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[\\w]*$",
+                                    "errorMsg": "Please enter a valid name containing alphanumeric and underscore characters only"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "description",
+                            "label": "Description",
+                            "type": "text",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "The maximum length for Description field value must be less than equal to 255.",
+                                    "minLength": 0,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Polling Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Polling Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        300,
+                                        10000000
+                                    ],
+                                    "errorMsg": "Polling Interval must be between 300 and 10000000"
+                                }
+                            ],
+                            "required": true,
+                            "defaultValue": 300,
+                            "tooltip": "If server polling interval is specified while configuration, this value will be overridden by the server polling interval"
+                        },
+                        {
+                            "field": "hec_name",
+                            "label": "HEC Token Name",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "The maximum length for HEC Token field value must be less than or equal to 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ]
+                        },
+                        {
+                            "field": "splunk_host",
+                            "label": "Splunk Host",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "The maximum length for Splunk Host field value must be less than or equal to 255.",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                }
+                            ],
+                            "help": "Hostname: www.example.com, 192.0.1.1, 1111:2222:3333:4444:CCCC:DDDD:EEEE:FFFF"
+                        },
+                        {
+                            "field": "servers",
+                            "label": "Servers",
+                            "type": "multipleSelect",
+                            "required": true,
+                            "options": {
+                                "delimiter": "|",
+                                "referenceName": "server"
+                            }
+                        },
+                        {
+                            "field": "templates",
+                            "label": "Templates",
+                            "type": "multipleSelect",
+                            "required": true,
+                            "options": {
+                                "delimiter": "|",
+                                "referenceName": "template"
+                            }
+                        }
+                    ],
+                    "hook": {
+                        "src": "f5_bigip_splunk_host_hook",
+                        "type": "external"
+                    }
+                }
+            ]
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_f5-bigip",
+        "restRoot": "splunk_ta_f5",
+        "version": "6.4.0",
+        "displayName": "Splunk Add-On for F5 BIG-IP",
+        "schemaVersion": "0.0.8",
+        "_uccVersion": "5.51.1"
+    }
+}

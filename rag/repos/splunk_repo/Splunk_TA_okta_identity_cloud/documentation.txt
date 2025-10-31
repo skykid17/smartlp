@@ -1,0 +1,7 @@
+The Splunk Add-on for Okta Identity Cloud:
+
+Download the Splunk Add-on for Okta Identity Cloud at Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release notes for the Splunk Add-on for Okta Identity Cloud.
+
+For information about installing and configuring the Splunk Add-on for Okta Identity Cloud, see Installation overview for the Splunk Add-on for Okta Identity Cloud.

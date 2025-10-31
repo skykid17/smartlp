@@ -1,0 +1,9 @@
+<nav search_view="search">
+  <view name="welcome" default='true' />
+  <view name="configuration"/>
+  <view name="search" />
+  <collection label="Dashboards">
+    <view name="sim_command_health_check" />
+    <view name="sim_modular_input_health_check" />
+  </collection>
+</nav>

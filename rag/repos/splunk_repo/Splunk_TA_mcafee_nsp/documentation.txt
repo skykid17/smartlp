@@ -1,0 +1,3 @@
+The Splunk Add-on for McAfee NSP allows a Splunk software administrator to collect Alert/Attack events, Audit Events, Firewall Access Events, and Fault Events in custom format from McAfee Network Security Platform servers using syslog. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance.
+
+Download the Splunk Add-on for McAfee NSP from Splunkbase at https://splunkbase.splunk.com/app/5426

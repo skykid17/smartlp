@@ -1,0 +1,1 @@
+The Splunk Add-on for Splunk Attack Analyzer retrieves data from completed jobs and the associated forensics from Splunk Attack Analyzer. Splunk Attack Analyzer detects and analyzes potential security threats.

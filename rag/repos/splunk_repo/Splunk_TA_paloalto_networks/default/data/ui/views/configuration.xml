@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<view isDashboard="False" template="Splunk_TA_paloalto_networks:/templates/base.html" type="html">
+    <label>Configuration</label>
+</view>

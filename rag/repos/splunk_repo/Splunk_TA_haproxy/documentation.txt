@@ -1,0 +1,5 @@
+The Splunk Add-on for HAProxy enables a Splunk software administrator to collect HAProxy logs in syslog format. After the Splunk platform indexes the events, you can analyze the data using the prebuilt panels included with the add-on. This add-on provides the CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security. 
+
+Download the Splunk Add-on for HAProxy from Splunkbase at http://splunkbase.splunk.com/app/3135. 
+
+Discuss the Splunk Add-on for HAProxy on Splunk Answers at Questions related to Splunk Add-on for HAProxy. 

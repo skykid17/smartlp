@@ -1,0 +1,10 @@
+__pycache__/
+llm_output.txt
+test_script.py
+test.py
+regex_test.py
+.venv/
+.env
+rag/chroma/
+certs/
+rag/rag_setup.log

@@ -1,0 +1,3 @@
+The Splunk Add-on for Jira Data Center lets you monitor your Jira Data Center events and collects logs.
+
+Discuss the Splunk Add-on for Jira Data Center on Splunk Answers at http://answers.splunk.com.

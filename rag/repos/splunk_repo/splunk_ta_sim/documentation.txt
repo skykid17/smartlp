@@ -1,0 +1,19 @@
+To allow the Splunk Infrastructure Monitoring Add-on to access your Splunk Infrastructure Monitoring organization, configure an account using your organization's access token and API endpoint. You can configure multiple Infrastructure Monitoring accounts within the add-on. 
+
+The first account you create is automatically set as the default account, which is used to authenticate and fetch data from Infrastructure Monitoring. If you don't provide an org_id in the SIM search command, the add-on uses the credentials from the default account. You can't delete the default account until you make another account the default, unless only one account is configured. 
+
+The following table explains where to perform these configuration steps depending on your environment type: 
+
+To set up an account in the Splunk Infrastructure Monitoring Add-on, go to the Configuration tab and click Connect an Account, then configure the following fields: 
+
+You need to know your realm to configure the Splunk Infrastructure Monitoring Add-on. Perform the following steps to determine your realm: 
+
+Perform the following steps to get your realm API endpoint: 
+
+Perform the following steps to create an access token: 
+
+For more information about using access tokens, see Create and manage organization access tokens in the Infrastructure Monitoring documentation. 
+
+When you are finished configuring your account, you can enable data collection for the account on the Splunk Infrastructure Monitoring Account Configuration page. To do so, select the toggle for the account you want to enable data collection for in the Data Collection column. 
+
+Programs with a SAMPLE_ prefix will not run when data collection is enabled. To enable sample programs you can manually enable the program or clone the program and rename it. See [http://docs.splunk.com/Documentation/SIMAddon/1.2.7/Install/ModInput#Sample_programs Sample programs] for steps to use a sample program.

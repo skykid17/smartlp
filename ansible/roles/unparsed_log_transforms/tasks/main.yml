@@ -1,0 +1,4 @@
+---
+
+- name: Update unparsed log transforms in deployment apps
+  import_tasks: update_unparsed_log_transforms.yml

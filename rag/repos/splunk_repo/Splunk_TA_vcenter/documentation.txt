@@ -1,0 +1,3 @@
+Splunk Add-on for vCenter logs contains the input stanzas to receive the data from the syslog, monitoring input stanzas to monitor vCenter log data from your vCenter environment, and search-time and index-time extractions to parse and extract the fields from the vCenter logs. The Splunk Add-on for vCenter Logs collects vCenter log data and forwards it to the indexers in your environment. 
+
+Download the Splunk Add-on for vCenter Logs from Splunkbase at https://splunkbase.splunk.com/app/5601.

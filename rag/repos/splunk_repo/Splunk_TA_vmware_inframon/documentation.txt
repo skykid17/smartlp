@@ -1,0 +1,3 @@
+The Splunk Add-on for VMware Metrics is a collection of add-ons that collect Performance, Inventory, Tasks, and Events data from VMware vCenters, ESXi Hosts, and Virtual Machines. The performance data of vCenter Server, Clusters, ESXi hosts, and Virtual Machines is ingested into Splunk in the form of metrics. The add-on provides deep operational visibility into granular performance metrics, logs, tasks and events, and topology from hosts, virtual machines, and virtual centers for use with the Splunk App for Infrastructure and IT Service Intelligence (ITSI).
+
+Download the Splunk Add-on for VMware Metrics from https://splunkbase.splunk.com/app/5089

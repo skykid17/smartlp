@@ -1,0 +1,1 @@
+Error accessing documentation: 403 Client Error: Forbidden for url: https://login.splunk.com/page/sso_redirect?type=docs&fromURI=https%3A%2F%2Fidp.login.splunk.com%2Fapp%2Fsplunk-ext_docs_1%2Fexka4clxsvGgyZ0Hq2p7%2Fsso%2Fsaml

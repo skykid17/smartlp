@@ -1,0 +1,864 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "entity": [
+                        {
+                            "field": "server_url",
+                            "type": "text",
+                            "label": "Remedy Mid Tier URL",
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "minLength": 0
+                                },
+                                {
+                                    "pattern": "^((?!://).)*$",
+                                    "errorMsg": "Provide a URL in the following format: myremedyserver.com:8080",
+                                    "type": "regex"
+                                }
+                            ],
+                            "defaultValue": "",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "help": "(for example, myremedyserver.com:8080)"
+                        },
+                        {
+                            "field": "server_name",
+                            "type": "text",
+                            "label": "AR System Server Name",
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "minLength": 0
+                                }
+                            ],
+                            "defaultValue": "",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "help": ""
+                        },
+                        {
+                            "field": "user",
+                            "type": "text",
+                            "label": "Username",
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "minLength": 0
+                                }
+                            ],
+                            "defaultValue": "",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "help": ""
+                        },
+                        {
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of password is 8192",
+                                    "minLength": 0
+                                }
+                            ],
+                            "field": "password",
+                            "type": "text",
+                            "label": "Password",
+                            "encrypted": true,
+                            "defaultValue": "",
+                            "required": false,
+                            "help": ""
+                        }
+                    ],
+                    "name": "additional_parameters",
+                    "title": "Remedy Soap Account"
+                },
+                {
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "type": "checkbox",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "defaultValue": "http",
+                            "field": "proxy_type",
+                            "type": "singleSelect",
+                            "label": "Proxy Type",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "field": "proxy_url",
+                            "type": "text",
+                            "label": "Proxy Host",
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "maxLength": 4096,
+                                    "type": "string",
+                                    "errorMsg": "Max host length is 4096",
+                                    "minLength": 0
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host is invalid",
+                                    "type": "regex"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_port",
+                            "type": "text",
+                            "label": "Proxy Port",
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "range": [
+                                        1,
+                                        65535
+                                    ],
+                                    "type": "number"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_username",
+                            "type": "text",
+                            "label": "Proxy Username",
+                            "validators": [
+                                {
+                                    "maxLength": 50,
+                                    "type": "string",
+                                    "errorMsg": "Max length of username is 50",
+                                    "minLength": 0
+                                }
+                            ]
+                        },
+                        {
+                            "encrypted": true,
+                            "field": "proxy_password",
+                            "type": "text",
+                            "label": "Proxy Password",
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of password is 8192",
+                                    "minLength": 0
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_rdns",
+                            "type": "checkbox",
+                            "label": "Use Proxy for DNS Resolution"
+                        }
+                    ],
+                    "name": "proxy",
+                    "title": "Remedy Proxy Setup"
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "help": "(DEBUG, INFO, WARNING, ERROR or CRITICAL)"
+                        }
+                    ]
+                },
+                {
+                    "name": "account",
+                    "title": "Remedy Rest Account",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Account Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "AR System Server URL",
+                                "field": "server_url"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Account Name",
+                            "type": "text",
+                            "help": "Enter a unique name for this account.",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "Required"
+                            }
+                        },
+                        {
+                            "field": "midtier_url",
+                            "type": "text",
+                            "label": "Remedy Mid Tier URL",
+                            "validators": [
+                                {
+                                    "errorMsg": "Remedy Mid Tier URL is invalid. URL should start with 'https' as only secure URLs are supported. Provide URL in this format: https://myremedymidtier.com:8080",
+                                    "type": "regex",
+                                    "pattern": "^(https://)[a-zA-Z0-9][a-zA-Z0-9\\.\\-]+:[0-9]+$"
+                                }
+                            ],
+                            "defaultValue": "",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "help": "(for example, https://myremedyserver.com:8080)"
+                        },
+                        {
+                            "field": "server_name",
+                            "type": "text",
+                            "label": "AR System Server Name",
+                            "validators": [
+                                {
+                                    "maxLength": 8192,
+                                    "type": "string",
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "minLength": 0
+                                }
+                            ],
+                            "defaultValue": "",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            },
+                            "help": ""
+                        },
+                        {
+                            "field": "server_url",
+                            "type": "text",
+                            "label": "AR System Server URL",
+                            "validators": [
+                                {
+                                    "errorMsg": "AR System Server URL is invalid. URL should start with 'https' as only secure URLs are supported. Provide URL in this format: https://myremedyarserver.com:8008",
+                                    "type": "regex",
+                                    "pattern": "^(https://)[a-zA-Z0-9][a-zA-Z0-9\\.\\-]+:[0-9]+$"
+                                }
+                            ],
+                            "required": true,
+                            "help": "eg: https://<REMEDY_AR_SERVER_URL>:<JETTY_PORT>",
+                            "options": {
+                                "placeholder": "Required"
+                            }
+                        },
+                        {
+                            "field": "smart_it_url",
+                            "label": "Smart IT URL",
+                            "type": "text",
+                            "help": "(for example, https://remedy-smartit.bmc.com:443)",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "errorMsg": "Remedy Smart IT URL is invalid. Provide URL in this format: https://remedy-smartit.bmc.com:443",
+                                    "type": "regex",
+                                    "pattern": "^(https://)[a-zA-Z0-9][a-zA-Z0-9\\.\\-]+:[0-9]+$"
+                                }
+                            ],
+                            "tooltip": "This URL will be used to generate incident link for Smart IT portal"
+                        },
+                        {
+                            "field": "username",
+                            "label": "Username",
+                            "type": "text",
+                            "help": "Enter the Remedy account username.",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            }
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "type": "text",
+                            "help": "Enter the Remedy account password.",
+                            "required": false,
+                            "encrypted": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "JWT token",
+                            "field": "jwt_token",
+                            "encrypted": true,
+                            "options": {
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "record_count",
+                            "label": "Record Count",
+                            "type": "text",
+                            "help": "Enter the maximum number of records to be fetched at each API call from the forms. The value should be in range configured in remedy environment and between 1000 and 10000. The default value is 2000.",
+                            "defaultValue": 2000,
+                            "options": {
+                                "display": true
+                            },
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1000,
+                                        10000
+                                    ]
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Record Count field must be an integer.",
+                                    "pattern": "^\\d+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "disable_ssl_certificate_validation",
+                            "defaultValue": 0,
+                            "label": "Disable SSL validation",
+                            "options": {
+                                "display": false
+                            }
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Configure your Remedy SOAP credentials, Proxy server details, log level and Remedy REST credentials"
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage Your Remedy Incident Inputs",
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "field": "account",
+                        "label": "Account",
+                        "customCell": {
+                            "src": "custom_input_cell.1.0.0",
+                            "type": "external"
+                        }
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "field": "form_type",
+                        "label": "Form type",
+                        "mapping": {
+                            "incident": "Incident",
+                            "audit": "Audit",
+                            "incident_worklog": "Incident Worklog"
+                        }
+                    },
+                    {
+                        "field": "form_name",
+                        "label": "Form name"
+                    },
+                    {
+                        "field": "timefield",
+                        "label": "Time field of the form"
+                    },
+                    {
+                        "label": "Query Start Date",
+                        "field": "query_start_date"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "field": "account",
+                        "label": "Account"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "field": "form_type",
+                        "label": "Form type",
+                        "mapping": {
+                            "incident": "Incident",
+                            "audit": "Audit",
+                            "incident_worklog": "Incident Worklog"
+                        }
+                    },
+                    {
+                        "field": "form_name",
+                        "label": "Form name"
+                    },
+                    {
+                        "field": "include_properties",
+                        "label": "Included properties"
+                    },
+                    {
+                        "field": "exclude_properties",
+                        "label": "Excluded properties"
+                    },
+                    {
+                        "field": "timefield",
+                        "label": "Time field of the form"
+                    },
+                    {
+                        "label": "Query Start Date",
+                        "field": "query_start_date"
+                    },
+                    {
+                        "label": "Qualification parameters",
+                        "field": "qualification"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "true": "Disabled",
+                            "false": "Enabled"
+                        }
+                    }
+                ]
+            },
+            "services": [
+                {
+                    "hook": {
+                        "src": "input_hook.1.0.0",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "Required"
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number or -1.",
+                                    "pattern": "^(?:-1|\\d+(?:\\.\\d+)?)$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Collection interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 60
+                        },
+                        {
+                            "field": "form_type",
+                            "label": "Form type",
+                            "type": "singleSelect",
+                            "help": "Select a Remedy form type from the list.",
+                            "required": true,
+                            "options": {
+                                "disableonEdit": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "Incident",
+                                        "value": "incident"
+                                    },
+                                    {
+                                        "label": "Audit",
+                                        "value": "audit"
+                                    },
+                                    {
+                                        "label": "Incident Worklog",
+                                        "value": "incident_worklog"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "form_name",
+                            "label": "Form name",
+                            "type": "text",
+                            "help": "Enter a Remedy form name to collect the data from",
+                            "options": {
+                                "disableonEdit": true,
+                                "placeholder": "Required"
+                            },
+                            "required": true
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "reuse_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the configured input name.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            }
+                        },
+                        {
+                            "field": "timefield",
+                            "label": "Time field of the form",
+                            "type": "text",
+                            "help": "Enter the time field of the form.",
+                            "required": true,
+                            "options": {
+                                "placeholder": "Required"
+                            }
+                        },
+                        {
+                            "field": "query_start_date",
+                            "label": "Query Start Date",
+                            "type": "text",
+                            "help": "Query Start Date should be in 'MM/DD/YYYY HH:MM:SS'(UTC) format. (Default is one week ago)",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^(0[1-9]|1[012])/(0[1-9]|[12][0-9]|3[01])/([0-9]{4})\\s([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$",
+                                    "errorMsg": "Date should be valid and in mentioned format"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "include_properties",
+                            "label": "Included Properties",
+                            "type": "text",
+                            "help": "Enter comma separated properties of the form to be included. 'Time field of the form' will be included by default.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[\\w\\s-]+(,[\\w\\s]+)*$",
+                                    "errorMsg": "Properties must be entered in valid format"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "exclude_properties",
+                            "label": "Excluded Properties",
+                            "type": "text",
+                            "help": "Enter comma separated properties of the form to be excluded. 'Time field of the form' cannot be excluded and will be included by default.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[\\w\\s-]+(,[\\w\\s]+)*$",
+                                    "errorMsg": "Properties must be entered in valid format"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "qualification",
+                            "label": "Qualification parameters",
+                            "type": "text",
+                            "help": "Provide qualification in key-value pairs as shown in example to fetch only selected data from the form eg. 'key1'=\"value1\" AND 'key2'=\"value2\" (By default no qualification will be applied)."
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$",
+                                "endpointUrl": "data/indexes"
+                            }
+                        }
+                    ],
+                    "title": "Remedy Input",
+                    "name": "remedy_input"
+                }
+            ]
+        }
+    },
+    "meta": {
+        "version": "5.6.0",
+        "displayName": "Splunk Add-on for BMC Remedy",
+        "restRoot": "Splunk_TA_remedy",
+        "name": "Splunk_TA_remedy",
+        "schemaVersion": "0.0.7",
+        "_uccVersion": "5.46.0"
+    },
+    "alerts": [
+        {
+            "name": "remedy_incident",
+            "label": "Remedy Incident Integration",
+            "description": "Create/Update Remedy incident based on the search result",
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "Correlation ID",
+                    "field": "mc_ueid",
+                    "required": false
+                },
+                {
+                    "type": "text",
+                    "label": "Configuration Item",
+                    "field": "ci",
+                    "required": false
+                },
+                {
+                    "type": "text",
+                    "label": "Summary",
+                    "field": "summary",
+                    "required": false,
+                    "help": "When you create a new incident, this field must not be blank."
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Impact",
+                    "field": "impact",
+                    "required": false,
+                    "defaultValue": "1-Extensive/Widespread",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "1-Extensive/Widespread",
+                                "label": "1-Extensive/Widespread"
+                            },
+                            {
+                                "value": "2-Significant/Large",
+                                "label": "2-Significant/Large"
+                            },
+                            {
+                                "value": "3-Moderate/Limited",
+                                "label": "3-Moderate/Limited"
+                            },
+                            {
+                                "value": "4-Minor/Localized",
+                                "label": "4-Minor/Localized"
+                            }
+                        ],
+                        "disableSearch": true
+                    }
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Urgency",
+                    "field": "urgency",
+                    "required": true,
+                    "defaultValue": "1-Critical",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "1-Critical",
+                                "label": "1-Critical"
+                            },
+                            {
+                                "value": "2-High",
+                                "label": "2-High"
+                            },
+                            {
+                                "value": "3-Medium",
+                                "label": "3-Medium"
+                            },
+                            {
+                                "value": "4-Low",
+                                "label": "4-Low"
+                            }
+                        ],
+                        "disableSearch": true
+                    }
+                },
+                {
+                    "type": "checkbox",
+                    "label": "Status",
+                    "field": "incident_status",
+                    "required": false,
+                    "defaultValue": false
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Status Reason",
+                    "field": "incident_status_reason",
+                    "required": false,
+                    "help": "When Status is set to Resolved, this field must not be blank.",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "Customer Follow-Up Required",
+                                "label": "Customer Follow-Up Required"
+                            },
+                            {
+                                "value": "Future Enhancement",
+                                "label": "Future Enhancement"
+                            },
+                            {
+                                "value": "Temporary Corrective Action",
+                                "label": "Temporary Corrective Action"
+                            },
+                            {
+                                "value": "Monitoring Incident",
+                                "label": "Monitoring Incident"
+                            },
+                            {
+                                "value": "Automated Resolution Reported",
+                                "label": "Automated Resolution Reported"
+                            },
+                            {
+                                "value": "No Further Action Required",
+                                "label": "No Further Action Required"
+                            }
+                        ],
+                        "disableSearch": true
+                    }
+                },
+                {
+                    "type": "text",
+                    "label": "Work Info",
+                    "field": "work_info_details",
+                    "required": false
+                },
+                {
+                    "type": "text",
+                    "label": "Custom Fields",
+                    "field": "custom_fields",
+                    "required": false
+                }
+            ]
+        }
+    ]
+}

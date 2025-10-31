@@ -1,0 +1,21 @@
+<dashboard version="1.1">
+  <label>Welcome</label>
+  <row>
+    <panel>
+      <html>
+        <div>
+        The Splunk Infrastructure Monitoring Add-on provides the following features to ingest Splunk Infrastructure Monitoring metrics and event data into Splunk.<br/><br/>
+        For instructions to configure the add-on, see <a href="https://docs.splunk.com/Documentation/SIMAddon/latest/Install/Configure">Configure the Splunk Infrastructure Monitoring Add-on</a>.<br/>
+
+        <b>Splunk Infrastructure Monitoring - Modular Input</b>: 
+        The Splunk Infrastructure Monitoring modular input (sim_modular_input) uses Splunk Infrastructure Monitoring SignalFlow computations to stream metrics from Splunk Infrastructure Monitoring into Splunk using a long-standing modular input job. 
+        You can use this metrics data in Splunk apps with a persistent cache and query mechanism. For sample inputs and recommendations, see <a href="https://docs.splunk.com/Documentation/SIMAddon/latest/Install/ModInput">Configure inputs in the Splunk Infrastructure Monitoring Add-on</a>.<br/>
+
+        <b>Splunk Infrastructure Monitoring - Custom Search Command</b>: 
+        The Splunk Infrastructure Monitoring Add-on includes an SPL command called <code>sim</code> that accesses your Splunk Infrastructure Monitoring instance and brings metrics and events data into Splunk without adding the information to any of your indexes. 
+        This means you can use SPL to further manipulate and use the Splunk Infrastructure Monitoring data once it's in your Splunk environment. The add-on also enables Splunk IT Service Intelligence (ITSI) correlation searches to bring useful data into ITSI. For information about the <code>sim</code> command and how to use it, see <a href="https://docs.splunk.com/Documentation/SIMAddon/latest/Install/Commands">About the sim command available with the Splunk Infrastructure Monitoring Add-on</a>.
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

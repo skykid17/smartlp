@@ -1,0 +1,1008 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "account",
+                    "title": "Accounts",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Name",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Administrator email",
+                                "field": "username"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of ID should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this account.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Administrator email",
+                            "help": "Google Workspace administrator email.",
+                            "field": "username",
+                            "required": false
+                        },
+                        {
+                            "label": "Service Account's certificate",
+                            "type": "text",
+                            "help": "Content of the service account's downloaded JSON key.",
+                            "field": "certificate",
+                            "encrypted": true,
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "title": "Proxy",
+                    "name": "proxy",
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                }
+                            ],
+                            "field": "proxy_url",
+                            "label": "Host"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Port"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Username"
+                        },
+                        {
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for password is 8192"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Password"
+                        }
+                    ],
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') { return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    }
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARN",
+                                        "label": "WARN"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Log level must be one of: DEBUG, INFO, WARN, ERROR, CRITICAL",
+                                    "pattern": "^DEBUG|INFO|WARN|ERROR|CRITICAL$"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "advanced_settings",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Activity report interval size",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "1",
+                                        "label": "1"
+                                    },
+                                    {
+                                        "value": "2",
+                                        "label": "2"
+                                    },
+                                    {
+                                        "value": "4",
+                                        "label": "4"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "4",
+                            "field": "activity_report_interval_size"
+                        }
+                    ],
+                    "title": "Advanced Settings"
+                }
+            ],
+            "title": "Configuration",
+            "description": "Set up your add-on"
+        },
+        "inputs": {
+            "services": [
+                {
+                    "name": "activity_report",
+                    "restHandlerModule": "gws_delete_checkpoint_rh",
+                    "restHandlerClass": "GwsDeleteCheckpointExternalHandler",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Application Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "admin",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "Admin",
+                                        "value": "admin"
+                                    },
+                                    {
+                                        "label": "Login",
+                                        "value": "login"
+                                    },
+                                    {
+                                        "label": "Drive",
+                                        "value": "drive"
+                                    },
+                                    {
+                                        "label": "SAML",
+                                        "value": "saml"
+                                    },
+                                    {
+                                        "label": "OAuth Token",
+                                        "value": "oauthtoken"
+                                    },
+                                    {
+                                        "label": "Google Cloud Platform",
+                                        "value": "gcp"
+                                    },
+                                    {
+                                        "label": "Enterprise Groups",
+                                        "value": "groups_enterprise"
+                                    },
+                                    {
+                                        "label": "Calendar",
+                                        "value": "calendar"
+                                    },
+                                    {
+                                        "label": "Context-Aware Access",
+                                        "value": "context_aware_access"
+                                    },
+                                    {
+                                        "label": "Rules",
+                                        "value": "rules"
+                                    },
+                                    {
+                                        "label": "Chat",
+                                        "value": "chat"
+                                    },
+                                    {
+                                        "label": "Mobile",
+                                        "value": "mobile"
+                                    },
+                                    {
+                                        "label": "Chrome",
+                                        "value": "chrome"
+                                    },
+                                    {
+                                        "label": "Access Transparency",
+                                        "value": "access_transparency"
+                                    },
+                                    {
+                                        "label": "Data Studio",
+                                        "value": "data_studio"
+                                    }
+                                ]
+                            },
+                            "field": "application",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        20,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 20 and 3600"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "300"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Lookback Offset",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "errorMsg": "Lookback Offset must be an integer. Between 60 and 216000 seconds.",
+                                    "range": [
+                                        60,
+                                        216000
+                                    ]
+                                }
+                            ],
+                            "defaultValue": "1800",
+                            "field": "lookbackOffset",
+                            "help": "A lookback offset, in seconds, from current time to account for data lag.",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Service Account to use",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "Index where data is going to be ingested.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ],
+                    "title": "Activity report"
+                },
+                {
+                    "name": "gws_gmail_logs",
+                    "restHandlerModule": "gws_delete_checkpoint_rh",
+                    "restHandlerClass": "GwsDeleteCheckpointExternalHandler",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "300"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Service account to use",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "GCP Project ID",
+                            "help": "GCP project where you have BigQuery data.",
+                            "field": "gcp_project_id",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Dataset name",
+                            "help": "BigQuery dataset name.",
+                            "defaultValue": "gmail_logs_dataset",
+                            "field": "dataset_name",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Dataset location",
+                            "help": "BigQuery dataset location name.",
+                            "defaultValue": "US",
+                            "field": "dataset_location",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "US",
+                                        "label": "US"
+                                    },
+                                    {
+                                        "value": "EU",
+                                        "label": "EU"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "Index where data is going to be ingested.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ],
+                    "title": "Gmail Logs"
+                },
+                {
+                    "name": "gws_gmail_logs_migrated",
+                    "restHandlerModule": "gws_delete_checkpoint_rh",
+                    "restHandlerClass": "GwsDeleteCheckpointExternalHandler",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "300"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Service account to use",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "GCP Project ID",
+                            "help": "GCP project where you have BigQuery data.",
+                            "field": "gcp_project_id",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Dataset name",
+                            "help": "BigQuery dataset name.",
+                            "field": "dataset_name",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Table name",
+                            "help": "BigQuery table name.",
+                            "field": "table_name",
+                            "defaultValue": "activity",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Dataset location",
+                            "help": "BigQuery dataset location name.",
+                            "defaultValue": "US",
+                            "field": "dataset_location",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "US",
+                                        "label": "US"
+                                    },
+                                    {
+                                        "value": "EU",
+                                        "label": "EU"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "Index where data is going to be ingested.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ],
+                    "title": "Gmail Logs Migrated"
+                },
+                {
+                    "name": "gws_user_identity",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "21600"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GWS Service Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "GWS Customer ID",
+                            "help": "GWS Customer ID that will be used for the identity list.",
+                            "field": "gws_customer_id",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "View Type",
+                            "help": "GWS view type",
+                            "field": "gws_view_type",
+                            "defaultValue": "domain_public",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ],
+                    "title": "User Identity List"
+                },
+                {
+                    "name": "gws_alert_center",
+                    "restHandlerModule": "gws_delete_checkpoint_rh",
+                    "restHandlerClass": "GwsDeleteCheckpointExternalHandler",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "300"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GWS Service Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Alert source",
+                            "help": "Google Workspace alert source.",
+                            "field": "alert_source",
+                            "required": true,
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "gmail_phishing",
+                                        "label": "Gmail phishing"
+                                    },
+                                    {
+                                        "value": "everything_except_gmail_phishing",
+                                        "label": "Everything except Gmail phishing"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ],
+                    "title": "Alert Center"
+                },
+                {
+                    "name": "gws_usage_report",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Schedule",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Schedule must be in cron format.",
+                                    "pattern": "^((((\\d+,)+\\d+|(\\d+(\\/|-|#)\\d+)|\\d+L?|\\*(\\/\\d+)?|L(-\\d+)?|\\?|[A-Z]{3}(-[A-Z]{3})?) ?){5})$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Schedule must have any value",
+                                    "minLength": 0,
+                                    "maxLength": 9999999
+                                }
+                            ],
+                            "defaultValue": "34 1 * * *",
+                            "field": "interval",
+                            "help": "Schedule of the data input, in cron format.",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "GWS Service Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Service account to use for this input.",
+                            "field": "account",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Endpoint",
+                            "help": "Type endpoint from which reports will be collected",
+                            "field": "endpoint",
+                            "defaultValue": "user",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "customer",
+                                        "label": "customerUsageReport"
+                                    },
+                                    {
+                                        "value": "user",
+                                        "label": "userUsageReport"
+                                    },
+                                    {
+                                        "value": "entity",
+                                        "label": "entityUsageReport"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "start_date",
+                            "label": "Start Date (Optional)",
+                            "help": "Start date for data collection in UTC timezone. Default: 30 days ago in UTC. Format: YYYY-MM-DD",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "\\d{4}-\\d{2}-\\d{2}",
+                                    "errorMsg": "Start date must be in format: YYYY-MM-DD"
+                                }
+                            ],
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        }
+                    ],
+                    "title": "Usage Report"
+                }
+            ],
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Lookback offset",
+                        "field": "lookbackOffset"
+                    },
+                    {
+                        "label": "Account",
+                        "field": "account"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "true": "Disabled",
+                            "false": "Enabled"
+                        }
+                    }
+                ]
+            }
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ],
+            "settings": {
+                "custom_license_usage": {
+                    "determine_by": "sourcetype",
+                    "search_condition": [
+                        "gws*"
+                    ]
+                }
+            }
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_Google_Workspace",
+        "restRoot": "splunk_ta_google_workspace",
+        "version": "3.0.4",
+        "displayName": "Google Workspace Add-on for Splunk",
+        "schemaVersion": "0.0.9",
+        "_uccVersion": "5.62.0"
+    }
+}

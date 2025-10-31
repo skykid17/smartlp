@@ -1,0 +1,537 @@
+{
+    "pages": {
+        "configuration": {
+            "description": "Configure your RSA SecureId CAS credentials, proxy and data collection information",
+            "tabs": [
+                {
+                    "name": "account",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Account Name",
+                                "field": "name"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Account Name",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of Account name should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this account.",
+                            "required": true
+                        },
+                        {
+                            "field": "adminRestApiUrl",
+                            "label": "Admin REST API Base URL",
+                            "type": "text",
+                            "help": "Enter the URL, for example, https://access.securid.com/AdminInterface/restapi.",
+                            "required": true,
+                            "defaultValue": "https://access.securid.com/AdminInterface/restapi"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Access ID",
+                            "encrypted": true,
+                            "help": "Enter the Access ID value of Administration API key",
+                            "required": true,
+                            "field": "access_id_of_api"
+                        },
+                        {
+                            "field": "api_access_key",
+                            "label": "API Access key",
+                            "type": "text",
+                            "help": "Enter the API Access Key",
+                            "required": true,
+                            "encrypted": true
+                        }
+                    ],
+                    "title": "Account"
+                },
+                {
+                    "name": "proxy",
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "label": "Enable",
+                            "field": "proxy_enabled"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Proxy Type",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "socks4",
+                                        "label": "socks4"
+                                    },
+                                    {
+                                        "value": "socks5",
+                                        "label": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http",
+                            "required": true,
+                            "field": "proxy_type"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Host",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Max host length is 4096",
+                                    "minLength": 0,
+                                    "maxLength": 4096
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host should not have special characters",
+                                    "type": "regex"
+                                }
+                            ],
+                            "required": true,
+                            "field": "proxy_url"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Port",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ],
+                            "required": true,
+                            "field": "proxy_port"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Username",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Max length of username is 50",
+                                    "minLength": 0,
+                                    "maxLength": 50
+                                }
+                            ],
+                            "field": "proxy_username"
+                        },
+                        {
+                            "type": "text",
+                            "label": "Password",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Max length of password is 8192",
+                                    "minLength": 0,
+                                    "maxLength": 8192
+                                }
+                            ],
+                            "encrypted": true,
+                            "field": "proxy_password"
+                        },
+                        {
+                            "type": "checkbox",
+                            "label": "Reverse DNS resolution",
+                            "field": "proxy_rdns"
+                        }
+                    ],
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "title": "Proxy"
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration"
+        },
+        "inputs": {
+            "services": [
+                {
+                    "name": "cloud_administration_api",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "RSA securID Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "help": "Select the account for which you want to collect the events.",
+                            "field": "account_name",
+                            "required": true
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Cloud Administration API",
+                            "options": {
+                                "disableSearch": true,
+                                "disableonEdit": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "adminlog",
+                                        "label": "Administration Event Log"
+                                    },
+                                    {
+                                        "value": "usereventlog",
+                                        "label": "User Event Log"
+                                    },
+                                    {
+                                        "value": "/v2/users/highrisk",
+                                        "label": "Risk User"
+                                    }
+                                ],
+                                "display": true
+                            },
+                            "help": "The endpoint to use for data collection.",
+                            "field": "endpoint",
+                            "defaultValue": "adminlog",
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "adminlog",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "interval",
+                                            "value": "3600"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "usereventlog",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": true
+                                        },
+                                        {
+                                            "fieldId": "interval",
+                                            "value": "3600"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "/v2/users/highrisk",
+                                    "mode": "create",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": false,
+                                            "value": ""
+                                        },
+                                        {
+                                            "fieldId": "interval",
+                                            "value": "86400"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "adminlog",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "usereventlog",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "/v2/users/highrisk",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "startTimeAfter",
+                                            "display": false,
+                                            "value": ""
+                                        }
+                                    ]
+                                }
+                            ],
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number or -1.",
+                                    "pattern": "^(?:-1|\\d+(?:\\.\\d+)?)$"
+                                }
+                            ],
+                            "help": "Time interval of the data input, in seconds.",
+                            "required": true,
+                            "defaultValue": "3600"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "display": true,
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "help": "Select the index in which you want to collect the events.",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Start Time for Query",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Max length of text input is 100 and Min length of text input is ",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "options": {
+                                "display": true,
+                                "disableonEdit": true
+                            },
+                            "field": "startTimeAfter",
+                            "help": "The date and time, in \"YYYY-MM-DDThh:mm:ss.000z\" format, after which to query and index events. \nThe default is 24 hours from current time.",
+                            "required": false
+                        }
+                    ],
+                    "title": "Cloud Administration API Input"
+                }
+            ],
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Account Name",
+                        "field": "account_name"
+                    },
+                    {
+                        "label": "Cloud Administration API",
+                        "field": "endpoint",
+                        "mapping": {
+                            "adminlog": "Administration Event Log",
+                            "usereventlog": "User Event Log",
+                            "/v2/users/highrisk": "Risk User"
+                        }
+                    },
+                    {
+                        "label": "Start Time for Query",
+                        "field": "startTimeAfter"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "true": "Disabled",
+                            "false": "Enabled"
+                        }
+                    },
+                    {
+                        "label": "RSA secureID Account",
+                        "field": "account_name"
+                    },
+                    {
+                        "label": "Cloud Administration API",
+                        "field": "endpoint",
+                        "mapping": {
+                            "adminlog": "Administration Event Log",
+                            "usereventlog": "User Event Log"
+                        }
+                    },
+                    {
+                        "label": "Start Time for Query",
+                        "field": "startTimeAfter"
+                    }
+                ]
+            }
+        }
+    },
+    "meta": {
+        "apiVersion": "4.0.0",
+        "name": "Splunk_TA_rsa_securid_cas",
+        "restRoot": "splunk_ta_rsa_securid_cas",
+        "version": "1.2.2",
+        "displayName": "Splunk Add-on for RSA SecurID CAS",
+        "schemaVersion": "0.0.7",
+        "os-dependentLibraries": [
+            {
+                "name": "cryptography",
+                "version": "42.0.8",
+                "dependencies": true,
+                "platform": "win_amd64",
+                "python_version": "37",
+                "target": "3rdparty/windows_x86_64/python37",
+                "os": "windows"
+            },
+            {
+                "name": "cryptography",
+                "version": "42.0.8",
+                "dependencies": true,
+                "platform": "manylinux2014_x86_64",
+                "python_version": "37",
+                "target": "3rdparty/linux_x86_64/python37",
+                "os": "linux"
+            },
+            {
+                "name": "cryptography",
+                "version": "42.0.8",
+                "dependencies": true,
+                "platform": "win_amd64",
+                "python_version": "39",
+                "target": "3rdparty/windows_x86_64/python39",
+                "os": "windows"
+            },
+            {
+                "name": "cryptography",
+                "version": "42.0.8",
+                "dependencies": true,
+                "platform": "manylinux2014_x86_64",
+                "python_version": "39",
+                "target": "3rdparty/linux_x86_64/python39",
+                "os": "linux"
+            }
+        ],
+        "_uccVersion": "5.47.0"
+    }
+}

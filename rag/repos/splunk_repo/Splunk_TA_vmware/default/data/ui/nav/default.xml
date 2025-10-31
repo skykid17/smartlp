@@ -1,0 +1,8 @@
+<!--Copyright (C) 2005-2024 Splunk Inc. All Rights Reserved.-->
+<nav color="#9bacc1">
+	<view name="collection_config"/>
+	<collection label="Data Collection Status">
+		<view name="hydra_scheduler_status"/>
+		<view name="hydra_framework_status"/>
+	</collection>	
+</nav>

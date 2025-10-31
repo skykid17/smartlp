@@ -1,0 +1,19 @@
+The Content Pack for Monitoring Phantom as a Service provides an ITSI-based approach to monitor the health of your Phantom server environment. Phantom is a security orchestration, automation, and response (SOAR) platform designed to help reduce the scale of your security operations. With Phantom, you can automate tasks, orchestrate workflows, and support a broad range of SOC functions including event and case management, collaboration, and reporting. 
+
+This content pack contains specific Key Performance Indicators (KPIs) for monitoring Phantom metrics. A separate content pack covers OS monitoring. Because each Phantom deployment includes an embedded copy of Splunk Enterprise with dedicated functionality tied to Phantom, a Splunk universal forwarder installed on the Phantom servers takes care of monitoring the Phantom environment. 
+
+As of SOAR 6.2.0, Universal Forwarders replaced the embedded copy of Splunk Enterprise.
+
+The Content Pack for Monitoring Phantom as a Service is a backup ZIP file of preconfigured ITSI objects, including services and KPIs, that you can restore to your own environment and tune for your specific needs. This content pack contains the following objects: 
+
+Two Phantom services: 
+
+Two deep dives: 
+
+The content in the Content Pack for Monitoring Phantom as a Service is only supported in ITSI. 
+
+If you're using ITSI version 4.9 or later, you can install the Content Pack for Monitoring Phantom as a Service after installing the Splunk App for Content Packs. Install the content pack on the same search head where you installed ITSI. For installation instructions, see Install and configure the Content Pack for Monitoring Phantom as a Service. 
+
+If you're using ITSI version 4.8 or earlier, you need to install the content pack using the backup ZIP file. For installation instructions, see Install and configure the Content Pack for Monitoring Phantom as a Service. 
+
+Use the following table to determine ITSI version compatibility. 

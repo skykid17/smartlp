@@ -1,0 +1,17 @@
+---
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/extract_mongodb_primary_ip.yml"
+  no_log: true
+
+- name: Run the getCollection command for unparsed log
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "parser_db"
+    eval: 'db.getCollection("entries").find({ "id": { $in: {{ entries_id_list }} } }).toArray()'
+  register: mongo_results
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/prepare_unparsed_log_config.yml"
+  loop: "{{ mongo_results.transformed_output | list }}"
+  when: mongo_results
+  no_log: true
+

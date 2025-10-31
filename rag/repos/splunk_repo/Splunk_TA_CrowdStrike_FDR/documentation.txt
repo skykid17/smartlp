@@ -1,0 +1,9 @@
+The Splunk Add-on for CrowdStrike FDR lets you collect event data stored in CrowdStrike and bring it into your own Splunk instance for retention and further analysis.
+
+Crowdstrike FDR events must be fetched from an AWS S3 bucket that is provisioned for you. The integration utilizes AWS SQS to support scaling horizontally if required.
+
+If you deploy to Splunk Cloud Victoria, make sure that you are running version 8.2.2201 or later of Splunk Cloud Victoria. version 8.2.2201 provides a key performance optimization for high FDR event volumes.
+
+For version 2.0.4 and later, note the following:
+
+Download the Splunk Add-on for Crowdstrike FDR from Splunkbase at http://splunkbase.splunk.com/app/5579.

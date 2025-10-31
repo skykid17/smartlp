@@ -1,0 +1,13 @@
+The Splunk Add-on for Sysmon allows a Splunk software administrator to create a Splunk software data input and CIM-compliant field extractions for Microsoft Sysmon.
+
+The Splunk Add-on for Sysmon is not the same as the Splunk Add-on for Microsoft Sysmon, which is a community-supported add-on. The community-supported add-on will remain available, but since the Splunk Add-on for Sysmon contains enhancements to events field mappings and Common Information Model (CIM) changes, you should migrate your Microsoft Sysmon data ingestion from the Splunk Add-on for Microsoft Sysmon to the Splunk Add-on for Sysmon.
+
+For information on the differences in the technical support for different Splunkbase app or add-ons, see the Support content topic in the Splunk Developer Guide.
+
+Download the Splunk Add-On for Sysmon from Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Sysmon.
+
+For information about installing and configuring the Splunk Add-on for Sysmon, see Installation and configuration overview for the Splunk Add-on for Sysmon.
+
+See the Splunk Community page for questions related to Splunk Add-on for Sysmon.

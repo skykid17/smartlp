@@ -1,0 +1,5 @@
+The Splunk Add-on for ISC BIND allows a Splunk software administrator to pull network traffic data, DNS query data, and traffic statistics from the ISC BIND platform by using file monitoring. After the Splunk platform indexes the events, you can consume the data by using the prebuilt dashboard panels included with the add-on. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for ISC BIND from Splunkbase at http://splunkbase.splunk.com/app/2876. 
+
+See the Splunk Community page for questions related to the Splunk Add-on for ISC BIND. 

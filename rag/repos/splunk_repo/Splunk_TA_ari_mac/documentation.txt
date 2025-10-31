@@ -1,0 +1,3 @@
+ If you are new to Splunk software, start here! The Search Tutorial guides you through adding data, searching, and creating simple dashboards. 
+
+ Have questions about how to do something with Splunk software? Engage with the Splunk community to get answers fast! 

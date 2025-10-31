@@ -1,0 +1,38 @@
+{
+    "class": "Telemetry_Namespace",
+    "Endpoints_Profiles": {
+      "class": "Telemetry_Endpoints",
+      "enable": false,
+      "items": {
+        "apiCallName": {
+          "name": "",
+          "path": ""
+        },
+        "system": {
+          "path": "/mgmt/tm/sys/global-settings?$select=hostname"
+        }
+      }
+    },
+    "Custom_System": {
+      "class": "Telemetry_System",
+      "systemPoller": [
+        "Custom_System_Poller1"
+      ]
+    },
+    "Custom_System_Poller1": {
+      "class": "Telemetry_System_Poller",
+      "interval": "",
+      "endpointList": "Endpoints_Profiles"
+    },
+    "My_Consumer": {
+      "class": "Telemetry_Consumer",
+      "type": "Splunk",
+      "host": "",
+      "protocol": "",
+      "port": "",
+      "passphrase": {
+        "cipherText": ""
+      },
+      "allowSelfSignedCert": "true"
+    }
+  }

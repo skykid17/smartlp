@@ -1,0 +1,55 @@
+<form version="1.1">
+  <label>Operations</label>
+  <fieldset submitButton="false" autoRun="true"></fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>| inputlookup append=t Splunk_TA_SAA_checkpointer
+| eval input = _key
+| table input, state</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Input Logs</title>
+      <input type="time" token="field2">
+        <label>Time</label>
+        <default>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <input type="dropdown" token="input_tok">
+        <label>Input</label>
+        <fieldForLabel>input_name</fieldForLabel>
+        <fieldForValue>input_name</fieldForValue>
+        <search>
+          <query>index=_internal source=*addon* source="/opt/splunk/var/log/splunk/Splunk_TA_SAA_*.log"
+| stats count by input_name</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+      </input>
+      <event>
+        <search>
+          <query>index=_internal source=*addon* source="/opt/splunk/var/log/splunk/Splunk_TA_SAA_*.log"
+| eval input_name = $input_tok|s$
+| rex field=input_name "jobs_input://(?&lt;in_processed&gt;\S+)"
+| eval source_file = "/opt/splunk/var/log/splunk/Splunk_TA_SAA_".in_processed.".log"
+| where source == source_file</query>
+          <earliest>$field2.earliest$</earliest>
+          <latest>$field2.latest$</latest>
+        </search>
+        <option name="list.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </event>
+    </panel>
+  </row>
+</form>

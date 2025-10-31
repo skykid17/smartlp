@@ -1,0 +1,9 @@
+The Splunk Add-on for Cisco ESA allows the Splunk software administrator to leverage Textmail, HTTP, Consolidated Event Logs, AMP, Delivery, Bounce, Authentication, Antispam, Content Scanner, Error, and System logs of Cisco ESA. You can use the Splunk platform to analyze these logs directly or use them as a contextual data source to correlate with other communication and authentication data in the Splunk platform.
+
+Download the Splunk Add-on for Cisco ESA from Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Cisco ESA.
+
+For information about installing and configuring the Splunk Add-on for Cisco ESA, see Installation and configuration overview for the Splunk Add-on for Cisco ESA.
+
+See Questions related to Splunk Add-on for Cisco ESA on Splunk Answers.

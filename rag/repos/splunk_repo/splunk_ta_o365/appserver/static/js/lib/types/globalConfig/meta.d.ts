@@ -1,0 +1,42 @@
+import { z } from 'zod';
+export declare const meta: z.ZodObject<{
+    displayName: z.ZodString;
+    name: z.ZodString;
+    restRoot: z.ZodString;
+    apiVersion: z.ZodOptional<z.ZodString>;
+    version: z.ZodString;
+    schemaVersion: z.ZodOptional<z.ZodString>;
+    _uccVersion: z.ZodOptional<z.ZodString>;
+    hideUCCVersion: z.ZodOptional<z.ZodBoolean>;
+    checkForUpdates: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
+    searchViewDefault: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
+    isVisible: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
+    supportedThemes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+}, "strip", z.ZodTypeAny, {
+    displayName: string;
+    name: string;
+    restRoot: string;
+    version: string;
+    apiVersion?: string | undefined;
+    schemaVersion?: string | undefined;
+    _uccVersion?: string | undefined;
+    hideUCCVersion?: boolean | undefined;
+    checkForUpdates?: boolean | undefined;
+    searchViewDefault?: boolean | undefined;
+    isVisible?: boolean | undefined;
+    supportedThemes?: string[] | undefined;
+}, {
+    displayName: string;
+    name: string;
+    restRoot: string;
+    version: string;
+    apiVersion?: string | undefined;
+    schemaVersion?: string | undefined;
+    _uccVersion?: string | undefined;
+    hideUCCVersion?: boolean | undefined;
+    checkForUpdates?: boolean | undefined;
+    searchViewDefault?: boolean | undefined;
+    isVisible?: boolean | undefined;
+    supportedThemes?: string[] | undefined;
+}>;
+export type meta = z.infer<typeof meta>;

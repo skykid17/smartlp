@@ -1,0 +1,30 @@
+@font-face {
+  font-family: 'Roboto';
+  src: url('/static/fonts/roboto-regular-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/*  Bold */
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/static/fonts/roboto-bold-webfont.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/*  light */
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/static/fonts/roboto-light-webfont.woff') format('woff');
+  font-weight: 200;
+  font-style: normal;
+}
+
+h1 {
+  font-family: "Roboto", "Droid", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 24px;
+  color: #333;
+}

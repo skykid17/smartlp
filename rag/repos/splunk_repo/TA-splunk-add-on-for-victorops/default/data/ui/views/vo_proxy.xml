@@ -1,0 +1,50 @@
+<dashboard version="1.1" script="vo_proxy.js" stylesheet="victorops.css,vo_proxy.css" hideEdit="false">
+  <label>Proxy</label>
+  <description>Setup for a VictorOps integration proxy configuration.</description>
+  <row>
+    <panel>
+      <html>
+        <style>
+          .dashboard-row .dashboard-panel {
+            background: inherit;
+          }
+        </style>
+        <div id="container" style="white-space:nowrap;border-top: 1px solid #ccc;margin: 0 -20px;padding:20px;">
+          <div>
+            <label style="display: inline-block; margin-right:13px">* Protocol:</label>
+            <select id="protocol" disabled="disabled">
+              <option value=""/>
+              <option value="https">https</option>
+              <option value="http">http</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: inline-block; margin-right:35px">* Host:</label>
+            <input id="host" class="" style="display: inline-block;margin-right:10px" type="text" disabled="disabled"/>
+          </div>
+          <div>
+            <label style="display: inline-block; margin-right:40px">* Port:</label>
+            <input id="port" class="" style="margin-right:10px" type="text" disabled="disabled"/>
+          </div>
+          <div style="margin-top:20px;">
+            <label>
+              <input style="margin-right:10px;margin-top:-5px;" type="checkbox" name="useAuth" id="useAuth" value="auth" disabled="disabled"/>Use Authentication</label>
+          </div>
+          <div>
+            <label style="display: inline-block; margin-right:40px">User:</label>
+            <input id="user" class="" style="margin-right:13px" type="text" disabled="disabled"/>
+          </div>
+          <div>
+            <label style="display: inline-block; margin-right:10px">Password:</label>
+            <input id="password" class="" style="margin-right:10px" type="password" disabled="disabled"/>
+          </div>
+          <input type="hidden" id="key1" name="key" value=""/>
+          <div>
+            <input id="delete1" class="btn btn-danger" value="Delete" style="color:red; white-space:nowrap; width:100px; height: 30px; margin-bottom:10px;display:none;" type="button"/>
+            <input id="submit1" class="btn btn-vo" value="Submit" style="white-space:nowrap; width:100px; height: 30px; margin-bottom:10px;display:none;" type="button"/>
+          </div>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

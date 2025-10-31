@@ -1,0 +1,13 @@
+Use the Splunk Add-on for Symantec Endpoint Protection (SEP) to collect SEP server and client activity logs from: 
+
+You can collect the following log files: 
+
+This add-on provides inputs and CIM-compatible knowledge that you can use with other Splunk Enterprise add-ons and apps. These include Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Symantec Endpoint Protection from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Symantec Endpoint Protection. 
+
+For information about installing and configuring the Splunk Add-on for Splunk Add-on for Symantec Endpoint Protection, see Installation and configuration overview for the Splunk Add-on for Symantec Endpoint Protection. 
+
+See Questions related to Splunk Add-on for Symantec Endpoint Protection on Splunk Answers. 

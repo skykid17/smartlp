@@ -1,0 +1,9 @@
+The Splunk Add-on for F5 BIG-IP allows a Splunk software administrator to pull network traffic data, system logs, system settings, performance metrics, and traffic statistics from the F5 BIG-IP platform, using syslog, iRules, and the iControl API. This add-on provides modular inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security, the Splunk App for PCI Compliance, and Splunk IT Service Intelligence.
+
+Download the Splunk Add-on for F5 BIG-IP from Splunkbase
+
+For a summary of new features, fixed issues, and known issues, see Release notes for the Splunk Add-on for F5 BIG-IP
+
+For information about installing and configuring the Splunk Add-on for F5 BIG-IP, see Installation overview for the Splunk Add-on for F5 BIG-IP
+
+Discuss the Splunk Add-on for F5 BIG-IP on Splunk Answers

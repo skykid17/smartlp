@@ -1,0 +1,64 @@
+{
+  "dependencies": null,
+  "incompatibleApps": null,
+  "info": {
+    "author": [
+      {
+        "name": "Splunk, Inc.",
+        "email": null,
+        "company": null
+      }
+    ],
+    "classification": {
+      "categories": [
+        "IT Operations",
+        "Security, Fraud & Compliance"
+      ],
+      "developmentStatus": "Production/Stable",
+      "intendedAudience": "IT Professionals"
+    },
+    "commonInformationModels": {
+      "Alerts": "==5.0.1",
+      "Authentication": "==5.0.1",
+      "Change": "==5.0.1",
+      "Email": "==5.0.1"
+    },
+    "description": "Splunk Add-on for RSA SecurID",
+    "id": {
+      "group": null,
+      "name": "Splunk_TA_rsa-securid",
+      "version": "1.4.0"
+    },
+    "license": {
+      "name": null,
+      "text": "LICENSES/LicenseRef-Splunk-8-2021.txt",
+      "uri": null
+    },
+    "privacyPolicy": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
+    "releaseDate": null,
+    "releaseNotes": {
+      "name": "README",
+      "text": "README.txt",
+      "uri": "https://docs.splunk.com/Documentation/AddOns/released/RSASecurID/Releasenotes"
+    },
+    "title": "Splunk Add-on for RSA SecurID"
+  },
+  "inputGroups": null,
+  "schemaVersion": "2.0.0",
+  "supportedDeployments": [
+    "_standalone",
+    "_distributed",
+    "_search_head_clustering"
+  ],
+  "targetWorkloads": [
+    "_search_heads",
+    "_indexers",
+    "_forwarders"
+  ],
+  "tasks": null,
+  "platformRequirements": null
+}

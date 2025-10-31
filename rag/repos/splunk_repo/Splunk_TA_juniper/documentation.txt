@@ -1,0 +1,19 @@
+Use the Splunk Add-on for Juniper to pull system logs and traffic statistics from Junos OS versions listed in the table above into the Splunk platform.
+
+For a summary of new features, fixed issues, and known issues, and for more information on release history, see Release notes for the Splunk Add-on for Juniper.
+
+This add-on provides the inputs and Common Information Model (CIM)-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance.
+
+For detailed information about compatibility with other software, CIM versions, and platforms, see Release notes for the Splunk Add-on for Juniper.
+
+For more information about the source types for Splunk Add-on for Juniper, see Source types.
+
+Download the Splunk Add-on for Juniper from Splunkbase.
+
+To install and configure the Splunk Add-on for Juniper, see Installation and configuration overview for the Splunk Add-on for Juniper. 
+
+For more information, see Hardware and software requirements.
+
+For more information, see Questions related to Splunk Add-on for Juniper on Splunk Answers.
+
+See Troubleshooting guidelines specific for this add-on.

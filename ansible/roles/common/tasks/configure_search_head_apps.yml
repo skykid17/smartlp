@@ -1,0 +1,98 @@
+---
+
+- name: Set the path
+  set_fact:
+    apps_path: "{{ splunk.home }}/etc/{% if ansible_host in groups['deployer'] and groups['deployer'] | length>0 %}shcluster/{% endif %}apps/"
+
+#- name: Copy tar rpm file to server
+#  copy:
+#    src: "{{ playbook_dir }}/roles/common/files/installer/tar.rpm"
+#    dest: /tmp/tar.rpm
+
+#- name: Install tar
+#  become: true
+#  yum:
+#    name: /tmp/tar.rpm
+#    state: present
+#  ignore_errors: True
+
+- name: Find all directories
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  find:
+    paths: "{{playbook_dir}}/roles/common/files/apps_search_head/apps/"
+    patterns: "*"
+    file_type: directory
+  register: directory_results
+
+- name: Find all files ending with .tgz
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  find:
+    paths: "{{playbook_dir}}/roles/common/files/apps_search_head/apps/"
+    patterns: "*.tgz"
+  register: tgzfile_results
+
+- name: Copy directory apps
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  copy:
+    src: "{{ item.path }}"
+    dest: "{{ apps_path }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+    mode: 0700
+  loop: "{{ directory_results.files }}"
+  register: deploy_apps
+
+- name: Copy tgz apps
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  copy:
+    src: "{{ item.path }}"
+    dest: "{{ apps_path }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+    mode: 0700
+    force: yes
+  loop: "{{ tgzfile_results.files }}"
+
+- name: Find .tgz
+  find:
+    paths: "{{ apps_path }}"
+    patterns: "*.tgz"
+  register: tgz_results
+
+- name: Extract .tgz
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  unarchive:
+    src: "{{ item.path }}"
+    dest: "{{ apps_path }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+    remote_src: true
+  loop: "{{ tgz_results.files }}"
+  register: deploy_deployer_apps_extracted
+
+- name: Delete .tgz
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ tgz_results.files }}"
+
+- name: Apply shcluster bundle
+  command: "{{ splunk.home }}/bin/splunk apply shcluster-bundle -target https://{{ groups['search_head'] | first }}:{{ splunk.ports.mgmt }} -auth {{ splunk.admin.username }}:{{ splunk.admin.password }} --answer-yes"
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  when:
+    - deploy_apps is changed or deploy_deployer_apps_extracted is changed
+    - "'shcluster' in apps_path"
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/restart_splunk.yml"
+  when:
+    - deploy_apps is changed or deploy_deployer_apps_extracted is changed
+    - "'shcluster' not in apps_path"
+

@@ -1,0 +1,5 @@
+ 
+
+The Splunk Add-on for RSA SecurID Cloud Authentication Service allows a Splunk Enterprise administrator to collect user activity, admin activity logs, and risk user lists using the adminlog, usereventlog, and /v2/users/highrisk APIs. You can directly analyze the RSA SecurID Cloud Authentication Service data or use it as a contextual data feed to correlate with other security data in Splunk. This add-on provides the inputs and CIM--compatible knowledge to use with other Splunk Enterprise apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for RSA SecurID Cloud Authentication Service from Splunkbase at http://splunkbase.splunk.com/app/5210. 

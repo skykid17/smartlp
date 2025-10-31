@@ -1,0 +1,715 @@
+{
+    "pages": {
+        "configuration": {
+            "tabs": [
+                {
+                    "name": "domain",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "domain",
+                                "field": "name"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "your-domain",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of ID should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Domain name must be 3 or more lowercase letters/numbers, Hyphens are allowed in between and should only include the domain name (e.g., your-domain, not your-domain.atlassian.net).",
+                                    "pattern": "^([a-z0-9]+-*[a-z0-9]+)+$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "'your-domain' will be used to construct URL like: https://your-domain.atlassian.net",
+                            "required": true
+                        }
+                    ],
+                    "title": "Domain"
+                },
+                {
+                    "name": "api_token",
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "label": "Label",
+                                "field": "name"
+                            },
+                            {
+                                "label": "Domain",
+                                "field": "domain"
+                            },
+                            {
+                                "label": "User name",
+                                "field": "username"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Domain",
+                            "options": {
+                                "referenceName": "domain"
+                            },
+                            "help": "",
+                            "field": "domain",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Label",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of ID should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ],
+                            "field": "name",
+                            "help": "Enter a unique name for this token.",
+                            "required": true
+                        },
+                        {
+                            "field": "username",
+                            "label": "User name",
+                            "type": "text",
+                            "help": "Required. Expected email address format.",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "email"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "API token",
+                            "encrypted": true,
+                            "field": "token",
+                            "required": true
+                        },
+                        {
+                            "field": "help_link",
+                            "label": "",
+                            "type": "helpLink",
+                            "options": {
+                                "text": "Help Link",
+                                "link": "https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/"
+                            }
+                        }
+                    ],
+                    "title": "API token"
+                },
+                {
+                    "name": "proxy",
+                    "title": "Proxy",
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') { return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "entity": [
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                },
+                                {
+                                    "pattern": "^[a-zA-Z0-9:][a-zA-Z0-9\\.\\-:]+$",
+                                    "errorMsg": "Proxy Host is invalid",
+                                    "type": "regex"
+                                }
+                            ],
+                            "field": "proxy_url",
+                            "label": "Proxy Host",
+                            "help": "Hostname of the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[1-9]\\d*$",
+                                    "errorMsg": "Proxy Port must be a non-zero positive integer."
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Proxy Port",
+                            "help": "Port to the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Proxy Username",
+                            "help": "Username to connect to the Proxy Server"
+                        },
+                        {
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 8192,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for password is 8192"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Proxy Password",
+                            "help": "Password to connect to the Proxy Server"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "socks5",
+                                        "label": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http",
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARNING",
+                                        "label": "WARNING"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    },
+                                    {
+                                        "value": "CRITICAL",
+                                        "label": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Log level must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+                                    "pattern": "^DEBUG|INFO|WARNING|ERROR|CRITICAL$"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration",
+            "description": "Set up your add-on"
+        },
+        "inputs": {
+            "services": [
+                {
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "name": "jira_cloud_input",
+                    "title": "Jira Audit",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "API token",
+                            "options": {
+                                "referenceName": "api_token",
+                                "disableonEdit": true
+                            },
+                            "help": "",
+                            "field": "api_token",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "field": "from",
+                            "label": "UTC Start Time",
+                            "help": "The date and time on or after which returned audit records must have been created. Format: YYYY-MM-DDThh:mm:ss Note: Please use UTC time",
+                            "required": false,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$",
+                                    "errorMsg": "No value or format YYYY-MM-DDThh:mm:ss is expected (eg. 2021-09-17T20:58:13)"
+                                }
+                            ],
+                            "defaultValue": ""
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "from",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "from",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        10,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 10 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 60
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "name": "jira_cloud_issues_input",
+                    "title": "Jira Issues",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "API token",
+                            "options": {
+                                "referenceName": "api_token",
+                                "disableonEdit": true
+                            },
+                            "field": "api_token",
+                            "required": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Name",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of input name should be between 1 and 100",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                }
+                            ],
+                            "field": "name",
+                            "help": "A unique name for the data input.",
+                            "required": true
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Projects",
+                            "field": "projects",
+                            "required": true,
+                            "options": {
+                                "dependencies": [
+                                    "api_token"
+                                ],
+                                "endpointUrl": "jira_cloud_projects",
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "UTC Start Date",
+                            "help": "The date and time in UTC. Format: YYYY-MM-DD hh:mm",
+                            "required": false,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^$|^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$",
+                                    "errorMsg": "Invalid start date format specified (eg. 2021-09-17 20:58)"
+                                }
+                            ],
+                            "defaultValue": ""
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        60,
+                                        86400
+                                    ],
+                                    "errorMsg": "Interval must be between 60 and 86400"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 300
+                        },
+                        {
+                            "field": "include",
+                            "label": "Include jira fields",
+                            "type": "text",
+                            "help": "Enter comma-separated fields of the jira issues to include. 'updated' field of the jira issues will be included by default."
+                        },
+                        {
+                            "field": "exclude",
+                            "label": "Exclude jira fields",
+                            "type": "text",
+                            "help": "Enter comma-separated fields of the jira issues to exclude."
+                        },
+                        {
+                            "field": "time_field",
+                            "label": "Time field",
+                            "type": "text",
+                            "help": "Field which uniquely identifies each jira issue (Default is 'updated').",
+                            "required": false,
+                            "defaultValue": "updated",
+                            "options": {
+                                "disableonEdit": true
+                            }
+                        },
+                        {
+                            "field": "filter_data",
+                            "label": "Filter parameters",
+                            "type": "text",
+                            "help": "Provide filters as per JQL syntax. For example: labels = temp AND summary ~ \"Clone\".",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of filter parameters should be between 0 and 1000.",
+                                    "minLength": 0,
+                                    "maxLength": 1000
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of index name should be between 1 and 80.",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                }
+                            ],
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "field": "index",
+                            "required": true
+                        }
+                    ]
+                }
+            ],
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "field": "serviceName",
+                        "label": "Input Type",
+                        "mapping": {
+                            "jira_cloud_input": "Jira Audit",
+                            "jira_cloud_issues_input": "Jira Issues"
+                        }
+                    },
+                    {
+                        "field": "api_token",
+                        "label": "API token"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "label": "Name",
+                        "field": "name"
+                    },
+                    {
+                        "label": "Domain",
+                        "field": "domain"
+                    },
+                    {
+                        "label": "API token",
+                        "field": "api_token"
+                    },
+                    {
+                        "label": "UTC Start Time",
+                        "field": "from"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "label": "Status",
+                        "field": "disabled",
+                        "mapping": {
+                            "true": "Disabled",
+                            "false": "Enabled"
+                        }
+                    }
+                ]
+            }
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ],
+            "settings": {
+                "custom_license_usage": {
+                    "determine_by": "sourcetype",
+                    "search_condition": [
+                        "jira:cloud:audit:log",
+                        "jira:cloud:issues"
+                    ]
+                }
+            }
+        }
+    },
+    "meta": {
+        "name": "Splunk_TA_Jira_Cloud",
+        "restRoot": "splunk_ta_jira_cloud",
+        "version": "2.2.0",
+        "displayName": "Splunk Add-on for Jira Cloud",
+        "schemaVersion": "0.0.9",
+        "_uccVersion": "5.55.0"
+    }
+}

@@ -1,0 +1,7 @@
+The Splunk Add-on for GitHub lets you collect audit logs from the GitHub Enterprise Server (GHES) using the Log Forwarding mechanism of GitHub and extracts useful information out of it. It can also fetch the audit logs for organization and enterprise account types and user metadata events of an organization from the GitHub Cloud. The add-on also fetches Code Scanning Alerts from GitHub Cloud, which enables users to collect those alerts from organization or enterprise account types in Splunk and normalize them using CIM data models
+
+Download the Splunk Add-on for GitHub at Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release notes for the Splunk Add-on for GitHub.
+
+For information about installing and configuring the Splunk Add-on for GitHub, see Installation overview for the Splunk Add-on for GitHub.

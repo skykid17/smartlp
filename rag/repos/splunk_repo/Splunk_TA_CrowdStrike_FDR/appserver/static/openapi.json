@@ -1,0 +1,4058 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Splunk_TA_CrowdStrike_FDR",
+        "version": "2.0.5",
+        "description": "Splunk Add-on for CrowdStrike FDR",
+        "contact": {
+            "name": "Splunk, Inc.",
+            "email": "support@splunk.com"
+        },
+        "license": {
+            "name": "Splunk Software License Agreement",
+            "url": "http://www.splunk.com/view/SP-CAAAAFA"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://{domain}:{port}/servicesNS/-/Splunk_TA_CrowdStrike_FDR",
+            "variables": {
+                "domain": {
+                    "default": "localhost"
+                },
+                "port": {
+                    "default": "8089"
+                }
+            },
+            "description": "Access via management interface"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "aws_collections": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_region": {
+                        "type": "string",
+                        "enum": [
+                            "us-gov-east-1",
+                            "us-gov-west-1",
+                            "us-east-2",
+                            "us-east-1",
+                            "us-west-1",
+                            "us-west-2",
+                            "af-south-1",
+                            "ap-east-1",
+                            "ap-south-1",
+                            "ap-northeast-3",
+                            "ap-northeast-2",
+                            "ap-southeast-1",
+                            "ap-southeast-2",
+                            "ap-northeast-1",
+                            "ca-central-1",
+                            "eu-central-1",
+                            "eu-west-1",
+                            "eu-west-2",
+                            "eu-south-1",
+                            "eu-west-3",
+                            "eu-north-1",
+                            "me-south-1",
+                            "sa-east-1"
+                        ]
+                    },
+                    "aws_access_key_id": {
+                        "type": "string"
+                    },
+                    "aws_secret_access_key": {
+                        "type": "string",
+                        "format": "password"
+                    }
+                }
+            },
+            "aws_collections_without_name": {
+                "type": "object",
+                "properties": {
+                    "aws_region": {
+                        "type": "string",
+                        "enum": [
+                            "us-gov-east-1",
+                            "us-gov-west-1",
+                            "us-east-2",
+                            "us-east-1",
+                            "us-west-1",
+                            "us-west-2",
+                            "af-south-1",
+                            "ap-east-1",
+                            "ap-south-1",
+                            "ap-northeast-3",
+                            "ap-northeast-2",
+                            "ap-southeast-1",
+                            "ap-southeast-2",
+                            "ap-northeast-1",
+                            "ca-central-1",
+                            "eu-central-1",
+                            "eu-west-1",
+                            "eu-west-2",
+                            "eu-south-1",
+                            "eu-west-3",
+                            "eu-north-1",
+                            "me-south-1",
+                            "sa-east-1"
+                        ]
+                    },
+                    "aws_access_key_id": {
+                        "type": "string"
+                    },
+                    "aws_secret_access_key": {
+                        "type": "string",
+                        "format": "password"
+                    }
+                }
+            },
+            "cs_event_filters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "filter_type": {
+                        "type": "string",
+                        "enum": [
+                            "drop",
+                            "ingest"
+                        ]
+                    },
+                    "filter_value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "cs_event_filters_without_name": {
+                "type": "object",
+                "properties": {
+                    "filter_type": {
+                        "type": "string",
+                        "enum": [
+                            "drop",
+                            "ingest"
+                        ]
+                    },
+                    "filter_value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "cs_device_field_filters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "filter_type": {
+                        "type": "string",
+                        "enum": [
+                            "enrich",
+                            "skip"
+                        ]
+                    },
+                    "filter_value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "cs_device_field_filters_without_name": {
+                "type": "object",
+                "properties": {
+                    "filter_type": {
+                        "type": "string",
+                        "enum": [
+                            "enrich",
+                            "skip"
+                        ]
+                    },
+                    "filter_value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "logging": {
+                "type": "object",
+                "properties": {
+                    "loglevel": {
+                        "type": "string",
+                        "enum": [
+                            "DEBUG",
+                            "INFO",
+                            "WARNING",
+                            "ERROR",
+                            "CRITICAL"
+                        ]
+                    }
+                }
+            },
+            "logging_without_name": {
+                "type": "object",
+                "properties": {
+                    "loglevel": {
+                        "type": "string",
+                        "enum": [
+                            "DEBUG",
+                            "INFO",
+                            "WARNING",
+                            "ERROR",
+                            "CRITICAL"
+                        ]
+                    }
+                }
+            },
+            "proxy": {
+                "type": "object",
+                "properties": {
+                    "proxy_enabled": {
+                        "type": "string"
+                    },
+                    "proxy_type": {
+                        "type": "string",
+                        "enum": [
+                            "http",
+                            "https"
+                        ]
+                    },
+                    "proxy_url": {
+                        "type": "string"
+                    },
+                    "proxy_port": {
+                        "type": "string"
+                    },
+                    "proxy_username": {
+                        "type": "string"
+                    },
+                    "proxy_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "proxy_rdns": {
+                        "type": "string"
+                    }
+                }
+            },
+            "proxy_without_name": {
+                "type": "object",
+                "properties": {
+                    "proxy_enabled": {
+                        "type": "string"
+                    },
+                    "proxy_type": {
+                        "type": "string",
+                        "enum": [
+                            "http",
+                            "https"
+                        ]
+                    },
+                    "proxy_url": {
+                        "type": "string"
+                    },
+                    "proxy_port": {
+                        "type": "string"
+                    },
+                    "proxy_username": {
+                        "type": "string"
+                    },
+                    "proxy_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "proxy_rdns": {
+                        "type": "string"
+                    }
+                }
+            },
+            "device_api_inventory_sync_service": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "api_client_id": {
+                        "type": "string"
+                    },
+                    "api_client_secret": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "api_base_url": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "device_api_inventory_sync_service_without_name": {
+                "type": "object",
+                "properties": {
+                    "api_client_id": {
+                        "type": "string"
+                    },
+                    "api_client_secret": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "api_base_url": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "device_api_inventory_sync_service_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "api_client_id": {
+                        "type": "string"
+                    },
+                    "api_client_secret": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "api_base_url": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            },
+            "inventory_sync_service": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "search_head_address": {
+                        "type": "string"
+                    },
+                    "search_head_port": {
+                        "type": "string"
+                    },
+                    "search_head_username": {
+                        "type": "string"
+                    },
+                    "search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "use_failover_search_head": {
+                        "type": "string"
+                    },
+                    "failover_search_head_address": {
+                        "type": "string"
+                    },
+                    "failover_search_head_port": {
+                        "type": "string"
+                    },
+                    "failover_search_head_username": {
+                        "type": "string"
+                    },
+                    "failover_search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "inventory_sync_service_without_name": {
+                "type": "object",
+                "properties": {
+                    "search_head_address": {
+                        "type": "string"
+                    },
+                    "search_head_port": {
+                        "type": "string"
+                    },
+                    "search_head_username": {
+                        "type": "string"
+                    },
+                    "search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "use_failover_search_head": {
+                        "type": "string"
+                    },
+                    "failover_search_head_address": {
+                        "type": "string"
+                    },
+                    "failover_search_head_port": {
+                        "type": "string"
+                    },
+                    "failover_search_head_username": {
+                        "type": "string"
+                    },
+                    "failover_search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "inventory_sync_service_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "search_head_address": {
+                        "type": "string"
+                    },
+                    "search_head_port": {
+                        "type": "string"
+                    },
+                    "search_head_username": {
+                        "type": "string"
+                    },
+                    "search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "use_failover_search_head": {
+                        "type": "string"
+                    },
+                    "failover_search_head_address": {
+                        "type": "string"
+                    },
+                    "failover_search_head_port": {
+                        "type": "string"
+                    },
+                    "failover_search_head_username": {
+                        "type": "string"
+                    },
+                    "failover_search_head_password": {
+                        "type": "string",
+                        "format": "password"
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            },
+            "fdr_s3bucket_monitor_service": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_bucket": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "fdr_s3bucket_monitor_service_without_name": {
+                "type": "object",
+                "properties": {
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_bucket": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "fdr_s3bucket_monitor_service_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_bucket": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            },
+            "simple_consumer_input": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "simple_consumer_input_without_name": {
+                "type": "object",
+                "properties": {
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "simple_consumer_input_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            },
+            "managed_consumer_input": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "manager": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "managed_consumer_input_without_name": {
+                "type": "object",
+                "properties": {
+                    "manager": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "managed_consumer_input_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "manager": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            },
+            "sqs_based_manager": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "checkpoint_type": {
+                        "type": "string",
+                        "enum": [
+                            "sqs",
+                            "internal"
+                        ]
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "sqs_based_manager_without_name": {
+                "type": "object",
+                "properties": {
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "checkpoint_type": {
+                        "type": "string",
+                        "enum": [
+                            "sqs",
+                            "internal"
+                        ]
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "string",
+                        "enum": [
+                            "False",
+                            "True"
+                        ]
+                    }
+                }
+            },
+            "sqs_based_manager_without_disabled": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "aws_collection": {
+                        "type": "string"
+                    },
+                    "aws_sqs_url": {
+                        "type": "string"
+                    },
+                    "aws_sqs_ignore_before": {
+                        "type": "string"
+                    },
+                    "aws_sqs_visibility_timeout": {
+                        "type": "string",
+                        "enum": [
+                            "30",
+                            "60",
+                            "120",
+                            "300",
+                            "600",
+                            "900",
+                            "1200",
+                            "1800",
+                            "2700",
+                            "3600",
+                            "7200",
+                            "10800",
+                            "14400",
+                            "18000",
+                            "21600",
+                            "25200",
+                            "28800",
+                            "32400",
+                            "36000",
+                            "39600",
+                            "43200"
+                        ]
+                    },
+                    "cs_event_encoding": {
+                        "type": "string",
+                        "enum": [
+                            "utf-16",
+                            "utf-16-be",
+                            "utf-16-le",
+                            "utf-32",
+                            "utf-32-be",
+                            "utf-32-le",
+                            "utf-7",
+                            "utf-8",
+                            "utf-8-sig",
+                            "cp1256",
+                            "cp720",
+                            "cp864",
+                            "iso8859-6",
+                            "cp1257",
+                            "cp775",
+                            "iso8859-13",
+                            "iso8859-4",
+                            "cp1251",
+                            "cp855",
+                            "iso8859-5",
+                            "mac-cyrillic",
+                            "cp863",
+                            "iso8859-14",
+                            "cp1250",
+                            "cp852",
+                            "iso8859-2",
+                            "mac-latin2",
+                            "cp865",
+                            "ascii",
+                            "cp037",
+                            "cp437",
+                            "iso8859-3",
+                            "cp1253",
+                            "cp737",
+                            "cp869",
+                            "cp875",
+                            "iso8859-7",
+                            "mac-greek",
+                            "cp1255",
+                            "cp424",
+                            "cp856",
+                            "cp862",
+                            "iso8859-8",
+                            "cp861",
+                            "mac-iceland",
+                            "cp932",
+                            "euc-jis-2004",
+                            "euc-jisx0213",
+                            "euc-jp",
+                            "iso2022-jp",
+                            "iso2022-jp-1",
+                            "iso2022-jp-2004",
+                            "iso2022-jp-3",
+                            "iso2022-jp-ext",
+                            "shift-jis",
+                            "shift-jis-2004",
+                            "shift-jisx0213",
+                            "iso-2022-jp-2",
+                            "ptcp154",
+                            "cp949",
+                            "euc-kr",
+                            "iso2022-kr",
+                            "johab",
+                            "iso8859-10",
+                            "cp860",
+                            "cp866",
+                            "koi8-r",
+                            "gb2312",
+                            "iso-ir-58",
+                            "hz",
+                            "iso8859-16",
+                            "cp874",
+                            "big5",
+                            "big5hkscs",
+                            "cp950",
+                            "cp1026",
+                            "cp1254",
+                            "cp857",
+                            "iso8859-9",
+                            "mac-turkish",
+                            "koi8-u",
+                            "gb18030",
+                            "gbk",
+                            "cp1006",
+                            "cp1258",
+                            "latin-1",
+                            "cp1140",
+                            "cp1252",
+                            "cp500",
+                            "cp850",
+                            "cp858",
+                            "iso8859-15",
+                            "mac-roman",
+                            "cp65001"
+                        ]
+                    },
+                    "cs_event_filter_name": {
+                        "type": "string"
+                    },
+                    "cs_ithr_type": {
+                        "type": "string",
+                        "enum": [
+                            "device_api",
+                            "inventory"
+                        ]
+                    },
+                    "cs_device_field_filter_name": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "string"
+                    },
+                    "collect_external_events": {
+                        "type": "string"
+                    },
+                    "index_for_external_events": {
+                        "type": "string"
+                    },
+                    "collect_ztha_events": {
+                        "type": "string"
+                    },
+                    "index_for_ztha_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_aidmaster": {
+                        "type": "string"
+                    },
+                    "index_for_aidmaster_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_managedassets": {
+                        "type": "string"
+                    },
+                    "index_for_managedassets_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_notmanaged": {
+                        "type": "string"
+                    },
+                    "index_for_notmanaged_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_appinfo": {
+                        "type": "string"
+                    },
+                    "index_for_appinfo_events": {
+                        "type": "string"
+                    },
+                    "collect_inventory_userinfo": {
+                        "type": "string"
+                    },
+                    "index_for_userinfo_events": {
+                        "type": "string"
+                    },
+                    "checkpoint_type": {
+                        "type": "string",
+                        "enum": [
+                            "sqs",
+                            "internal"
+                        ]
+                    },
+                    "interval": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            }
+        }
+    },
+    "paths": {
+        "/splunk_ta_crowdstrike_fdr_aws_collections": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for aws_collections",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/aws_collections_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for aws_collections",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in aws_collections",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/aws_collections_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in aws_collections",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/aws_collections"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_aws_collections/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get aws_collections item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/aws_collections_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get aws_collections item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update aws_collections item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/aws_collections_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update aws_collections item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/aws_collections_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete aws_collections item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/aws_collections_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete aws_collections item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_cs_event_filters": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for cs_event_filters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_event_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for cs_event_filters",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in cs_event_filters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_event_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in cs_event_filters",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/cs_event_filters"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_cs_event_filters/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get cs_event_filters item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_event_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get cs_event_filters item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update cs_event_filters item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_event_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update cs_event_filters item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/cs_event_filters_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete cs_event_filters item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_event_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete cs_event_filters item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_cs_device_field_filters": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for cs_device_field_filters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for cs_device_field_filters",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in cs_device_field_filters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in cs_device_field_filters",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/cs_device_field_filters"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_cs_device_field_filters/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get cs_device_field_filters item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get cs_device_field_filters item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update cs_device_field_filters item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update cs_device_field_filters item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete cs_device_field_filters item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/cs_device_field_filters_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete cs_device_field_filters item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_settings/logging": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for logging",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/logging_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for logging",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in logging",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/logging_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in logging",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/logging"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_settings/proxy": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for proxy",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/proxy_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for proxy",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in proxy",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/proxy_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in proxy",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/proxy"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_device_api_inventory_sync_service": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for device_api_inventory_sync_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for device_api_inventory_sync_service",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in device_api_inventory_sync_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in device_api_inventory_sync_service",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/device_api_inventory_sync_service_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_device_api_inventory_sync_service/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get device_api_inventory_sync_service item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get device_api_inventory_sync_service item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update device_api_inventory_sync_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update device_api_inventory_sync_service item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete device_api_inventory_sync_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/device_api_inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete device_api_inventory_sync_service item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_inventory_sync_service": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for inventory_sync_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for inventory_sync_service",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in inventory_sync_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in inventory_sync_service",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/inventory_sync_service_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_inventory_sync_service/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get inventory_sync_service item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get inventory_sync_service item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update inventory_sync_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update inventory_sync_service item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete inventory_sync_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/inventory_sync_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete inventory_sync_service item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_fdr_s3bucket_monitor_service": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for fdr_s3bucket_monitor_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for fdr_s3bucket_monitor_service",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in fdr_s3bucket_monitor_service",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in fdr_s3bucket_monitor_service",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_fdr_s3bucket_monitor_service/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get fdr_s3bucket_monitor_service item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get fdr_s3bucket_monitor_service item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update fdr_s3bucket_monitor_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update fdr_s3bucket_monitor_service item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete fdr_s3bucket_monitor_service item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/fdr_s3bucket_monitor_service_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete fdr_s3bucket_monitor_service item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_simple_consumer_input": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for simple_consumer_input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for simple_consumer_input",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in simple_consumer_input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in simple_consumer_input",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/simple_consumer_input_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_simple_consumer_input/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get simple_consumer_input item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get simple_consumer_input item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update simple_consumer_input item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update simple_consumer_input item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete simple_consumer_input item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/simple_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete simple_consumer_input item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_managed_consumer_input": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for managed_consumer_input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for managed_consumer_input",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in managed_consumer_input",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in managed_consumer_input",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/managed_consumer_input_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_managed_consumer_input/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get managed_consumer_input item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get managed_consumer_input item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update managed_consumer_input item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update managed_consumer_input item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete managed_consumer_input item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/managed_consumer_input_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete managed_consumer_input item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_sqs_based_manager": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get list of items for sqs_based_manager",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get list of items for sqs_based_manager",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Create item in sqs_based_manager",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Create item in sqs_based_manager",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/sqs_based_manager_without_disabled"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        },
+        "/splunk_ta_crowdstrike_fdr_sqs_based_manager/{name}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Get sqs_based_manager item details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Get sqs_based_manager item details",
+                "deprecated": false
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Update sqs_based_manager item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Update sqs_based_manager item",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "deprecated": false
+            },
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Delete sqs_based_manager item",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entry": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "content": {
+                                                        "$ref": "#/components/schemas/sqs_based_manager_without_name"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "description": "Delete sqs_based_manager item",
+                "deprecated": false
+            },
+            "parameters": [
+                {
+                    "name": "name",
+                    "in": "path",
+                    "required": true,
+                    "description": "The name of the item to operate on",
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "output_mode",
+                    "in": "query",
+                    "required": true,
+                    "description": "Output mode",
+                    "schema": {
+                        "type": "string",
+                        "enum": [
+                            "json"
+                        ],
+                        "default": "json"
+                    }
+                }
+            ]
+        }
+    },
+    "security": [
+        {
+            "BasicAuth": []
+        }
+    ]
+}

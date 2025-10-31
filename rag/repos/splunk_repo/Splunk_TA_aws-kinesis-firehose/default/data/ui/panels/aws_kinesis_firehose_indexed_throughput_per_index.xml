@@ -1,0 +1,23 @@
+<!--
+  SPDX-FileCopyrightText: 2020 Splunk, Inc. <sales@splunk.com>
+  SPDX-License-Identifier: LicenseRef-Splunk-1-2020
+ 
+  -->
+<panel>
+  <title>AWS Kinesis Firehose - Indexed Throughput per Index</title>
+  <table>
+	<search>
+	  <query>index=_internal source=*/metrics.log group=per_index_thruput | timechart per_second(kb) span=1m by series</query>
+	  <earliest>-24h@h</earliest>
+	  <latest>now</latest>
+	  <sampleRatio>1</sampleRatio>
+	</search>
+	<option name="dataOverlayMode">none</option>
+	<option name="drilldown">none</option>
+	<option name="percentagesRow">false</option>
+	<option name="rowNumbers">false</option>
+	<option name="totalsRow">false</option>
+	<option name="wrap">true</option>
+  </table>
+</panel>
+

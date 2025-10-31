@@ -1,0 +1,71 @@
+---
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/extract_mongodb_primary_ip.yml"
+  no_log: true
+
+- name: Set default value for variables
+  set_fact:
+    reload_deploy_server: false
+
+- name: Check for existing serverclass.conf
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  stat:
+    path: "{{ splunk.home }}/etc/system/local/serverclass.conf"
+  register: serverclass_conf
+
+- name: Define smartsoc serverClass - whitelist
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/system/local/serverclass.conf"
+    section: "serverClass:hf_smartsoc"
+    option: "whitelist.{{ item.0 }}"
+    value: "{{ item.1 }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  with_indexed_items:
+    - "{{ groups['heavy_forwarder'] }}"
+
+- name: Define smartsoc:app serverClass
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/system/local/serverclass.conf"
+    section: "serverClass:hf_smartsoc:app:ste_hf_smartsoc"
+    option: restartSplunkd
+    value: "true"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  register: serverclass_configured
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/reload_deployment_server.yml"
+  when: serverclass_configured is changed
+
+- name: Run the getCollection command
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "parser_db"
+    eval: 'db.getCollection("entries").find({ "id": { $in: {{ entries_id_list }} } }).toArray()'
+  register: mongo_results
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/process_unparsed_log.yml"
+  loop: "{{ mongo_results.transformed_output | list }}"
+  when: mongo_results
+  no_log: true
+  vars:
+    reload_deploy_server: false
+
+# Restart only when Splunk is running and when any of the above have changed
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/reload_deployment_server.yml"
+  when: reload_deploy_server
+
+- name: Run the update command for mongodb
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "parser_db"
+    eval: "db.entries.updateOne({ _id: ObjectId('{{ inner_item._id['$oid'] }}') }, { $set: { 'status': 'Deployed' } })"
+  loop: "{{ mongo_results.transformed_output | list }}"
+  loop_control:
+    loop_var: inner_item
+  register: update_mongodb_response

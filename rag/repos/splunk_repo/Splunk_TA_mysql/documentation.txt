@@ -1,0 +1,11 @@
+The Splunk Add-on for MySQL allows a Splunk software administrator to collect general logs, error logs, and slow query logs from MySQL servers and performance and configuration logs from local or remote MySQL Databases. This add-on also allows the user to collect MySQL Enterprise audit logs from MySQL Enterprise Server. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+ Splunk DB Connect version 3.5.1 or above is required to manage database connectivity. You must install and configure it before you can use this add-on to collect performance and configuration logs from a MySQL Database.
+
+Splunk DB Connect versions 3.5.1 and lower do not support Splunk DB Connect templates that use the SHOW statement in their queries. For more information, see Configure Inputs for the Splunk Add-on for MySQL. 
+
+The Splunk Add-on for MySQL does not support versions 3.2.0 or earlier of Splunk DB Connect. 
+
+Download the Splunk Add-on for MySQL from Splunkbase at https://splunkbase.splunk.com/app/2848 
+
+Search the Splunk Community page for more information about this add-on. 

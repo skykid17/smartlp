@@ -1,0 +1,49 @@
+[{
+  "_id": {
+    "$oid": "67f4846418cde7a9e3d630c4"
+  },
+  "id": "ollama",
+  "url": "http://localhost:11434/api/chat",
+  "models": [
+    "log2regex",
+    "log2reg2"
+  ],
+  "amendments": [],
+  "name": "Ollama"
+},
+{
+  "_id": {
+    "$oid": "67f484ad18cde7a9e3d630c5"
+  },
+  "id": "vllm",
+  "url": "https://localhost/v1/chat/completions",
+  "models": [
+    "qwen25-coder-14b",
+    "qwen25-coder-32b-awq"
+  ],
+  "amendments": [],
+  "name": "VLLM"
+},
+{
+  "_id": {
+    "$oid": "680b441287c8d30b08c3d2eb"
+  },
+  "id": "lmstudio",
+  "url": "http://localhost/v1/chat/completions",
+  "models": [
+    "falcon3-10b-instruct"
+  ],
+  "name": "LM Studio"
+},
+{
+  "_id": {
+    "$oid": "681b125f8eefcb4d83143618"
+  },
+  "id": "vllm2",
+  "url": "https://local/v1/chat/completions",
+  "models": [
+    "qwen25-coder-32b-awq-2"
+  ],
+  "amendments": [],
+  "name": "VLLM2"
+}]

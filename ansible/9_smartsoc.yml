@@ -1,0 +1,19 @@
+
+# Search Head Apps - To create the smartsoc app for the very first time
+- name: Search head apps
+  hosts: search_head,deployer
+  roles:
+    - { role: configure_search_head_apps, tags: configure_search_head_apps }
+
+# Deployment Server - To create the smartsoc app for the very first time
+- name: Copy apps from ansible into deployment server
+  hosts: deployment_server
+  roles:
+    - { role: apps_deployment_server, tags: apps_deployment_server }
+
+# Deployment Server
+- name: Add unparsed log transforms into deployment server
+  hosts: deployment_server
+  roles:
+    - { role: unparsed_log_transforms, tags: unparsed_log_transforms }
+

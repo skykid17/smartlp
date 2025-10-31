@@ -1,0 +1,90 @@
+<form version="1.1" hideFooter="true" hideEdit="false" hideTitle="false">
+  <label>Teams</label>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="org_field">
+      <label>Organization</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_teams` org != '' | eval name = org | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="name_field">
+      <label>Team Name</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>name</fieldForLabel>
+      <fieldForValue>name</fieldForValue>
+      <search>
+        <query>`victorops_teams` info.name != '' org="$org_field$"| eval name = 'info.name' | dedup name | sort name  | table name</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="username_field" searchWhenChanged="true">
+      <label>Username</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>users</fieldForLabel>
+      <fieldForValue>users</fieldForValue>
+      <search>
+        <query>`victorops_teams` org="$org_field$"
+| eval users = 'members{}.username' | mvexpand users | dedup users | sort users | table users</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+    <input type="dropdown" token="policy_field">
+      <label>Policy</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <fieldForLabel>policies</fieldForLabel>
+      <fieldForValue>policies</fieldForValue>
+      <search>
+        <query>`victorops_teams` org="$org_field$"
+| eval policies = 'policies{}.name' | mvexpand policies | dedup policies | sort policies | table policies</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Teams</title>
+      <table>
+        <title>Select row to view Team OnCall Schedule</title>
+        <search>
+          <query>`victorops_teams` earliest=0 info.name="$name_field$" org="$org_field$"| eval Name = 'info.name' | eval Slug = 'info.slug'
+| eval users = 'info.memberCount'
+| eval Policies = 'policies{}.name'
+| eval Usernames = 'members{}.username'
+| eval verified = 'members{}.verified'
+| eval user_filter = "$username_field$"
+| eval n = if (user_filter="*", 1, mvfind(Usernames,user_filter))
+| where isnotnull(n)
+| dedup Name
+| rename Name as "Team Name"
+| eval policy_filter = "$policy_field$"
+| eval n = if (policy_filter="*", 1, mvfind(Policies,policy_filter))
+| where isnotnull(n)
+| eval name = mvzip('members{}.firstName', 'members{}.lastName')
+| rex mode=sed field=name "s/,/ /g" 
+| rename org as Organization name as "User Name" users as "User Count" verified as "User Verified"
+| table Organization "Team Name" Slug team_slug Policies "User Count" Usernames "User Name" "User Verified"
+| sort "Team Name"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <fields>["Organization", "Team Name","Policies","User Count","Usernames","User Name","User Verified"]</fields>
+        <drilldown>
+          <link target="_blank">/app/TA-splunk-add-on-for-victorops/vo_team_oncall_calendar?form.Slug=$row.Slug$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

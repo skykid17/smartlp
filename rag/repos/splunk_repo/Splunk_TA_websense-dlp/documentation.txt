@@ -1,0 +1,5 @@
+The Splunk Add-on for Websense DLP allows a Splunk software administrator to collect logs from Websense DLP (also known as Triton AP-Endpoint DLP) appliances using syslog. After the Splunk platform indexes the events, you can analyze the data using the prebuilt dashboard panels included with the add-on. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Websense DLP from Splunkbase at http://splunkbase.splunk.com/app/2955. 
+
+Discuss the Splunk Add-on for Websense DLP on Splunk Answers at http://answers.splunk.com/answers/app/2955. 

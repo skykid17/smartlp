@@ -1,0 +1,15 @@
+The Splunk Add-on for Unix and Linux allows a Splunk software administrator to collect data from Unix and Linux hosts. Install the Splunk Add-on for Unix and Linux on a forwarder to send data from any number of hosts to a Splunk Enterprise indexer or group of indexers. You can also use the add-on to provide data for other apps, such as Splunk IT Service Intelligence (ITSI) or Splunk Enterprise Security.
+
+The Splunk Add-on for Unix and Linux collects the following data using file inputs:
+
+The add-on collects data with the following scripted inputs:
+
+The add-on displays question marks (“?”) for blank fields that the scripted inputs return within individual events. This is expected behavior to preserve field spacing.
+
+Download the Splunk Add-on for Unix and Linux from Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release notes for the Splunk Add-on for Unix and Linux.
+
+For information about installing and configuring the Splunk Add-on for Unix and Linux, see Installation and configuration overview for the Splunk Add-on for Unix and Linux.
+
+See Splunk Community page for questions related to Splunk Add-on for Unix and Linux on Splunk Answers.

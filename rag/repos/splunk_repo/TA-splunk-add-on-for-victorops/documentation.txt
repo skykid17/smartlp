@@ -1,0 +1,1 @@
+This add-on uses the Splunk On-Call API to collect administrative (user, team, oncall, etc) and incident data to allow visualization and analysis of this data in Splunk. Learn more about this add-on here: https://help.victorops.com/knowledge-base/splunking-victorops-data/

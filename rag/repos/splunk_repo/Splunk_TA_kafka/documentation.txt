@@ -1,0 +1,9 @@
+The Splunk Add-on for Kafka is deprecated and the functionality of pulling Kafka events using modular inputs is no longer supported. Use Splunk Connect for Kafka to pull Kafka events using modular inputs.
+
+The Splunk Add-on for Kafka allows the Splunk platform to consume topic messages from Apache Kafka using modular inputs (DEPRECATED: Please use Splunk Connector for Kafka instead of modular input for event collection). The add-on can also collect performance metrics and log files using JMX and file monitoring. After the Splunk platform indexes the events, you can analyze the data using the prebuilt panels included with the add-on. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance. 
+
+Download the Splunk Add-on for Kafka from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Kafka. 
+
+For information about installing and configuring the Splunk Add-on for Kafka, see Installation and configuration overview for the Splunk Add-on for Kafka. 

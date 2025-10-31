@@ -1,0 +1,5 @@
+The Splunk Add-on for VMware Extractions defines the search-time extractions for the data collected by Splunk Add-on for VMware and extractions that are used by the Splunk App for VMware. 
+
+Note: The package included in the Splunk Add-on for VMware Extractions (TA-VMW-FieldExtractions) was previously part of Splunk Add-on for VMware in v4.0.2 or below. This package is being released as an individual Splunkbase add-on to add support for self-service installation in cloud environments.
+
+Download the Splunk Add-on for VMware Extractions from Splunkbase at https://splunkbase.splunk.com/app/5641/. 

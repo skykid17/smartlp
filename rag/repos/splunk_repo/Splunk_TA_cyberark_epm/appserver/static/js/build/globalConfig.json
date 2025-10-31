@@ -1,0 +1,1765 @@
+{
+    "pages": {
+        "configuration": {
+            "description": "Configure your CyberArk EPM account, proxy and logging settings.",
+            "tabs": [
+                {
+                    "table": {
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ],
+                        "header": [
+                            {
+                                "field": "name",
+                                "label": "Account Name"
+                            }
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Account Name",
+                            "type": "text",
+                            "help": "Enter a unique name for this account.",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "errorMsg": "Length of Account name should be between 1 and 50",
+                                    "minLength": 1,
+                                    "maxLength": 50
+                                },
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Account Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "url",
+                            "label": "EPM Dispatcher Server URL",
+                            "type": "text",
+                            "help": "Enter the dispatcher server URL. e.g., https://login.epm.cyberark.com",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "errorMsg": "URL should start with 'https' as only secure URLs are supported.",
+                                    "type": "regex",
+                                    "pattern": "https://\\S*"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "username",
+                            "label": "Username",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter the username for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "errorMsg": "Length of username should be between 1 and 200"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "help": "Enter the password for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Length of password should be between 1 and 8192"
+                                }
+                            ]
+                        }
+                    ],
+                    "title": "Account",
+                    "name": "account",
+                    "hook": {
+                        "src": "account_hook",
+                        "type": "external"
+                    }
+                },
+                {
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "label": "Enable Proxy",
+                            "type": "checkbox"
+                        },
+                        {
+                            "field": "proxy_url",
+                            "label": "Host",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 4096,
+                                    "minLength": 0,
+                                    "errorMsg": "Maximum length allowed for host is 4096"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_port",
+                            "label": "Port",
+                            "type": "text",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_username",
+                            "label": "Username",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 50,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for username is 50"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true
+                        },
+                        {
+                            "type": "checkbox",
+                            "field": "proxy_rdns",
+                            "label": "Use Proxy for DNS Resolution"
+                        },
+                        {
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "http",
+                                        "label": "http"
+                                    },
+                                    {
+                                        "value": "socks5",
+                                        "label": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http",
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "required": true
+                        }
+                    ],
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "title": "Proxy",
+                    "name": "proxy"
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "type": "singleSelect",
+                            "label": "Log Level",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "DEBUG",
+                                        "label": "DEBUG"
+                                    },
+                                    {
+                                        "value": "INFO",
+                                        "label": "INFO"
+                                    },
+                                    {
+                                        "value": "WARN",
+                                        "label": "WARN"
+                                    },
+                                    {
+                                        "value": "ERROR",
+                                        "label": "ERROR"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO",
+                            "field": "loglevel",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Log level must be one of: DEBUG, INFO, WARN, ERROR",
+                                    "pattern": "^DEBUG|INFO|WARN|ERROR$"
+                                }
+                            ],
+                            "help": "(DEBUG, INFO, WARN or ERROR)"
+                        }
+                    ]
+                }
+            ],
+            "title": "Configuration"
+        },
+        "inputs": {
+            "services": [
+                {
+                    "name": "admin_audit_logs",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "Start Date",
+                            "type": "text",
+                            "help": "Start Date to start the data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SSZ (Default is 6 minutes ago).",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "date",
+                                    "errorMsg": "Invalid date format specified for 'Start Date'"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        360,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 360 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "title": "Admin Audit Logs"
+                },
+                {
+                    "name": "account_admin_audit_logs",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "Start Date",
+                            "type": "text",
+                            "help": "Start Date to start the data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SSZ (Default is 6 minutes ago).",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "date",
+                                    "errorMsg": "Invalid date format specified for 'Start Date'"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        360,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 360 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "title": "Account Admin Audit Logs"
+                },
+                {
+                    "name": "inbox_events",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "field": "publisher",
+                            "required": false,
+                            "label": "Publisher",
+                            "type": "text",
+                            "help": "Enter publisher for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Publisher field should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Justification",
+                            "field": "justification",
+                            "help": "Determines if the event has justification details",
+                            "required": false,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "notnull",
+                                        "label": "NOTNULL"
+                                    },
+                                    {
+                                        "value": "null",
+                                        "label": "NULL"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Application Type",
+                            "field": "application_type",
+                            "help": "Type of application that triggers the event. Select the Application Types for which you want to collect the data",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "Executable",
+                                        "label": "Executable"
+                                    },
+                                    {
+                                        "value": "Script",
+                                        "label": "Script"
+                                    },
+                                    {
+                                        "value": "MSI",
+                                        "label": "MSI"
+                                    },
+                                    {
+                                        "value": "MSU",
+                                        "label": "MSU"
+                                    },
+                                    {
+                                        "value": "ActiveX",
+                                        "label": "ActiveX"
+                                    },
+                                    {
+                                        "value": "Com",
+                                        "label": "Com"
+                                    },
+                                    {
+                                        "value": "Win8App",
+                                        "label": "Win8App"
+                                    },
+                                    {
+                                        "value": "DLL",
+                                        "label": "DLL"
+                                    },
+                                    {
+                                        "value": "AdminTask",
+                                        "label": "AdminTask"
+                                    },
+                                    {
+                                        "value": "URL",
+                                        "label": "URL"
+                                    },
+                                    {
+                                        "value": "UserRequest",
+                                        "label": "UserRequest"
+                                    },
+                                    {
+                                        "value": "Temp",
+                                        "label": "Temp"
+                                    },
+                                    {
+                                        "value": "DMG",
+                                        "label": "DMG"
+                                    },
+                                    {
+                                        "value": "PKG",
+                                        "label": "PKG"
+                                    },
+                                    {
+                                        "value": "MacAdminTask",
+                                        "label": "MacAdminTask"
+                                    },
+                                    {
+                                        "value": "MacExecutable",
+                                        "label": "MacExecutable"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "Start Date",
+                            "type": "text",
+                            "help": "Start Date to start the data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SSZ (Default is 6 minutes ago).",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "date",
+                                    "errorMsg": "Invalid date format specified for 'Start Date'"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Api Type",
+                            "field": "api_type",
+                            "help": "Type of API the user wants to collect data",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "raw_events",
+                                        "label": "Raw Events"
+                                    },
+                                    {
+                                        "value": "aggregated_events",
+                                        "label": "Aggregated Events"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "title": "Inbox Events"
+                },
+                {
+                    "name": "policy_audit_events",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "field": "publisher",
+                            "required": false,
+                            "label": "Publisher",
+                            "type": "text",
+                            "help": "Enter publisher for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Publisher field should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "policy_name",
+                            "required": false,
+                            "label": "Policy Name",
+                            "type": "text",
+                            "help": "Enter policy name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Policy Name should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Justification",
+                            "field": "justification",
+                            "help": "Determines if the event has justification details",
+                            "required": false,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "notnull",
+                                        "label": "NOTNULL"
+                                    },
+                                    {
+                                        "value": "null",
+                                        "label": "NULL"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Application Type",
+                            "field": "application_type",
+                            "help": "Type of application that triggers the event. Select the Application Types for which you want to collect the data",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "Executable",
+                                        "label": "Executable"
+                                    },
+                                    {
+                                        "value": "Script",
+                                        "label": "Script"
+                                    },
+                                    {
+                                        "value": "MSI",
+                                        "label": "MSI"
+                                    },
+                                    {
+                                        "value": "MSU",
+                                        "label": "MSU"
+                                    },
+                                    {
+                                        "value": "ActiveX",
+                                        "label": "ActiveX"
+                                    },
+                                    {
+                                        "value": "Com",
+                                        "label": "Com"
+                                    },
+                                    {
+                                        "value": "Win8App",
+                                        "label": "Win8App"
+                                    },
+                                    {
+                                        "value": "DLL",
+                                        "label": "DLL"
+                                    },
+                                    {
+                                        "value": "AdminTask",
+                                        "label": "AdminTask"
+                                    },
+                                    {
+                                        "value": "URL",
+                                        "label": "URL"
+                                    },
+                                    {
+                                        "value": "UserRequest",
+                                        "label": "UserRequest"
+                                    },
+                                    {
+                                        "value": "Temp",
+                                        "label": "Temp"
+                                    },
+                                    {
+                                        "value": "DMG",
+                                        "label": "DMG"
+                                    },
+                                    {
+                                        "value": "PKG",
+                                        "label": "PKG"
+                                    },
+                                    {
+                                        "value": "MacAdminTask",
+                                        "label": "MacAdminTask"
+                                    },
+                                    {
+                                        "value": "MacExecutable",
+                                        "label": "MacExecutable"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "radio",
+                            "label": "Use existing data input?",
+                            "field": "use_existing_checkpoint",
+                            "defaultValue": "yes",
+                            "help": "Select whether or not to reuse the checkpoint file already available for the named input.",
+                            "required": false,
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "yes",
+                                        "label": "Yes"
+                                    },
+                                    {
+                                        "value": "no",
+                                        "label": "No"
+                                    }
+                                ],
+                                "display": false
+                            },
+                            "modifyFieldsOnValue": [
+                                {
+                                    "fieldValue": "yes",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "fieldValue": "no",
+                                    "mode": "edit",
+                                    "fieldsToModify": [
+                                        {
+                                            "fieldId": "start_date",
+                                            "disabled": false
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "start_date",
+                            "label": "Start Date",
+                            "type": "text",
+                            "help": "Start Date to start the data collection, in UTC timezone. Format: YYYY-MM-DDTHH:MM:SSZ (Default is 6 minutes ago).",
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "date",
+                                    "errorMsg": "Invalid date format specified for 'Start Date'"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Api Type",
+                            "field": "api_type",
+                            "help": "Type of API the user wants to collect data",
+                            "required": true,
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "raw_events",
+                                        "label": "Raw Events"
+                                    },
+                                    {
+                                        "value": "aggregated_events",
+                                        "label": "Aggregated Events"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        31536000
+                                    ],
+                                    "errorMsg": "Interval must be between 1 and 31536000"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "title": "Policy Audit Events"
+                },
+                {
+                    "name": "policies_and_computers",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Collect Data For",
+                            "help": "Choose options for which you want to collect data.",
+                            "field": "collect_data_for",
+                            "required": true,
+                            "defaultValue": "policies,computers,computer_groups",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "policies",
+                                        "label": "Policies"
+                                    },
+                                    {
+                                        "value": "computers",
+                                        "label": "Computers"
+                                    },
+                                    {
+                                        "value": "computer_groups",
+                                        "label": "Computer Groups"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "checkbox",
+                            "label": "Collect Policy Details",
+                            "field": "collect_policy_details",
+                            "defaultValue": false
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "endpointUrl": "data/indexes",
+                                "denyList": "^_.*$"
+                            }
+                        }
+                    ],
+                    "title": "Policies and Computers"
+                },
+                {
+                    "name": "application_events",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "field": "publisher",
+                            "required": false,
+                            "label": "Publisher",
+                            "type": "text",
+                            "help": "Enter publisher for the input. Supports wildcards.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Publisher field should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Justification",
+                            "field": "justification",
+                            "help": "Determines if the event has justification details",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "WithJustification",
+                                        "label": "With Justification"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Application Type",
+                            "field": "application_type",
+                            "help": "Type of application that triggers the event. Select the Application Types for which you want to collect the data",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "Executable",
+                                        "label": "Executable"
+                                    },
+                                    {
+                                        "value": "Script",
+                                        "label": "Script"
+                                    },
+                                    {
+                                        "value": "MSI",
+                                        "label": "MSI"
+                                    },
+                                    {
+                                        "value": "MSU",
+                                        "label": "MSU"
+                                    },
+                                    {
+                                        "value": "ActiveX",
+                                        "label": "ActiveX"
+                                    },
+                                    {
+                                        "value": "Com",
+                                        "label": "Com"
+                                    },
+                                    {
+                                        "value": "Win8App",
+                                        "label": "Win8App"
+                                    },
+                                    {
+                                        "value": "DLL",
+                                        "label": "DLL"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        360,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 360 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$",
+                                "endpointUrl": "data/indexes"
+                            }
+                        }
+                    ],
+                    "title": "Application Events (deprecated)"
+                },
+                {
+                    "name": "policy_audit",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "field": "publisher",
+                            "required": false,
+                            "label": "Publisher",
+                            "type": "text",
+                            "help": "Enter publisher for the input. Supports wildcards",
+                            "validators": [
+                                {
+                                    "errorMsg": "Publisher field should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "policy_name",
+                            "required": false,
+                            "label": "Policy Name",
+                            "type": "text",
+                            "help": "Enter policy name for the input. Supports wildcards",
+                            "validators": [
+                                {
+                                    "errorMsg": "Policy Name should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Justification",
+                            "field": "justification",
+                            "help": "Determines if the event has justification details",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "WithJustification",
+                                        "label": "With Justification"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "multipleSelect",
+                            "label": "Application Type",
+                            "field": "application_type",
+                            "help": "Type of application that triggers the event. Select the Application Types for which you want to collect the data",
+                            "required": true,
+                            "defaultValue": "All",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "All",
+                                        "label": "All"
+                                    },
+                                    {
+                                        "value": "Executable",
+                                        "label": "Executable"
+                                    },
+                                    {
+                                        "value": "Script",
+                                        "label": "Script"
+                                    },
+                                    {
+                                        "value": "MSI",
+                                        "label": "MSI"
+                                    },
+                                    {
+                                        "value": "MSU",
+                                        "label": "MSU"
+                                    },
+                                    {
+                                        "value": "ActiveX",
+                                        "label": "ActiveX"
+                                    },
+                                    {
+                                        "value": "Com",
+                                        "label": "Com"
+                                    },
+                                    {
+                                        "value": "Win8App",
+                                        "label": "Win8App"
+                                    },
+                                    {
+                                        "value": "DLL",
+                                        "label": "DLL"
+                                    },
+                                    {
+                                        "value": "DMG",
+                                        "label": "DMG"
+                                    },
+                                    {
+                                        "value": "PKG",
+                                        "label": "PKG"
+                                    }
+                                ],
+                                "disableSearch": true
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        360,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 360 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$",
+                                "endpointUrl": "data/indexes"
+                            }
+                        }
+                    ],
+                    "title": "Policy Audit (deprecated)"
+                },
+                {
+                    "name": "threat_detection",
+                    "hook": {
+                        "src": "input_hook",
+                        "type": "external"
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "required": true,
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the input.",
+                            "validators": [
+                                {
+                                    "errorMsg": "Input Name must begin with a letter and consist exclusively of alphanumeric characters and underscores.",
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$"
+                                },
+                                {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "errorMsg": "Maximum length allowed for field Input Name is 150"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Account",
+                            "options": {
+                                "referenceName": "account"
+                            },
+                            "field": "account_name",
+                            "required": true,
+                            "help": "Select the account using which you want to collect the events."
+                        },
+                        {
+                            "field": "publisher",
+                            "required": false,
+                            "label": "Publisher",
+                            "type": "text",
+                            "help": "Enter publisher for the input. Supports wildcards",
+                            "validators": [
+                                {
+                                    "errorMsg": "Publisher field should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "policy_name",
+                            "required": false,
+                            "label": "Policy Name",
+                            "type": "text",
+                            "help": "Enter policy name for the input. Supports wildcards",
+                            "validators": [
+                                {
+                                    "errorMsg": "Policy Name should not contain angular brackets (<,>).",
+                                    "type": "regex",
+                                    "pattern": "^[^<>]+$"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "field": "interval",
+                            "label": "Interval",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "errorMsg": "Interval must be either a non-negative number, CRON interval or -1.",
+                                    "pattern": "^((?:-1|\\d+(?:\\.\\d+)?)|(([\\*\\d{1,2}\\,\\-\\/]+\\s){4}[\\*\\d{1,2}\\,\\-\\/]+))$"
+                                },
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        360,
+                                        3600
+                                    ],
+                                    "errorMsg": "Interval must be between 360 and 3600"
+                                }
+                            ],
+                            "help": "Interval for this input (in seconds).",
+                            "required": true,
+                            "defaultValue": 360
+                        },
+                        {
+                            "type": "singleSelect",
+                            "label": "Index",
+                            "help": "An index is a type of data repository. Select the index in which you want to collect the events.",
+                            "defaultValue": "default",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "maxLength": 80,
+                                    "errorMsg": "Maximum length allowed for index is 80",
+                                    "minLength": 1
+                                },
+                                {
+                                    "errorMsg": "Index Names may contain only letters, numbers, underscores, or hyphens. They must begin with a letter or number",
+                                    "type": "regex",
+                                    "pattern": "^[^_].*$"
+                                }
+                            ],
+                            "field": "index",
+                            "options": {
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$",
+                                "endpointUrl": "data/indexes"
+                            }
+                        }
+                    ],
+                    "title": "Threat Detection (deprecated)"
+                }
+            ],
+            "title": "Inputs",
+            "description": "Manage CyberArk EPM data inputs",
+            "table": {
+                "actions": [
+                    "edit",
+                    "delete",
+                    "clone"
+                ],
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "account_name",
+                        "label": "Account"
+                    },
+                    {
+                        "label": "Interval",
+                        "field": "interval"
+                    },
+                    {
+                        "label": "Index",
+                        "field": "index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status",
+                        "mapping": {
+                            "false": "Enabled",
+                            "true": "Disabled"
+                        }
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "account_name",
+                        "label": "CyberArk EPM Account"
+                    },
+                    {
+                        "field": "publisher",
+                        "label": "Publisher"
+                    },
+                    {
+                        "field": "justification",
+                        "label": "Justification"
+                    },
+                    {
+                        "field": "application_type",
+                        "label": "Application Type"
+                    },
+                    {
+                        "field": "policy_name",
+                        "label": "Policy Name"
+                    },
+                    {
+                        "field": "collect_data_for",
+                        "label": "Collect Data For"
+                    },
+                    {
+                        "field": "collect_policy_details",
+                        "label": "Collect Policy Details"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    }
+                ]
+            }
+        },
+        "dashboard": {
+            "panels": [
+                {
+                    "name": "default"
+                }
+            ]
+        }
+    },
+    "meta": {
+        "displayName": "Splunk Add-on for CyberArk EPM",
+        "version": "3.0.0",
+        "restRoot": "splunk_ta_cyberark_epm",
+        "name": "Splunk_TA_cyberark_epm",
+        "schemaVersion": "0.0.9",
+        "_uccVersion": "5.55.0"
+    }
+}

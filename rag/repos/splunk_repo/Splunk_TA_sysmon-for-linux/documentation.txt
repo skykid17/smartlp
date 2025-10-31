@@ -1,0 +1,9 @@
+The Splunk Add-on for Sysmon for Linux allows a Splunk software administrator to create a Splunk software data input and CIM-compliant field extractions for Sysmon for Linux.
+
+Download the Splunk Add-On for Sysmon for Linux from Splunkbase.
+
+For a summary of new features, fixed issues, and known issues, see Release Notes for the Splunk Add-on for Sysmon For Linux.
+
+For information about installing and configuring the Splunk Add-on for Sysmon For Linux, see Installation and configuration overview for the Splunk Add-on for Sysmon for Linux.
+
+See the Splunk Community page for questions related to Splunk Add-on for Sysmon for Linux.

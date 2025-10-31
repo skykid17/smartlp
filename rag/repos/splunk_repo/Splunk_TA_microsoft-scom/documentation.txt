@@ -1,0 +1,13 @@
+Microsoft System Center Operations Manager 2019 Microsoft System Center Operations Manager 2022 
+
+The Splunk Add-on for Microsoft SCOM allows a Splunk software administrator to collect data from Microsoft System Center Operations Manager (SCOM). The add-on polls data from 54 built-in objects in SCOM, including alerts, events, tasks, network devices, management and performance settings. This add-on provides the inputs and CIM-compatible knowledge to use with other Splunk apps, such as Splunk Enterprise Security and the Splunk App for PCI Compliance and Splunk IT Service Intelligence. 
+
+This add-on uses the selected System Center Operations Manager scriptlets to collect the data. Since the scriptlets may not be performant enough for larger infrastructures, Splunk also provides a number of specialized SQL queries for collecting events, alerts and performance data. 
+
+Download the Splunk Add-on for Microsoft SCOM from Splunkbase. 
+
+For a summary of new features, fixed issues, and known issues, see Release notes for the Splunk Add-on for Microsoft SCOM. 
+
+For information about installing and configuring the Splunk Add-on for Microsoft SCOM, see Installation and configuration overview for the Splunk Add-on for Microsoft SCOM. 
+
+See the Splunk Community page for questions related to Splunk Add-on for Microsoft SCOM. 

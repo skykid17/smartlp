@@ -1,0 +1,14 @@
+
+# Search Head Apps - To create the smartsoc app for the very first time
+- name: Search head apps
+  hosts: search_head,deployer
+  roles:
+    - { role: configure_search_head_apps, tags: configure_search_head_apps }
+
+# Deployment Server
+- name: Deploy use case into search head
+  hosts: deployment_server
+  roles:
+    - { role: deploy_use_case, tags: deploy_use_case }
+
+
