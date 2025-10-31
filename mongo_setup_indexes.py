@@ -75,6 +75,10 @@ def check_atlas_vector_search_index(db_name, collection_name):
     {
       "type": "filter",
       "path": "source"
+    },
+    {
+      "type": "filter",
+      "path": "metadata"
     }
   ]
 }""")
@@ -82,7 +86,49 @@ def check_atlas_vector_search_index(db_name, collection_name):
     print(f"\n5. Name the index: vector_index")
     print(f"6. Select database: {db_name}")
     print(f"7. Select collection: {collection_name}")
-    print("\n✓ After creating the index, you can proceed with setup_rag.py")
+    print("\n✓ After creating the index, proceed with text search index creation")
+    print("="*70)
+
+
+def check_atlas_text_search_index(db_name, collection_name):
+    """
+    Check if Atlas Text Search index exists.
+    Note: Text search indexes must be created via Atlas UI or API.
+    """
+    print("\n" + "="*70)
+    print("TEXT SEARCH INDEX SETUP (for Hybrid Search)")
+    print("="*70)
+    print("\nText search indexes enable keyword-based search for hybrid retrieval.")
+    print("This index MUST be created via MongoDB Atlas UI.")
+    print("\nTo create the text search index:")
+    print("1. Go to MongoDB Atlas → Database → Search")
+    print("2. Click 'Create Search Index'")
+    print("3. Select 'JSON Editor'")
+    print("4. Use this configuration:")
+    print("\n" + "-"*70)
+    print("""{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "page_content": {
+        "type": "string",
+        "analyzer": "lucene.standard"
+      },
+      "source": {
+        "type": "string"
+      },
+      "metadata": {
+        "type": "document",
+        "dynamic": true
+      }
+    }
+  }
+}""")
+    print("-"*70)
+    print(f"\n5. Name the index: text_index")
+    print(f"6. Select database: {db_name}")
+    print(f"7. Select collection: {collection_name}")
+    print("\n✓ After creating both indexes, you can use hybrid search in setup_rag.py")
     print("="*70)
 
 
@@ -141,6 +187,9 @@ def main():
     
     # Show vector search index instructions
     check_atlas_vector_search_index(db_name, collection_name)
+    
+    # Show text search index instructions
+    check_atlas_text_search_index(db_name, collection_name)
     
     # Check MongoDB deployment type
     print("\n" + "-"*70)

@@ -1,6 +1,6 @@
-# Migration Guide: ChromaDB to MongoDB Vector Store
+# Migration Guide: ChromaDB to MongoDB Vector Store with Hybrid Search
 
-This document explains the changes made to migrate the RAG system from ChromaDB to MongoDB Atlas Vector Search.
+This document explains the changes made to migrate the RAG system from ChromaDB to MongoDB Atlas Vector Search with hybrid search capabilities.
 
 ## Overview
 
@@ -8,7 +8,8 @@ The SmartLP RAG system has been refactored to use MongoDB as the vector store ba
 
 - **Unified data storage**: All data (application data + vector embeddings) in one database
 - **Better scalability**: MongoDB Atlas provides enterprise-grade scalability
-- **Hybrid search capabilities**: Future support for combining vector and text search
+- **Hybrid search capabilities**: Combines vector search and text search using Reciprocal Rank Fusion (RRF)
+- **Improved retrieval accuracy**: Hybrid search provides better results than vector-only search
 - **Simplified deployment**: No need to manage separate ChromaDB instances
 
 ## What Changed
@@ -85,7 +86,11 @@ MONGO_RAG_COLLECTION=rag
 python mongo_setup_indexes.py
 ```
 
-Follow the instructions to create the vector search index via MongoDB Atlas UI.
+Follow the instructions to create both:
+1. **Vector search index** (`vector_index`) - for semantic similarity search
+2. **Text search index** (`text_index`) - for keyword-based search
+
+Both indexes are required for hybrid search functionality.
 
 ### 5. Re-ingest Documents
 Since the data models are different, you need to re-ingest all documents:
@@ -120,31 +125,51 @@ The `collection_name` parameter is now called `source` internally but the API re
 
 ### Querying
 - **Old**: `query_rag("splunk_addons", "my query")`
-- **New**: `query_rag("splunk_addons", "my query")` (same)
+- **New (vector-only)**: `query_rag("splunk_addons", "my query")` (same)
+- **New (hybrid search)**: `query_rag_hybrid("splunk_addons", "my query")`
 
-The function signature is backward compatible.
+The function signature is backward compatible. Use `query_rag_hybrid()` for better results with combined vector and text search.
 
 ### Filtering
 New capability - filter by source and additional metadata:
 ```python
+# Vector-only search with filtering
 query_rag(
     source="splunk_addons",
     query="search query",
     filter_metadata={"metadata.file_type": "yaml"}
+)
+
+# Hybrid search with filtering and custom weights
+query_rag_hybrid(
+    source="splunk_addons",
+    query="search query",
+    filter_metadata={"metadata.file_type": "yaml"},
+    vector_weight=1.0,  # Weight for semantic similarity
+    text_weight=1.5     # Weight for keyword matching
 )
 ```
 
 ## MongoDB Requirements
 
 ### For Production (Atlas)
-- MongoDB Atlas M10+ cluster (M0 free tier does NOT support vector search)
-- Vector search index created via Atlas UI
+- MongoDB Atlas M10+ cluster (M0 free tier does NOT support vector search or Atlas Search)
+- **Two indexes required**:
+  1. **Vector search index** (`vector_index`) - for semantic similarity
+  2. **Text search index** (`text_index`) - for keyword matching
 - Recommended regions: US East, EU West (lower latency)
 
 ### For Development (Local)
-- MongoDB 6.0+ with Atlas Search
-- Or use MongoDB Atlas free/shared tier for testing (without vector search)
-- Or mock/skip vector search for development
+- MongoDB 6.0+ with Atlas Search installed
+- Local Atlas deployment via `atlas deployments setup` supports both vector and text search
+- Or use MongoDB Atlas free/shared tier for testing (M10+ required for hybrid search)
+- Or mock/skip hybrid search for development and use vector-only search
+
+### Hybrid Search Requirements
+- Both vector and text search indexes must be created in MongoDB Atlas
+- Hybrid search uses Reciprocal Rank Fusion (RRF) to combine results
+- Text search uses Lucene's BM25 algorithm for keyword matching
+- Vector search uses cosine similarity for semantic matching
 
 ## Performance Considerations
 
@@ -233,8 +258,10 @@ For issues or questions:
 ## Future Enhancements
 
 Planned improvements:
-- Hybrid search (vector + text) with reciprocal rank fusion (RRF)
+- ✅ **Hybrid search (vector + text) with reciprocal rank fusion (RRF)** - IMPLEMENTED
+- Adaptive weight tuning based on query type
 - Multi-language embedding support
 - Real-time incremental updates
 - Better metadata filtering and faceting
 - Query result caching
+- Query performance analytics

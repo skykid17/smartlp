@@ -18,12 +18,22 @@ import yaml
 
 from pymongo import MongoClient
 from langchain_mongodb import MongoDBAtlasVectorSearch
+from langchain_mongodb.pipelines import (
+    vector_search_stage,
+    text_search_stage,
+    reciprocal_rank_stage,
+    final_hybrid_stage,
+    combine_pipelines
+)
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from langchain_community.document_loaders import JSONLoader, TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from typing import List, Callable
+from langchain_core.callbacks.manager import CallbackManagerForRetrieverRun
 
 # Import database utilities
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -626,6 +636,123 @@ def delete_file_from_collection(source: str, file_path: str) -> bool:
         return False
 
 
+class MongoDBAtlasHybridSearchRetriever(BaseRetriever):
+    """
+    Custom retriever that implements hybrid search using MongoDB Atlas.
+    
+    Combines vector search and text search using Reciprocal Rank Fusion (RRF)
+    to provide better results than either method alone.
+    """
+    
+    collection: any  # MongoDB collection
+    embeddings: any  # Embedding model
+    vector_index_name: str = "vector_index"
+    text_index_name: str = "text_index"
+    embedding_key: str = "embedding"
+    text_key: str = "page_content"
+    top_k: int = 4
+    oversampling_factor: int = 10
+    pre_filter: Optional[Dict[str, any]] = None
+    vector_penalty: float = 60.0  # RRF penalty for vector search
+    text_penalty: float = 60.0    # RRF penalty for text search
+    vector_weight: float = 1.0    # Weight for vector search
+    text_weight: float = 1.0      # Weight for text search
+    
+    class Config:
+        """Configuration for this pydantic object."""
+        arbitrary_types_allowed = True
+    
+    def _get_relevant_documents(
+        self, query: str, *, run_manager: CallbackManagerForRetrieverRun = None
+    ) -> List[Document]:
+        """
+        Retrieve documents using hybrid search (vector + text + RRF).
+        
+        Args:
+            query: Query string
+            run_manager: Callback manager for retriever run
+            
+        Returns:
+            List of relevant documents
+        """
+        # Generate query embedding
+        query_vector = self.embeddings.embed_query(query)
+        
+        # Build the hybrid search pipeline
+        pipeline = []
+        
+        # Vector search stage
+        vector_stage = vector_search_stage(
+            query_vector=query_vector,
+            search_field=self.embedding_key,
+            index_name=self.vector_index_name,
+            top_k=self.top_k,
+            filter=self.pre_filter,
+            oversampling_factor=self.oversampling_factor
+        )
+        
+        # Text search stage
+        text_stage = text_search_stage(
+            query=query,
+            search_field=self.text_key,
+            index_name=self.text_index_name,
+            limit=self.top_k,
+            filter=self.pre_filter,
+            include_scores=True
+        )
+        
+        # Add vector search to pipeline
+        pipeline.append(vector_stage)
+        
+        # Add RRF scoring for vector search
+        pipeline.extend(
+            reciprocal_rank_stage(
+                score_field="vs_score",
+                penalty=self.vector_penalty,
+                weight=self.vector_weight
+            )
+        )
+        
+        # Combine with text search pipeline
+        combine_pipelines(
+            pipeline=pipeline,
+            stage=text_stage + reciprocal_rank_stage(
+                score_field="ts_score",
+                penalty=self.text_penalty,
+                weight=self.text_weight
+            ),
+            collection_name=self.collection.name
+        )
+        
+        # Add final hybrid stage to combine scores
+        pipeline.extend(
+            final_hybrid_stage(
+                scores_fields=["vs_score", "ts_score"],
+                limit=self.top_k
+            )
+        )
+        
+        # Execute the aggregation pipeline
+        results = list(self.collection.aggregate(pipeline))
+        
+        # Convert results to LangChain documents
+        documents = []
+        for result in results:
+            doc = Document(
+                page_content=result.get(self.text_key, ""),
+                metadata={
+                    **result.get("metadata", {}),
+                    "source": result.get("source", ""),
+                    "score": result.get("score", 0.0),
+                    "vs_score": result.get("vs_score", 0.0),
+                    "ts_score": result.get("ts_score", 0.0)
+                }
+            )
+            documents.append(doc)
+        
+        return documents
+
+
 def query_rag(
     source: str, 
     query: str, 
@@ -724,6 +851,119 @@ def query_rag(
     
     except Exception as e:
         logging.error(f"Error querying RAG: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return f"Error: {str(e)}", 500, []
+
+
+def query_rag_hybrid(
+    source: str,
+    query: str,
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+    filter_metadata: Optional[Dict] = None,
+    vector_weight: float = 1.0,
+    text_weight: float = 1.0,
+    top_k: int = TOP_K
+):
+    """
+    Query the RAG system using MongoDB hybrid search (vector + text + RRF).
+    
+    This function combines vector search and text search using Reciprocal Rank Fusion
+    to provide better results than either method alone.
+    
+    Args:
+        source: Source identifier to filter results (e.g., 'splunk_addons', 'elastic_packages')
+        query: Query string
+        embedding_model: HuggingFace embedding model name
+        filter_metadata: Optional additional metadata filters
+        vector_weight: Weight for vector search results (default: 1.0)
+        text_weight: Weight for text search results (default: 1.0)
+        top_k: Number of documents to return (default: TOP_K)
+        
+    Returns:
+        Tuple of (result, status_code, source_documents)
+    """
+    
+    logging.info(f"Querying RAG with hybrid search - source '{source}', query: {query}")
+    logging.info(f"Hybrid search weights: vector={vector_weight}, text={text_weight}")
+
+    try:
+        # Initialize embeddings
+        embeddings = HuggingFaceEmbeddings(model_name=embedding_model)
+        
+        # Get MongoDB collection
+        collection = get_rag_collection()
+        
+        # Get LLM configuration from settings
+        global_settings = db_connection.query('global_settings', limit=1)
+        
+        if not global_settings:
+            logging.error("No global settings found")
+            return "Configuration error: No LLM endpoint configured", 500, []
+        
+        endpoint_id = global_settings.get("activeLlmEndpoint")
+        llm_settings = db_connection.query('llms_settings', filter_dict={"id": endpoint_id}, limit=1)
+        
+        if not llm_settings:
+            logging.error(f"No LLM settings found for endpoint: {endpoint_id}")
+            return "Configuration error: Invalid LLM endpoint", 500, []
+        
+        url = llm_settings.get("url", "").split("/v1")[0] + "/v1"
+        model_name = global_settings.get("activeLlm")
+        
+        # Initialize LLM
+        llm = ChatOpenAI(
+            base_url=url,
+            api_key="EMPTY",
+            model=model_name,
+            temperature=0.2
+        )
+        
+        # Prepare filter for source
+        search_filter = {"source": source}
+        if filter_metadata:
+            search_filter.update(filter_metadata)
+        
+        # Create hybrid search retriever
+        retriever = MongoDBAtlasHybridSearchRetriever(
+            collection=collection,
+            embeddings=embeddings,
+            vector_index_name="vector_index",
+            text_index_name="text_index",
+            embedding_key="embedding",
+            text_key="page_content",
+            top_k=top_k,
+            pre_filter=search_filter,
+            vector_weight=vector_weight,
+            text_weight=text_weight
+        )
+        
+        # Create QA chain
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=llm,
+            chain_type="stuff",
+            retriever=retriever,
+            return_source_documents=True
+        )
+
+        result = qa_chain.invoke({"query": query})
+
+        logging.info(f"Answer: {result['result']}")
+        logging.info(f"Source documents from hybrid search:")
+        for i, doc in enumerate(result['source_documents']):
+            logging.info(f"\nDocument {i+1}:")
+            logging.info(f"Content: {doc.page_content[:100]}...")
+            if hasattr(doc, 'metadata'):
+                metadata = doc.metadata
+                logging.info(f"Source: {metadata.get('source', 'N/A')}")
+                logging.info(f"Combined Score: {metadata.get('score', 'N/A'):.4f}")
+                logging.info(f"Vector Score: {metadata.get('vs_score', 'N/A'):.4f}")
+                logging.info(f"Text Score: {metadata.get('ts_score', 'N/A'):.4f}")
+
+        return result["result"], 200, result["source_documents"]
+    
+    except Exception as e:
+        logging.error(f"Error querying RAG with hybrid search: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return f"Error: {str(e)}", 500, []

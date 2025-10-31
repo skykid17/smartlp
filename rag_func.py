@@ -17,6 +17,8 @@ from rag_mongo import (
     list_sources as list_collections,
     delete_file_from_collection,
     query_rag,
+    query_rag_hybrid,
+    MongoDBAtlasHybridSearchRetriever,
     TOP_K
 )
 
@@ -29,5 +31,7 @@ __all__ = [
     'list_collections',
     'delete_file_from_collection',
     'query_rag',
+    'query_rag_hybrid',
+    'MongoDBAtlasHybridSearchRetriever',
     'TOP_K'
 ]
