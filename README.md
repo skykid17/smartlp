@@ -35,6 +35,7 @@ SmartSOC focuses on two flagship capabilities:
 
 Key highlights of the current codebase:
 - Flask 3 + Flask-SocketIO entry point (`app.py` via `ApplicationFactory`)
+- **Unified single-page interface** with collapsible sidebar navigation and modal-based settings
 - MongoDB-backed service layer (`src/services/…`) with reusable CRUD helpers
 - Background ingestion thread managed inside the SmartLP service
 - RAG-ready embeddings (ChromaDB) populated through `setup_rag.py`
@@ -46,7 +47,7 @@ Key highlights of the current codebase:
 - **Services**: Business logic is encapsulated in service classes (SmartLP, Settings, SIEM, LLM, Deployment). Each service extends a shared `BaseService` for logging, database access, and error handling.
 - **Database**: MongoDB hosts parser entries, prefixes, settings, SIEM/LLM metadata, Sigma rules, and MITRE ATT&CK content. Connection helpers live in `src/database/`.
 - **Realtime**: `socketio_manager` provides push notifications for logs, ingestion status, and UI toasts.
-- **Frontend**: Bootstrap-based templates under `templates/` with Socket.IO aware JS modules in `static/js/`.
+- **Frontend**: Unified single-page application (`templates/smartlp_unified.html`) with collapsible sidebar navigation, modular section templates under `templates/sections/`, and Socket.IO aware JS modules in `static/js/`.
 - **RAG**: `rag/` holds scripts, cached CSVs, and Chroma repositories required to build vector stores for Splunk and Elastic metadata.
 - **Automation**: Ansible playbooks (`ansible/`) deploy generated configurations to downstream platforms.
 
@@ -63,7 +64,10 @@ smartlp/
 │   ├── models/            # Dataclasses and enums used across services
 │   ├── services/          # SmartLP, Settings, SIEM, LLM, Deployment services
 │   └── utils/             # Logging, formatters, pagination helpers
-├── templates/             # Jinja templates (dashboard, SmartLP pages, settings)
+├── templates/             # Unified SPA template and modular sections
+│   ├── smartlp_unified.html   # Main unified template
+│   ├── sections/              # Modular section templates (dashboard, parser, prefix, settings)
+│   └── smartlp_report.html    # Standalone report page
 ├── static/                # CSS, JS, fonts, logos
 ├── rag/                   # RAG helpers, cached field lists, repo sync utilities
 ├── ansible/               # Inventories, playbooks, roles used for deployment
@@ -188,14 +192,72 @@ Source: `src/services/deployment.py`
 
 ## Frontend Experience
 
-- **Dashboard (`/`)** – Landing page (placeholder for summary widgets).
-- **SmartLP (`/smartlp`)** – Data table, filtering, status badges, and action menus for regex deployments.
-- **SmartLP Parser (`/smartlp/parser`)** – Manual ingestion and LLM-driven regex generation.
-- **SmartLP Prefix (`/smartlp/prefix`)** – Library of reusable header/prefix expressions.
-- **SmartReport (`/smartlp/report`)** – Charts showing parsed vs unmatched counts (Chart.js with `/api/report/smartlp`).
-- **Settings (`/settings`)** – Configure SIEMs, LLM endpoints, ingestion cadence, similarity checks, and run connectivity tests.
+The SmartLP platform features a modern, unified single-page application with a professional design.
 
-Every page inherits `templates/base.html`, which wires Toast notifications, the Socket.IO log panel, and shared navigation.
+### Unified Interface
+
+The application uses a single-page design with:
+- **Sidebar Navigation**: Left-side collapsible sidebar for switching between sections
+- **Three Main Sections**: Dashboard, Parser, and Prefix
+- **Settings Modal**: Accessed via gear icon (⚙️) in top-right corner
+- **No Page Reloads**: Smooth transitions between sections
+
+### Design Features
+
+#### Professional UI/UX
+- **Color Palette**: Muted grayscale with accent colors
+  - Sidebar: Dark blue-gray (#2c3e50)
+  - Hover/Active: Lighter blue-gray (#34495e) and blue (#3498db)
+  - Background: Light gray (#f8f9fa)
+- **Typography**: System fonts with consistent sizing
+- **Spacing**: Clean, generous spacing throughout
+- **Shadows**: Subtle shadows on cards and interactive elements
+- **Animations**: Smooth transitions (0.3s ease)
+
+#### Responsive Design
+- **Desktop**: Full sidebar (250px) with navigation labels
+- **Mobile**: Collapsed sidebar (60px) with icons only
+- **Breakpoint**: 768px for mobile/desktop transition
+
+### Navigation
+
+1. **Dashboard Section** (`/`) – Default view showing log entries table
+   - Search and filter logs
+   - Select entries for parsing or config generation
+   - View entry details in modal
+
+2. **Parser Section** – Click "Parser" in sidebar or navigate to `/#parser`
+   - Parse individual log entries
+   - Generate or fix regex patterns using AI
+   - Save parsed entries to database
+
+3. **Prefix Section** – Click "Prefix" in sidebar or navigate to `/#prefix`
+   - Manage regex prefix patterns
+   - Add or remove prefix entries
+
+4. **Settings** – Click gear icon (⚙️) in top-right
+   - Configure SmartLP settings
+   - SIEM connection settings
+   - LLM model settings
+
+5. **SmartReport** (`/smartlp/report`) – Standalone report page
+   - Charts showing parsed vs unmatched counts (Chart.js with `/api/report/smartlp`)
+
+### URL Routing
+- `/` - Main unified interface (dashboard by default)
+- `/#parser` - Opens parser section directly
+- `/#prefix` - Opens prefix section directly
+- `/smartlp/report` - Standalone report page
+- Legacy routes (`/smartlp`, `/smartlp/parser`, `/smartlp/prefix`, `/settings`) redirect to `/`
+
+### Interactive Elements
+- **Sidebar Toggle**: Button to manually collapse/expand sidebar
+- **Settings Icon**: Fixed top-right corner with gear icon
+- **Logger Button**: Fixed bottom-left with slide-out panel
+- **Section Switching**: Click sidebar items to change sections
+- **Modal Overlays**: Settings and sub-modals (SIEM warnings)
+
+The unified interface is built on `templates/smartlp_unified.html` with modular section templates (`templates/sections/`) for Dashboard, Parser, Prefix, and Settings. Socket.IO provides real-time notifications for logs, ingestion status, and UI toasts.
 
 ## RAG Pipeline
 
