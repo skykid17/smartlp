@@ -11,26 +11,18 @@
  - [SIEM Integration](#siem-integration)
    - [Splunk Integration](#splunk-integration)
    - [Elasticsearch Integration](#elasticsearch-integration)
-- [Core Modules](#core-modules)
+- [Core Module](#core-module)
  - [SmartLP (Log Parser)](#smartlp-log-parser)
    - [Key Features](#key-features)
    - [Using SmartLP](#using-smartlp)
    - [Key Functions](#key-functions)
- - [SmartUC (Use Case Generator)](#smartuc-use-case-generator)
-   - [Key Features](#key-features)
-   - [Using SmartUC](#using-smartuc)
-   - [Key Functions](#key-functions)
- - [SmartDB (Dashboard)](#smartdb-dashboard)
-   - [Key Features](#key-features)
 - [API Reference](#api-reference)
  - [SmartLP API Endpoints](#smartlp-api-endpoints)
- - [SmartUC API Endpoints](#smartuc-api-endpoints)
  - [Settings API Endpoints](#settings-api-endpoints)
 - [Database Layout](#database-layout)
  - [MongoDB Collections](#mongodb-collections)
    - [Parser Collections](#parser-collections)
    - [Settings Collections](#settings-collections)
-   - [MITRE Collections](#mitre-collections)
 - [Frontend Components](#frontend-components)
  - [Main Pages](#main-pages)
  - [JavaScript Libraries](#javascript-libraries)
@@ -48,7 +40,6 @@
    - [Performance Issues](#performance-issues)
 - [Advanced Configuration](#advanced-configuration)
  - [Fine-tuning LLM Prompts](#fine-tuning-llm-prompts)
- - [Creating Custom SIEM Rules](#creating-custom-siem-rules)
  - [Monitoring and Maintenance](#monitoring-and-maintenance)
 - [Appendix A: Detailed Installation Guide](#appendix-a-detailed-installation-guide)
  - [Prerequisites](#prerequisites)
@@ -68,11 +59,10 @@
 
 ## Introduction
 
-SmartSOC is a comprehensive Security Operations Center (SOC) platform designed to enhance log parsing, use case generation, and security monitoring. It provides integration with popular SIEM platforms (Splunk, Elasticsearch) and leverages Large Language Models (LLMs) for automated log parsing and regex generation.
+SmartSOC is a Security Operations Center (SOC) platform focused on automated log parsing. It provides integration with popular SIEM platforms (Splunk, Elasticsearch) and leverages Large Language Models (LLMs) for automated log parsing and regex generation.
 
 **Key Features:**
 - Automated log parsing with regex generation (SmartLP)
-- Security use case management and MITRE ATT&CK integration (SmartUC)
 - RAG (Retrieval-Augmented Generation) system for enhanced SIEM field and package queries
 - Real-time monitoring and alerts
 - Integration with Splunk and Elasticsearch
@@ -90,10 +80,8 @@ SmartSOC is built on a modern web stack:
   - Splunk and Elasticsearch for SIEM data
   - External LLM services for natural language processing
 
-The application consists of three main modules:
+The application consists of one main module:
 1. **SmartLP**: Log Parser for automated regex generation
-2. **SmartUC**: Use Case management with MITRE ATT&CK framework integration
-3. **SmartDB**: Dashboard for monitoring and analytics
 
 **RAG System Components:**
 - **Vector Database**: ChromaDB for storing embeddings
@@ -192,7 +180,7 @@ cat > /opt/SmartSOC/web/.git/config <<"endmsg"
         bare = false
         logallrefupdates = true
 [remote "origin"]
-        url = https://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@github.com/kyusan93/smartsoc.git
+        url = https://[YOUR_GITHUB_TOKEN]@github.com/[YOUR_ORG]/smartsoc.git
         fetch = +refs/heads/*:refs/remotes/origin/*
 [pull]
         rebase = true
@@ -541,53 +529,6 @@ SmartUC manages security use cases with MITRE ATT&CK framework integration.
 - View SIEM-specific implementations (Splunk, Elasticsearch)
 - MITRE ATT&CK Navigator integration
 
-#### Using SmartUC
-
-1. **Browsing Rules**:
-   - Navigate to `/smartuc`
-   - Use filters to narrow down rule types
-   - Search for specific rules by keywords
-
-2. **Rule Details**:
-   - Click on a rule to view detailed information
-   - View SIEM-specific implementations
-   - See associated MITRE techniques
-
-3. **ATT&CK Navigator**:
-   - Navigate to `/smartuc/attack_navigator`
-   - Visualize coverage across the MITRE ATT&CK matrix
-   - Identify gaps in detection capabilities
-
-#### Key Functions
-
-```python
-# Get Sigma rules with filtering and pagination
-def get_sigma_rules(page=1, per_page=20, search_query=None, main_type_filter=None, sub_type_filter=None):
-    """
-    Fetches Sigma rules from MongoDB with pagination, search, and type filters.
-    
-    Args:
-        page: Current page number
-        per_page: Number of results per page
-        search_query: Optional search term
-        main_type_filter: Optional main rule type filter
-        sub_type_filter: Optional sub rule type filter
-        
-    Returns:
-        Tuple of (rules, total_count)
-    """
-    # Implementation details...
-```
-
-### SmartDB (Dashboard)
-
-SmartDB provides monitoring and analytics dashboards.
-
-#### Key Features
-- Overview of system status
-- Metrics and KPIs
-- Visualization of security events
-
 ## API Reference
 
 ### SmartLP API Endpoints
@@ -607,23 +548,6 @@ SmartDB provides monitoring and analytics dashboards.
 | `/api/prefix` | GET | Retrives a collection of log header prefixes available | None |
 | `/api/prefix` | PUT | Saves the collection of log header prefixes available | `prefix` |
 | `/api/smartlp/generate_config` | POST | Given a list of log entry IDs, generates a config file | `ids` |
-
-### SmartUC API Endpoints
-
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/api/rule` | GET | Gets a list of rules with pagination | `page`, `per_page`, `search`, `main_type`, `sub_type` |
-| `/api/rule/<rule_id>/content` | GET | Gets content of a specific rule | `rule_id` (path) |
-| `/api/rule/<rule_id>/<active_siem>` | GET | Gets SIEM-specific rule | `rule_id`, `active_siem` (path) |
-| `/api/rule/<rule_id>/config` | PATCH | Updates config information for a SIEM-specific rule | `rule_id` (path), `<field>` `<value>` (key value dicitionary in body) |
-| `/api/rule/<rule_id>/config` | GET | Gets config information for a SIEM-specific rule | `rule_id` (path) |
-| `/api/rule/configs` | GET | Gets config information for numerous SIEM-specific rules | `ids` (comma separated) |
-| `/api/smartuc/generate_config` | POST | Given a list of log entry IDs, generates a config file | `ids` |
-
-### Common API Endpoint
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/api/deploy` | POST | Given a list of APIs, deploy the code to the SIEM (via Ansible) | `ids`, `type` (either `smartlp` or `smartuc`) |
 
 ### Settings API Endpoints
 
@@ -672,14 +596,6 @@ SmartDB provides monitoring and analytics dashboards.
     "prefixes": ["string"]
   }
   ```
-- **smartuc**: SmartUC-specific settings
-  ```json
-  {
-    "id": "smartuc",
-    "active_llm": "string",
-    "active_llm_endpoint": "string"
-  }
-  ```
 - **llm_settings**: LLM endpoint configurations
   ```json
   {
@@ -697,13 +613,6 @@ SmartDB provides monitoring and analytics dashboards.
   }
   ```
 
-#### MITRE Collections
-- **sigma_rules**: Sigma detection rules
-- **splunk_rules**: Splunk implementations of Sigma rules
-- **elastic_rules**: Elasticsearch implementations of Sigma rules
-- **secops_rules**: Custom implementations of rules
-- **techniques**: MITRE ATT&CK techniques
-
 ## Frontend Components
 
 ### Main Pages
@@ -711,9 +620,7 @@ SmartDB provides monitoring and analytics dashboards.
 1. **Dashboard** (`/`): Main overview and statistics
 2. **SmartLP** (`/smartlp`): Log entry management interface
 3. **SmartLP Parser** (`/smartlp/parser`): Log parsing interface
-4. **SmartUC** (`/smartuc`): Use case management interface
-5. **Attack Navigator** (`/smartuc/attack_navigator`): MITRE ATT&CK matrix visualization
-6. **Settings** (`/settings`): Application configuration interface
+4. **Settings** (`/settings`): Application configuration interface
 
 ### JavaScript Libraries
 
@@ -721,7 +628,6 @@ SmartDB provides monitoring and analytics dashboards.
 - **settings.js**: Settings management
 - **smartlp/parser.js**: Log parsing logic
 - **smartlp/smartlp.js**: Log entry management
-- **smartuc/smartuc.js**: Use case management
 
 ## Integration Points
 
@@ -945,14 +851,6 @@ The system uses two main prompts for LLM interaction:
    ```
 
 These prompts can be customized to improve regex generation based on specific log formats and requirements.
-
-### Creating Custom SIEM Rules
-
-SmartSOC supports deploying matched log patterns to custom SIEM rule formats:
-
-1. Create a template for your SIEM rule format
-2. Map regex named groups to fields in your SIEM rule
-3. Generate and deploy the rule through the SmartLP interface
 
 ### Monitoring and Maintenance
 
