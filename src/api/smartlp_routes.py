@@ -12,7 +12,7 @@ import os
 import uuid
 import re
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 
 # Import services
 from services.smartlp import smartlp_service
@@ -28,23 +28,18 @@ def register_smartlp_routes(app: Flask) -> None:
     
     @app.route("/smartlp")
     def smartlp():
-        """SmartLP main page."""
-        # Get entries and statuses from the database
-        entries, total_entries = smartlp_service.get_entries(page=1, per_page=15)
-        statuses = smartlp_service.get_all_statuses()
-            
-        return render_template("smartlp.html", page_title="SmartSOC Log Parser", 
-                               entries=entries, statuses=statuses, total_entries=total_entries)
+        """SmartLP main page - redirect to unified dashboard."""
+        return redirect("/")
     
     @app.route("/smartlp/parser")
     def smartlp_parser():
-        """SmartLP parser page."""
-        return render_template("smartlp_parser.html", page_title="SmartSOC Log Parser")
+        """SmartLP parser page - redirect to unified dashboard with parser section."""
+        return redirect("/#parser")
     
     @app.route("/smartlp/prefix")
     def smartlp_prefix():
-        """SmartLP prefix page."""
-        return render_template("smartlp_prefix.html", page_title="SmartSOC Log Prefix")
+        """SmartLP prefix page - redirect to unified dashboard with prefix section."""
+        return redirect("/#prefix")
     
     @app.route("/smartlp/report")
     def smartlp_report():

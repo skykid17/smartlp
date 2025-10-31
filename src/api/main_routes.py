@@ -14,5 +14,11 @@ def register_main_routes(app: Flask) -> None:
     
     @app.route("/")
     def dashboard():
-        """Main dashboard page."""
-        return render_template("dashboard.html", page_title="SmartSOC")
+        """Main dashboard page - now serves unified SmartLP interface."""
+        # Get entries and statuses for dashboard section
+        from services.smartlp import smartlp_service
+        entries, total_entries = smartlp_service.get_entries(page=1, per_page=15)
+        statuses = smartlp_service.get_all_statuses()
+        
+        return render_template("smartlp_unified.html", page_title="SmartLP", 
+                               entries=entries, statuses=statuses, total_entries=total_entries)

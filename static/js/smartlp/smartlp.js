@@ -25,7 +25,9 @@ const smartlpConfigPanel = createSmartLPConfigPanel(smartlpSelection);
 // - showConfigModal, displayErrors, displaySuccess
 
 document.addEventListener("DOMContentLoaded", () => {
-    if (window.location.pathname === "/smartlp") {
+    // Initialize for unified interface (check if dashboard section exists)
+    const dashboardSection = document.getElementById("dashboard-section");
+    if (dashboardSection) {
         // Initialize local logger for SmartLP
         smartlpLogger = document.getElementById("smartlpLogger");
 
