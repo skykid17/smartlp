@@ -146,6 +146,20 @@ pip install -r requirements.txt
 
 > If you run on Linux, activate the venv with `source .venv/bin/activate`.
 
+### Setup MongoDB Indexes for RAG
+
+Before running the RAG setup, create the necessary MongoDB indexes:
+
+```bash
+python mongo_setup_indexes.py
+```
+
+This script will:
+- Create a compound index on `source` and `metadata.relative_path` for efficient filtering
+- Provide instructions for creating the vector search index via MongoDB Atlas UI
+
+**Important:** Vector search indexes can only be created via the MongoDB Atlas UI (for cloud deployments) or Atlas Search setup (for self-hosted). The script provides the exact JSON configuration you need.
+
 ### Run The Application
 
 ```bash
