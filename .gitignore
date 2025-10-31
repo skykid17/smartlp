@@ -8,3 +8,4 @@ regex_test.py
 rag/chroma/
 certs/
 rag/rag_setup.log
+rag/repos/elastic_repo/
