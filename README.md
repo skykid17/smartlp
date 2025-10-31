@@ -38,7 +38,7 @@ Key highlights of the current codebase:
 - **Unified single-page interface** with collapsible sidebar navigation and modal-based settings
 - MongoDB-backed service layer (`src/services/…`) with reusable CRUD helpers
 - Background ingestion thread managed inside the SmartLP service
-- RAG-ready embeddings (ChromaDB) populated through `setup_rag.py`
+- **RAG with hybrid search**: MongoDB Atlas vector store with combined semantic (vector) and keyword (text) search using Reciprocal Rank Fusion
 - Ansible-driven deployment workflows wired into REST endpoints
 
 ## Solution Architecture
@@ -48,7 +48,7 @@ Key highlights of the current codebase:
 - **Database**: MongoDB hosts parser entries, prefixes, settings, SIEM/LLM metadata, Sigma rules, and MITRE ATT&CK content. Connection helpers live in `src/database/`.
 - **Realtime**: `socketio_manager` provides push notifications for logs, ingestion status, and UI toasts.
 - **Frontend**: Unified single-page application (`templates/smartlp_unified.html`) with collapsible sidebar navigation, modular section templates under `templates/sections/`, and Socket.IO aware JS modules in `static/js/`.
-- **RAG**: `rag/` holds scripts, cached CSVs, and Chroma repositories required to build vector stores for Splunk and Elastic metadata.
+- **RAG**: `rag/` holds scripts and cached CSVs. RAG uses MongoDB Atlas with **hybrid search** combining vector embeddings and text search with Reciprocal Rank Fusion (RRF) for improved retrieval accuracy.
 - **Automation**: Ansible playbooks (`ansible/`) deploy generated configurations to downstream platforms.
 
 ## Directory Map
@@ -83,9 +83,9 @@ smartlp/
 
 ### Prerequisites
 - Python 3.12+
-- MongoDB 8+
+- MongoDB 8+ (or MongoDB Atlas M10+ for hybrid search with vector + text indexes)
 - Access to at least one SIEM source (Splunk Enterprise 9.x or Elastic 8.x)
-- Optional: ChromaDB (installed automatically via requirements) for RAG, Ansible 11+ for remote deployments
+- Optional: Ansible 11+ for remote deployments
 
 ### Environment Variables
 Create an `.env` file at the project root. The sample below lists the required keys without exposing credentials.
@@ -148,7 +148,7 @@ pip install -r requirements.txt
 
 ### Setup MongoDB Indexes for RAG
 
-Before running the RAG setup, create the necessary MongoDB indexes:
+Before running the RAG setup, create the necessary MongoDB indexes for hybrid search:
 
 ```bash
 python mongo_setup_indexes.py
@@ -156,9 +156,12 @@ python mongo_setup_indexes.py
 
 This script will:
 - Create a compound index on `source` and `metadata.relative_path` for efficient filtering
-- Provide instructions for creating the vector search index via MongoDB Atlas UI
+- Provide instructions for creating the **vector search index** (`vector_index`) via MongoDB Atlas UI
+- Provide instructions for creating the **text search index** (`text_index`) via MongoDB Atlas UI
 
-**Important:** Vector search indexes can only be created via the MongoDB Atlas UI (for cloud deployments) or Atlas Search setup (for self-hosted). The script provides the exact JSON configuration you need.
+**Important:** Vector and text search indexes can only be created via the MongoDB Atlas UI (for cloud deployments) or Atlas Search setup (for self-hosted). The script provides the exact JSON configuration you need for both indexes.
+
+**Note:** Hybrid search requires MongoDB Atlas M10+ cluster. Free tier (M0) does not support Atlas Search.
 
 ### Run The Application
 
@@ -279,9 +282,20 @@ The unified interface is built on `templates/smartlp_unified.html` with modular 
 
 ## RAG Pipeline
 
+SmartSOC's RAG (Retrieval-Augmented Generation) pipeline enriches LLM responses with domain-specific knowledge from Splunk and Elastic field documentation, add-ons, and integration packages.
+
+### Hybrid Search Architecture
+
+The RAG system uses **MongoDB Atlas with hybrid search**, combining:
+- **Vector Search**: Semantic similarity using sentence-transformers embeddings (384-dimensional)
+- **Text Search**: Keyword matching using Lucene's BM25 algorithm
+- **Reciprocal Rank Fusion (RRF)**: Intelligent merging of results from both search methods
+
+This hybrid approach provides superior retrieval accuracy compared to vector-only or text-only search.
+
 Located under `rag/` with orchestration in `setup_rag.py`:
 - Downloads Splunk CIM field definitions, Elastic ECS metadata, and vendor packages.
-- Builds MongoDB vector store using MongoDB Atlas vector search capabilities.
+- Builds MongoDB vector store using MongoDB Atlas vector and text search capabilities.
 - Uses sentence-transformer embeddings (`all-MiniLM-L6-v2`) stored in a unified MongoDB collection.
 - Supports incremental refresh via CLI flags: `--siem`, `--skip-repos`, `--skip-fields`, `--skip-embeddings`.
 - Splunk add-ons must be downloaded manually and extracted into `rag/repos/splunk_repo/` due to licensing.
@@ -295,11 +309,12 @@ The RAG system uses MongoDB as the vector store backend. Documents are stored in
 - `metadata`: File metadata including path, hash, modification time, etc.
 
 **Required MongoDB Indexes:**
-For optimal vector search performance, create a vector search index on the `rag` collection:
+For hybrid search, create TWO indexes on the `rag` collection:
 
 1. **Vector Search Index** (via MongoDB Atlas UI):
    - Navigate to Database → Search → Create Search Index
-   - Select "JSON Editor" and use:
+   - Select "JSON Editor" and name it: `vector_index`
+   - Use configuration:
    ```json
    {
      "fields": [
@@ -312,25 +327,76 @@ For optimal vector search performance, create a vector search index on the `rag`
        {
          "type": "filter",
          "path": "source"
+       },
+       {
+         "type": "filter",
+         "path": "metadata"
        }
      ]
    }
    ```
-   - Name the index: `vector_index`
 
-2. **Compound Index for filtering** (via MongoDB shell or Compass):
+2. **Text Search Index** (via MongoDB Atlas UI):
+   - Navigate to Database → Search → Create Search Index
+   - Select "JSON Editor" and name it: `text_index`
+   - Use configuration:
+   ```json
+   {
+     "mappings": {
+       "dynamic": false,
+       "fields": {
+         "page_content": {
+           "type": "string",
+           "analyzer": "lucene.standard"
+         },
+         "source": {
+           "type": "string"
+         },
+         "metadata": {
+           "type": "document",
+           "dynamic": true
+         }
+       }
+     }
+   }
+   ```
+
+3. **Compound Index for filtering** (via MongoDB shell or Compass):
    ```javascript
    db.rag.createIndex({ "source": 1, "metadata.relative_path": 1 })
    ```
 
-**Note:** MongoDB Atlas free tier (M0) does not support vector search. You need at least an M10 cluster or a local MongoDB deployment with Atlas Search configured.
+**Note:** MongoDB Atlas M10+ cluster required for hybrid search (free tier M0 does NOT support vector or text search). For local development, use MongoDB with Atlas Search or use vector-only mode.
 
 Example commands:
 
 ```bash
+# Setup MongoDB indexes (run this first)
+python mongo_setup_indexes.py
+
+# Full RAG setup with hybrid search
 python setup_rag.py                      # Full refresh
 python setup_rag.py --siem elastic       # Only Elastic artifacts
 python setup_rag.py --siem splunk --skip-fields  # Re-embed Splunk add-ons after manual updates
+```
+
+**Using Hybrid Search:**
+```python
+from rag_func import query_rag_hybrid
+
+# Hybrid search with default weights (1.0 for both vector and text)
+result, status, docs = query_rag_hybrid(
+    source="splunk_addons",
+    query="How do I parse Windows authentication logs?"
+)
+
+# Adjust weights to favor semantic or keyword matching
+result, status, docs = query_rag_hybrid(
+    source="elastic_packages",
+    query="authentication field mapping",
+    vector_weight=1.0,  # Semantic similarity
+    text_weight=1.5     # Keyword matching (emphasized)
+)
 ```
 
 ## REST API Cheatsheet
