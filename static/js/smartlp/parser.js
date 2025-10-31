@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Only initialize if we're on the parser page
-    if (window.location.pathname === "/smartlp/parser") {
+    // Initialize if parser section exists (unified interface)
+    const parserSection = document.getElementById("parser-section");
+    if (parserSection) {
         // Initialize elements
         let logDisplay = document.getElementById("logDisplay");
         let regexDisplay = document.getElementById("regexDisplay");

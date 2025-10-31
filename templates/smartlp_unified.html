@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLP - Smart Log Parser</title>
+    <link rel="icon" type="image/x-icon" href="/logos/logo.png">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.css">
+    <link rel="stylesheet" href="/css/custom.css">
+    <style>
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: #2c3e50;
+            padding-top: 60px;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        
+        .sidebar-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 60px;
+            background: #1a252f;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .sidebar.collapsed .sidebar-header {
+            width: 60px;
+            padding: 0 15px;
+        }
+        
+        .sidebar-header img {
+            height: 30px;
+            margin-right: 10px;
+        }
+        
+        .sidebar.collapsed .sidebar-header img {
+            margin-right: 0;
+        }
+        
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-size: 1.2rem;
+            white-space: nowrap;
+        }
+        
+        .sidebar.collapsed .sidebar-header h4 {
+            display: none;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-nav li {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-nav a:hover {
+            background: #34495e;
+            color: white;
+        }
+        
+        .sidebar-nav a.active {
+            background: #3498db;
+            color: white;
+            border-left: 4px solid white;
+        }
+        
+        .sidebar-nav a i {
+            min-width: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .sidebar-nav a span {
+            margin-left: 10px;
+        }
+        
+        .sidebar.collapsed .sidebar-nav a span {
+            display: none;
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 1002;
+            background: none;
+            border: none;
+            color: #333;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .settings-icon {
+            position: fixed;
+            top: 15px;
+            right: 60px;
+            z-index: 1002;
+            background: none;
+            border: none;
+            color: #333;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+        
+        .sidebar.collapsed ~ .main-content {
+            margin-left: 60px;
+        }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Footer */
+        footer {
+            margin-left: 250px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar.collapsed ~ footer {
+            margin-left: 60px;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .sidebar-header {
+                width: 60px;
+                padding: 0 15px;
+            }
+            
+            .sidebar-header h4,
+            .sidebar-nav a span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 60px;
+            }
+            
+            footer {
+                margin-left: 60px;
+            }
+            
+            .settings-icon {
+                right: 20px;
+            }
+            
+            .sidebar-toggle {
+                display: none;
+            }
+        }
+        
+        /* Logger offcanvas */
+        .logger-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 270px;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        
+        .sidebar.collapsed ~ .logger-btn {
+            left: 80px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="/logos/logo_white.png" alt="Logo">
+            <h4>SmartLP</h4>
+        </div>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i class="fa fa-tachometer"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" data-section="parser">
+                    <i class="fa fa-edit"></i>
+                    <span>Parser</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" data-section="prefix">
+                    <i class="fa fa-code"></i>
+                    <span>Prefix</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Settings Icon -->
+    <button class="settings-icon" id="settingsIcon" title="Settings">
+        <i class="fa fa-cog"></i>
+    </button>
+    
+    <!-- Sidebar Toggle -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    
+    <!-- Logger Button -->
+    <button class="btn btn-dark logger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#loggerOffcanvas">
+        <i class="fa fa-eye"></i>
+    </button>
+    
+    <!-- Logger Offcanvas -->
+    <div class="offcanvas offcanvas-start logpanel" data-bs-scroll="true" tabindex="-1" id="loggerOffcanvas">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title"><i class="fa fa-eye"></i> Logger</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="logger"></div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Toast Notifications -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="liveToast" class="toast" role="alert" data-bs-delay="5000">
+                <div class="toast-header">
+                    <strong class="me-auto">SmartLP</strong>
+                    <small class="toast-timestamp">Just now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    <div id="ingestNotification"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="content-section active">
+            {% include 'sections/dashboard_content.html' %}
+        </div>
+        
+        <!-- Parser Section -->
+        <div id="parser-section" class="content-section">
+            {% include 'sections/parser_content.html' %}
+        </div>
+        
+        <!-- Prefix Section -->
+        <div id="prefix-section" class="content-section">
+            {% include 'sections/prefix_content.html' %}
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">
+                        <i class="fa fa-cog me-2"></i>Settings
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% include 'sections/settings_content.html' %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsButton" onclick="saveSettings()">
+                        <i class="fa fa-save me-1"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+        <p class="mb-0">SmartSOC &copy; 2025. All Rights Reserved.</p>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/socket.io.min.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/html2pdf.bundle.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/smartlp/smartlp.js"></script>
+    <script src="/js/smartlp/parser.js"></script>
+    <script src="/js/smartlp/prefix.js"></script>
+    
+    <script>
+        // Sidebar navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
+            const sections = document.querySelectorAll('.content-section');
+            const settingsIcon = document.getElementById('settingsIcon');
+            const settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
+            
+            // Toggle sidebar
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+            
+            // Navigation between sections
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Update active nav link
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding section
+                    const sectionId = this.getAttribute('data-section');
+                    sections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === `${sectionId}-section`) {
+                            section.classList.add('active');
+                        }
+                    });
+                    
+                    // Update page URL without reload
+                    history.pushState(null, '', `/smartlp#${sectionId}`);
+                    
+                    // Trigger section-specific initialization if needed
+                    initializeSection(sectionId);
+                });
+            });
+            
+            // Settings icon click
+            if (settingsIcon) {
+                settingsIcon.addEventListener('click', function() {
+                    settingsModal.show();
+                });
+            }
+            
+            // Handle page load with hash
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const targetLink = document.querySelector(`[data-section="${hash}"]`);
+                if (targetLink) {
+                    targetLink.click();
+                }
+            }
+        });
+        
+        // Initialize section-specific functionality
+        function initializeSection(sectionId) {
+            switch(sectionId) {
+                case 'dashboard':
+                    if (typeof searchData === 'function') {
+                        searchData();
+                    }
+                    break;
+                case 'parser':
+                    // Parser initialization handled by parser.js
+                    break;
+                case 'prefix':
+                    // Prefix initialization handled by prefix.js
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>

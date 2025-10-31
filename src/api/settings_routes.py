@@ -2,7 +2,7 @@
 Settings API routes for SmartSOC.
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 
 from services.settings import settings_service
 from utils.logging import app_logger
@@ -17,8 +17,8 @@ def register_settings_routes(app: Flask) -> None:
     
     @app.route("/settings")
     def settings():
-        """Settings page."""
-        return render_template("settings.html", page_title="SmartSOC Settings")
+        """Settings page - redirect to unified dashboard (settings in modal)."""
+        return redirect("/")
     
     @app.route('/api/settings', methods=['GET'])
     def get_settings_route():
