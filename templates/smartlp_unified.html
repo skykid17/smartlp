@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartLP - Smart Log Parser</title>
+    <link rel="icon" type="image/x-icon" href="/logos/logo.png">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.css">
+    <link rel="stylesheet" href="/css/custom.css">
+    <style>
+        /* Clean, professional color palette */
+        :root {
+            --sidebar-bg: #2c3e50;
+            --sidebar-header-bg: #1a252f;
+            --sidebar-hover: #34495e;
+            --sidebar-active: #3498db;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: var(--sidebar-bg);
+            padding-top: 60px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed {
+            width: 60px;
+        }
+        
+        .sidebar-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 60px;
+            background: var(--sidebar-header-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            transition: all 0.3s ease;
+            z-index: 1001;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.collapsed .sidebar-header {
+            width: 60px;
+            padding: 0 15px;
+            justify-content: center;
+        }
+        
+        .sidebar-header img {
+            height: 30px;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-header img {
+            margin-right: 0;
+        }
+        
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-header h4 {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+            padding: 10px 0;
+            margin: 0;
+        }
+        
+        .sidebar-nav li {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        
+        .sidebar-nav a:hover {
+            background: var(--sidebar-hover);
+            color: white;
+            padding-left: 25px;
+        }
+        
+        .sidebar-nav a.active {
+            background: var(--sidebar-active);
+            color: white;
+            border-left: 4px solid white;
+            font-weight: 600;
+        }
+        
+        .sidebar-nav a i {
+            min-width: 30px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        .sidebar-nav a span {
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-nav a {
+            justify-content: center;
+            padding: 15px 0;
+        }
+        
+        .sidebar.collapsed .sidebar-nav a:hover {
+            padding-left: 0;
+        }
+        
+        .sidebar.collapsed .sidebar-nav a span {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+        
+        /* Top bar icons */
+        .settings-icon, .sidebar-toggle {
+            position: fixed;
+            top: 15px;
+            z-index: 1002;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: #333;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .settings-icon:hover, .sidebar-toggle:hover {
+            background: #f8f9fa;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+        
+        .settings-icon {
+            right: 60px;
+        }
+        
+        .sidebar-toggle {
+            right: 20px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 80px 30px 30px 30px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed ~ .main-content {
+            margin-left: 60px;
+        }
+        
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Footer */
+        footer {
+            margin-left: 250px;
+            transition: all 0.3s ease;
+            background: #2c3e50;
+        }
+        
+        .sidebar.collapsed ~ footer {
+            margin-left: 60px;
+        }
+        
+        /* Logger button */
+        .logger-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 270px;
+            z-index: 999;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar.collapsed ~ .logger-btn {
+            left: 80px;
+        }
+        
+        /* Cards and UI elements */
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 2px solid #f1f3f5;
+            font-weight: 600;
+        }
+        
+        .btn {
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .sidebar-header {
+                width: 60px;
+                padding: 0 15px;
+                justify-content: center;
+            }
+            
+            .sidebar-header h4,
+            .sidebar-nav a span {
+                display: none;
+            }
+            
+            .sidebar-nav a {
+                justify-content: center;
+                padding: 15px 0;
+            }
+            
+            .main-content {
+                margin-left: 60px;
+                padding: 80px 15px 30px 15px;
+            }
+            
+            footer {
+                margin-left: 60px;
+            }
+            
+            .settings-icon {
+                right: 20px;
+            }
+            
+            .sidebar-toggle {
+                display: none;
+            }
+            
+            .logger-btn {
+                left: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="/logos/logo_white.png" alt="Logo">
+            <h4>SmartLP</h4>
+        </div>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i class="fa fa-tachometer"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" data-section="parser">
+                    <i class="fa fa-edit"></i>
+                    <span>Parser</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" data-section="prefix">
+                    <i class="fa fa-code"></i>
+                    <span>Prefix</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Settings Icon -->
+    <button class="settings-icon" id="settingsIcon" title="Settings">
+        <i class="fa fa-cog"></i>
+    </button>
+    
+    <!-- Sidebar Toggle -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    
+    <!-- Logger Button -->
+    <button class="btn btn-dark logger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#loggerOffcanvas">
+        <i class="fa fa-eye"></i>
+    </button>
+    
+    <!-- Logger Offcanvas -->
+    <div class="offcanvas offcanvas-start logpanel" data-bs-scroll="true" tabindex="-1" id="loggerOffcanvas">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title"><i class="fa fa-eye"></i> Logger</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="logger"></div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Toast Notifications -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div id="liveToast" class="toast" role="alert" data-bs-delay="5000">
+                <div class="toast-header">
+                    <strong class="me-auto">SmartLP</strong>
+                    <small class="toast-timestamp">Just now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    <div id="ingestNotification"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="content-section active">
+            {% include 'sections/dashboard_content.html' %}
+        </div>
+        
+        <!-- Parser Section -->
+        <div id="parser-section" class="content-section">
+            {% include 'sections/parser_content.html' %}
+        </div>
+        
+        <!-- Prefix Section -->
+        <div id="prefix-section" class="content-section">
+            {% include 'sections/prefix_content.html' %}
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">
+                        <i class="fa fa-cog me-2"></i>Settings
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% include 'sections/settings_content.html' %}
+                </div>
+                <div class="modal-footer">
+                    <div id="logger" class="me-auto"></div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsButton" onclick="saveSettings()">
+                        <i class="fa fa-save me-1"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Warning Modal for SIEM Change -->
+    <div class="modal fade" id="siemChangeWarningModal" tabindex="-1" aria-labelledby="siemChangeWarningModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siemChangeWarningModalLabel">
+                        <i class="fa fa-exclamation-triangle" style="color: orange;"></i> Warning: Changing Active SIEM
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Any parsing/detection rule configurations left undone might return unintended results. Would you like to proceed?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="cancelSiemChange">Cancel</button>
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" id="confirmSiemChange">Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alert Modal for Settings Change -->
+    <div class="modal fade" id="settingChangeModal" tabindex="-1" aria-labelledby="settingChangeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingChangeModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+        <p class="mb-0">SmartSOC &copy; 2025. All Rights Reserved.</p>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/socket.io.min.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/html2pdf.bundle.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/smartlp/smartlp.js"></script>
+    <script src="/js/smartlp/parser.js"></script>
+    <script src="/js/smartlp/prefix.js"></script>
+    
+    <script>
+        // Sidebar navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
+            const sections = document.querySelectorAll('.content-section');
+            const settingsIcon = document.getElementById('settingsIcon');
+            const settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
+            
+            // Toggle sidebar
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+            
+            // Navigation between sections
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Update active nav link
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding section
+                    const sectionId = this.getAttribute('data-section');
+                    sections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === `${sectionId}-section`) {
+                            section.classList.add('active');
+                        }
+                    });
+                    
+                    // Update page URL without reload
+                    history.pushState(null, '', `/#${sectionId}`);
+                    
+                    // Trigger section-specific initialization if needed
+                    initializeSection(sectionId);
+                });
+            });
+            
+            // Settings icon click
+            if (settingsIcon) {
+                settingsIcon.addEventListener('click', function() {
+                    settingsModal.show();
+                });
+            }
+            
+            // Handle page load with hash
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const targetLink = document.querySelector(`[data-section="${hash}"]`);
+                if (targetLink) {
+                    targetLink.click();
+                }
+            }
+        });
+        
+        // Initialize section-specific functionality
+        function initializeSection(sectionId) {
+            switch(sectionId) {
+                case 'dashboard':
+                    if (typeof searchData === 'function') {
+                        searchData();
+                    }
+                    break;
+                case 'parser':
+                    // Initialize parser with session data
+                    const logDisplay = document.getElementById("logDisplay");
+                    const regexDisplay = document.getElementById("regexDisplay");
+                    const logger = document.getElementById("logger");
+                    
+                    if (logDisplay && regexDisplay && logger) {
+                        logger.innerText = `Entry: ${getSessionItem("id", "New Entry")}`;
+                        logDisplay.innerText = getSessionItem("log");
+                        regexDisplay.value = getSessionItem("regex");
+                        if (typeof findMatch === 'function') {
+                            findMatch();
+                        }
+                        if (typeof loadEntryStatistics === 'function') {
+                            loadEntryStatistics();
+                        }
+                    }
+                    break;
+                case 'prefix':
+                    // Prefix initialization handled by prefix.js on load
+                    if (typeof loadPrefixes === 'function') {
+                        loadPrefixes();
+                    }
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>
