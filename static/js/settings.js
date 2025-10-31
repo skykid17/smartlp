@@ -18,8 +18,6 @@ const fieldDisplayNames = {
     'ingestOn': 'Log Ingestion',
     'ingestAlgoVersion': 'Parsing Algorithm Version',
     'fixCount': 'Regex Fix Count',
-    'smartucActiveLlmEndpoint': 'SmartUC Active LLM Endpoint',
-    'smartucActiveLlm': 'SmartUC Active LLM Model',
     'searchIndex': 'Search Index',
     'searchEntryCount': 'Search Entry Count',
     'searchQuery': 'Search Query',
@@ -29,7 +27,7 @@ const fieldDisplayNames = {
 const elements = [
     "activeSiem", "searchIndex", "searchEntryCount", "searchQuery", "ingestFrequency", "similarityThreshold", "siem",
     "activeLlmEndpoint", "llmUrl", "activeLlm", "fixCount", "models", "similarityCheck", "ingestOn", "similarityThresholdGroup",
-    "ingestGroup", "ingestAlgoVersion", "smartucActiveLlmEndpoint", "smartucActiveLlm",
+    "ingestGroup", "ingestAlgoVersion",
 ];
 
 // Utility function to safely add event listeners
@@ -62,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Event listeners
     addEventIfExists(window.siem, "change", toggleSIEMFields);
     addEventIfExists(window.activeLlmEndpoint, "change", toggleActiveLlmField);
-    addEventIfExists(window.smartucActiveLlmEndpoint, "change", toggleSmartucActiveLlmField);
     addEventIfExists(window.similarityCheck, "change", () => toggleIngestFields(window.similarityCheck, window.similarityThresholdGroup));
     addEventIfExists(window.ingestOn, "change", () => toggleIngestFields(window.ingestOn, window.ingestGroup));
 
@@ -122,18 +119,14 @@ async function getSettings() {
         const data = await response.json();
         siemsData = Object.fromEntries(data.siems.map(s => [s.id, s]));
         llmEndpointsData = Object.fromEntries(data.llmEndpoints.map(l => [l.id, l]));
-        sessionStorage.setItem('activeSiem', data.settings.activeSiem); //For smartuc page usage
-        sessionStorage.setItem('activeLlmEndpoint', data.settings.activeLlmEndpoint); //For smartuc page usage
+        sessionStorage.setItem('activeSiem', data.settings.activeSiem);
+        sessionStorage.setItem('activeLlmEndpoint', data.settings.activeLlmEndpoint);
         sessionStorage.setItem('activeLlm', data.settings.activeLlm);
-        sessionStorage.setItem('smartucActiveLlmEndpoint', data.smartuc.activeLlmEndpoint);
-        sessionStorage.setItem('smartucActiveLlm', data.smartuc.activeLlm);
         if (window.location.pathname === "/settings") {
             setDropdown(siemsData, siem);
             setDropdown(siemsData, activeSiem);
             setDropdown(llmEndpointsData, activeLlmEndpoint);
-            setDropdown(llmEndpointsData, smartucActiveLlmEndpoint);
             setDropdown(llmEndpointsData, activeLlm);
-            setDropdown(llmEndpointsData, smartucActiveLlm);
 
             // Create LLM endpoint tabs
             createLlmEndpointTabs();
@@ -151,17 +144,12 @@ async function getSettings() {
                 }
             });
 
-            // Set values for SmartUC settings
-            smartucActiveLlmEndpoint.value = data.smartuc.activeLlmEndpoint;
-            smartucActiveLlm.value = data.smartuc.activeLlm;
-
             // Select the active endpoint from settings and load its models
             const activeEndpointId = data.settings.activeLlmEndpoint;
             if (activeEndpointId && llmEndpointsData[activeEndpointId]) {
                 selectLlmEndpoint(activeEndpointId);
             }
             toggleActiveLlmField();
-            toggleSmartucActiveLlmField();
             toggleSIEMFields();
             toggleIngestFields(ingestOn, ingestGroup);
             toggleIngestFields(similarityCheck, similarityThresholdGroup);
@@ -376,18 +364,6 @@ function toggleActiveLlmField() {
     }
 }
 
-function toggleSmartucActiveLlmField() {
-    const smartucActiveLlmEndpointElement = window.smartucActiveLlmEndpoint;
-    const smartucActiveLlmElement = window.smartucActiveLlm;
-
-    if (!smartucActiveLlmEndpointElement || !smartucActiveLlmElement) return;
-
-    setDropdown(llmEndpointsData, smartucActiveLlmElement);
-    // Handle smartuc LLM dropdown
-    if (smartucActiveLlmEndpointElement.value === sessionStorage.getItem("smartucActiveLlmEndpoint")) {
-        smartucActiveLlmElement.value = sessionStorage.getItem("smartucActiveLlm");
-    }
-}
 
 // === set model list + dropdown ===
 function setModelList() {
@@ -832,8 +808,8 @@ function setDropdown(data, dropdownElement) {
     dropdownElement.innerHTML = ""; // Clear existing options
 
     // Handle model dropdowns specially
-    if (dropdownElement === window.activeLlm || dropdownElement === window.smartucActiveLlm) {
-        const endpointElement = dropdownElement === window.activeLlm ? window.activeLlmEndpoint : window.smartucActiveLlmEndpoint;
+    if (dropdownElement === window.activeLlm) {
+        const endpointElement = window.activeLlmEndpoint;
         if (endpointElement) {
             const endpointValue = endpointElement.value;
             if (data[endpointValue] && Array.isArray(data[endpointValue].models)) {
