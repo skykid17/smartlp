@@ -267,36 +267,49 @@ The unified interface is built on `templates/smartlp_unified.html` with modular 
 
 Located under `rag/` with orchestration in `setup_rag.py`:
 - Downloads Splunk CIM field definitions, Elastic ECS metadata, and vendor packages.
-- Builds MongoDB vector store collections using MongoDB Atlas hybrid search with reciprocal rank fusion (RRF).
+- Builds MongoDB vector store using MongoDB Atlas vector search capabilities.
 - Uses sentence-transformer embeddings (`all-MiniLM-L6-v2`) stored in a unified MongoDB collection.
 - Supports incremental refresh via CLI flags: `--siem`, `--skip-repos`, `--skip-fields`, `--skip-embeddings`.
 - Splunk add-ons must be downloaded manually and extracted into `rag/repos/splunk_repo/` due to licensing.
 
 **MongoDB RAG Setup:**
-The RAG system now uses MongoDB as the vector store backend instead of ChromaDB. Documents are stored in the `rag` database (configurable via `MONGO_RAG_DB`) in the `rag` collection (configurable via `MONGO_RAG_COLLECTION`). Each document includes:
+The RAG system uses MongoDB as the vector store backend. Documents are stored in the `rag` database (configurable via `MONGO_RAG_DB`) in the `rag` collection (configurable via `MONGO_RAG_COLLECTION`). Each document includes:
 - `_id`: Unique identifier (format: `{source}#{relative_path}#{chunk_index}`)
 - `page_content`: The actual text content
-- `embedding`: Vector embedding (list of floats)
+- `embedding`: Vector embedding (list of floats, dimension: 384)
 - `source`: Source identifier (`splunk_addons`, `elastic_packages`, `splunk_fields`, `elastic_fields`, `splunk_sourcetypes`, `elastic_logtypes`)
 - `metadata`: File metadata including path, hash, modification time, etc.
 
 **Required MongoDB Indexes:**
-For optimal performance, create the following indexes on the `rag` collection:
-1. **Vector Search Index** (via MongoDB Atlas UI or CLI):
-   - Field: `embedding`
-   - Type: `vectorSearch`
-   - Dimensions: 384 (for all-MiniLM-L6-v2)
-   - Similarity: `cosine`
-   
-2. **Text Search Index** (via MongoDB Atlas UI or CLI):
-   - Field: `page_content`
-   - Type: `search`
-   - Analyzer: `lucene.standard`
+For optimal vector search performance, create a vector search index on the `rag` collection:
 
-3. **Compound Index for filtering**:
+1. **Vector Search Index** (via MongoDB Atlas UI):
+   - Navigate to Database → Search → Create Search Index
+   - Select "JSON Editor" and use:
+   ```json
+   {
+     "fields": [
+       {
+         "type": "vector",
+         "path": "embedding",
+         "numDimensions": 384,
+         "similarity": "cosine"
+       },
+       {
+         "type": "filter",
+         "path": "source"
+       }
+     ]
+   }
+   ```
+   - Name the index: `vector_index`
+
+2. **Compound Index for filtering** (via MongoDB shell or Compass):
    ```javascript
    db.rag.createIndex({ "source": 1, "metadata.relative_path": 1 })
    ```
+
+**Note:** MongoDB Atlas free tier (M0) does not support vector search. You need at least an M10 cluster or a local MongoDB deployment with Atlas Search configured.
 
 Example commands:
 

@@ -18,7 +18,6 @@ import yaml
 
 from pymongo import MongoClient
 from langchain_mongodb import MongoDBAtlasVectorSearch
-from langchain_mongodb.retrievers import MongoDBAtlasHybridSearchRetriever
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -634,7 +633,7 @@ def query_rag(
     filter_metadata: Optional[Dict] = None
 ):
     """
-    Query the RAG system using MongoDB hybrid search with RRF.
+    Query the RAG system using MongoDB vector search.
     
     Args:
         source: Source identifier to filter results (e.g., 'splunk_addons', 'elastic_packages')
@@ -656,7 +655,6 @@ def query_rag(
         collection = get_rag_collection()
         
         # Get LLM configuration from settings
-        llms_collection = db_connection.get_collection('llms_settings')
         global_settings = db_connection.query('global_settings', limit=1)
         
         if not global_settings:
@@ -681,13 +679,12 @@ def query_rag(
             temperature=0.2
         )
         
-        # Create MongoDB Atlas Hybrid Search Retriever
         # Prepare filter for source
         search_filter = {"source": source}
         if filter_metadata:
             search_filter.update(filter_metadata)
         
-        # Create vector search retriever
+        # Create vector store with MongoDB
         vector_store = MongoDBAtlasVectorSearch(
             collection=collection,
             embedding=embeddings,
@@ -696,14 +693,13 @@ def query_rag(
             embedding_key="embedding"
         )
         
-        # Use hybrid search retriever with RRF
-        retriever = MongoDBAtlasHybridSearchRetriever(
-            vectorstore=vector_store,
+        # Create retriever with pre_filter for source filtering
+        retriever = vector_store.as_retriever(
+            search_type="similarity",
             search_kwargs={
                 "k": TOP_K,
-                "filter": search_filter
-            },
-            top_k=TOP_K
+                "pre_filter": search_filter
+            }
         )
         
         # Create QA chain
@@ -728,4 +724,6 @@ def query_rag(
     
     except Exception as e:
         logging.error(f"Error querying RAG: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return f"Error: {str(e)}", 500, []
