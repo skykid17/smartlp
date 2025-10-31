@@ -6,14 +6,7 @@
     </div>
     <div class="d-flex gap-2 align-items-center ">
 
-        <button id="clearEntryButton" onclick="clearEntry()" class="btn btn-primary" data-bs-toggle="tooltip"
-            data-bs-placement="top" data-bs-title="Clear all fields">
-            Clear
-        </button>
-        <button id="pullEntryButton" onclick="pullEntry()" class="btn btn-primary" data-bs-toggle="tooltip"
-            data-bs-placement="top" data-bs-title="Pull the latest Unmatched entry">
-            <i class="fa fa-download"></i> Pull Latest Unmatched Entry
-        </button>
+
     </div>
 </div>
 
@@ -44,12 +37,24 @@
         <!-- LOG Section -->
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h5 class="mb-0">LOG</h5>
-            <button id="fixButton" class="btn btn-secondary aiButton" onclick="queryLLM('fix')" data-bs-toggle="tooltip"
-                data-bs-placement="top" data-bs-title="Use AI to improve or correct the current regex.">
-                <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Fix
-                <span id="fixSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
-                    aria-hidden="true"></span>
-            </button>
+            <div class="d-flex gap-2">
+                <button id="clearEntryButton" onclick="clearEntry()" class="btn btn-secondary" data-bs-toggle="tooltip"
+                    data-bs-placement="top" data-bs-title="Clear all fields">
+                    Clear
+                </button>
+                <button id="pullEntryButton" onclick="pullEntry()" class="btn btn-secondary" data-bs-toggle="tooltip"
+                    data-bs-placement="top" data-bs-title="Pull the latest Unmatched entry">
+                    <i class="fa fa-download"></i> Pull Latest Entry
+                </button>
+                <button id="fixButton" class="btn btn-secondary aiButton" onclick="queryLLM('fix')"
+                    data-bs-toggle="tooltip" data-bs-placement="top"
+                    data-bs-title="Use AI to improve or correct the current regex.">
+                    <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Fix
+                    <span id="fixSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
+                        aria-hidden="true"></span>
+                </button>
+            </div>
+
         </div>
         <pre class="bg-light border rounded p-2 text-wrap position-relative mb-3">
                 <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>

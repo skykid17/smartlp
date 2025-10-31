@@ -135,6 +135,7 @@ body {
     overflow: hidden;
 }
 
+.logger-btn,
 .settings-icon,
 .sidebar-toggle {
     position: fixed;
@@ -151,10 +152,15 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.logger-btn:hover,
 .settings-icon:hover,
 .sidebar-toggle:hover {
     background: #f8f9fa;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.logger-btn {
+    right: 100px;
 }
 
 .settings-icon {
@@ -167,7 +173,7 @@ body {
 
 .main-content {
     margin-left: 200px;
-    padding: 80px 30px 30px 30px;
+    padding: 30px 30px 30px 30px;
     min-height: 100vh;
     transition: all 0.3s ease;
 }
@@ -205,19 +211,6 @@ footer {
 
 .sidebar.collapsed~footer {
     margin-left: 60px;
-}
-
-.logger-btn {
-    position: fixed;
-    bottom: 60px;
-    left: 190px;
-    z-index: 999;
-    transition: all 0.3s ease;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar.collapsed~.logger-btn {
-    left: 50px;
 }
 
 .card {
@@ -300,7 +293,7 @@ footer {
     }
 
     .logger-btn {
-        left: 80px;
+        right: 60px;
     }
 
 }
