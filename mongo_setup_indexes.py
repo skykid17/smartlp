@@ -48,18 +48,21 @@ def create_compound_index(collection):
         return False
 
 
-def check_atlas_vector_search_index(db_name, collection_name):
+def check_atlas_search_indexes(db_name, collection_name):
     """
-    Check if Atlas Vector Search index exists.
-    Note: Vector search indexes must be created via Atlas UI or API.
+    Check if Atlas Search indexes exist.
+    Note: Search indexes must be created via Atlas UI or API.
     """
     print("\n" + "="*70)
-    print("VECTOR SEARCH INDEX SETUP")
+    print("ATLAS SEARCH INDEXES SETUP (REQUIRED FOR HYBRID SEARCH)")
     print("="*70)
-    print("\nVector search indexes MUST be created via MongoDB Atlas UI.")
+    print("\nAtlas Search indexes MUST be created via MongoDB Atlas UI.")
     print("This script cannot create them programmatically for you.")
-    print("\nTo create the vector search index:")
-    print("1. Go to MongoDB Atlas → Database → Search")
+    print("\nFor HYBRID SEARCH, you need TWO indexes:")
+    print("\n" + "="*70)
+    print("INDEX 1: Vector Search Index")
+    print("="*70)
+    print("\n1. Go to MongoDB Atlas → Database → Search")
     print("2. Click 'Create Search Index'")
     print("3. Select 'JSON Editor'")
     print("4. Use this configuration:")
@@ -82,7 +85,34 @@ def check_atlas_vector_search_index(db_name, collection_name):
     print(f"\n5. Name the index: vector_index")
     print(f"6. Select database: {db_name}")
     print(f"7. Select collection: {collection_name}")
-    print("\n✓ After creating the index, you can proceed with setup_rag.py")
+    
+    print("\n" + "="*70)
+    print("INDEX 2: Full-Text Search Index")
+    print("="*70)
+    print("\n1. Go to MongoDB Atlas → Database → Search")
+    print("2. Click 'Create Search Index'")
+    print("3. Select 'JSON Editor'")
+    print("4. Use this configuration:")
+    print("\n" + "-"*70)
+    print("""{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "page_content": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      }
+    }
+  }
+}""")
+    print("-"*70)
+    print(f"\n5. Name the index: fulltext_index")
+    print(f"6. Select database: {db_name}")
+    print(f"7. Select collection: {collection_name}")
+    
+    print("\n✓ After creating BOTH indexes, you can proceed with setup_rag.py")
     print("="*70)
 
 
@@ -139,8 +169,8 @@ def main():
     else:
         print("\n✗ Some standard indexes failed to create")
     
-    # Show vector search index instructions
-    check_atlas_vector_search_index(db_name, collection_name)
+    # Show search indexes instructions
+    check_atlas_search_indexes(db_name, collection_name)
     
     # Check MongoDB deployment type
     print("\n" + "-"*70)
@@ -170,7 +200,9 @@ def main():
     print("Setup Complete")
     print("="*70)
     print("\nNext steps:")
-    print("1. Create the vector search index via Atlas UI (see instructions above)")
+    print("1. Create BOTH search indexes via Atlas UI (see instructions above)")
+    print("   - vector_index (for vector similarity search)")
+    print("   - fulltext_index (for full-text keyword search)")
     print("2. Run: python setup_rag.py --siem both")
     print("3. Verify embeddings are created: mongo shell or Compass")
     print("="*70 + "\n")

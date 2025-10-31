@@ -18,6 +18,7 @@ import yaml
 
 from pymongo import MongoClient
 from langchain_mongodb import MongoDBAtlasVectorSearch
+from langchain_mongodb.retrievers import MongoDBAtlasHybridSearchRetriever
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -633,7 +634,13 @@ def query_rag(
     filter_metadata: Optional[Dict] = None
 ):
     """
-    Query the RAG system using MongoDB vector search.
+    Query the RAG system using MongoDB Atlas Hybrid Search.
+    
+    Hybrid search combines:
+    - Vector search (semantic similarity) 
+    - Full-text search (keyword matching)
+    
+    Results are ranked using Reciprocal Rank Fusion (RRF).
     
     Args:
         source: Source identifier to filter results (e.g., 'splunk_addons', 'elastic_packages')
@@ -693,13 +700,20 @@ def query_rag(
             embedding_key="embedding"
         )
         
-        # Create retriever with pre_filter for source filtering
-        retriever = vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={
-                "k": TOP_K,
-                "pre_filter": search_filter
-            }
+        # Create hybrid search retriever
+        # This combines vector search (semantic) with full-text search (keyword matching)
+        # using Reciprocal Rank Fusion (RRF) for ranking
+        retriever = MongoDBAtlasHybridSearchRetriever(
+            vectorstore=vector_store,
+            search_index_name="fulltext_index",
+            k=TOP_K,
+            pre_filter=search_filter,
+            # RRF parameters - adjust penalties to tune vector vs fulltext importance
+            # Lower penalty = higher importance
+            vector_penalty=60.0,      # Penalty for vector search ranking
+            fulltext_penalty=60.0,    # Penalty for full-text search ranking
+            vector_weight=1.0,        # Weight for vector search scores
+            fulltext_weight=1.0,      # Weight for full-text search scores
         )
         
         # Create QA chain
