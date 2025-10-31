@@ -9,8 +9,9 @@ const entriesPerPage = 10;
 const visiblePageCount = 5;
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Only initialize if we're on the smartlp prefix page
-    if (window.location.pathname === "/smartlp/prefix") {
+    // Initialize if prefix section exists (unified interface)
+    const prefixSection = document.getElementById("prefix-section");
+    if (prefixSection) {
         initializePrefixPage();
     }
 });

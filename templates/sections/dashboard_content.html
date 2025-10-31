@@ -1,0 +1,390 @@
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Smart Log Parser</h2>
+            <small class="text-muted">Parse and manage log entries with intelligent pattern matching</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            
+            <div id="siemStatus" class="siem-status">
+                <!-- SIEM status indicators will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-search me-2"></i>Search & Filter
+            </h6>
+        </div>
+        <div class="card-body">            
+            
+            <!-- Search Fields Row -->
+            <div class="row g-3 mb-3">
+                <div class="col-lg-4 col-md-6">
+                    <label for="searchId" class="form-label">ID Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa fa-tag"></i></span>
+                        <input type="text" id="searchId" class="form-control" placeholder="ID or comma-separated IDs..." oninput="searchData()" />
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label for="searchLog" class="form-label">Log Content</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa fa-file-text-o"></i></span>
+                        <input type="text" id="searchLog" class="form-control" placeholder="Search in log content..." oninput="searchData()" />
+                    </div>                    
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label for="searchRegex" class="form-label">Regex Pattern</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa fa-code"></i></span>
+                        <input type="text" id="searchRegex" class="form-control" placeholder="Search regex patterns..." oninput="searchData()" />
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label for="filterStatusSelect" class="form-label">Status Filter</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa fa-filter"></i></span>
+                        <select id="filterStatusSelect" class="form-select" onchange="searchData()">
+                            <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                            <option value="{{ status }}">{{ status }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter and Actions Row -->
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-2 col-md-6">
+                    <button id="clearSearchButton" class="btn btn-secondary" onclick="clearSearch()" title="Clear all search fields">
+                        <i class="fa fa-eraser"></i> Reset
+                    </button>
+                </div>
+                
+                <div class="col-lg-10 col-md-8">
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        <button id="refreshButton" class="btn btn-outline-secondary" onclick="searchData()" title="Refresh data">
+                            <i class="fa fa-refresh me-1"></i>Refresh
+                        </button>
+                        <button class="btn btn-outline-secondary selectEnable" id="clearSelectionButton" onclick="smartlpSelection.clearSelection()" disabled title="Clear selection">
+                            <i class="fa fa-times me-1"></i>Clear Selection
+                        </button>
+                        <button class="btn btn-outline-secondary selectEnable" id="openParserButton" onclick="openParserWindow()" disabled title="Parse selected entries">
+                            <i class="fa fa-edit me-1"></i>Parse
+                        </button>                        
+                        <button class="btn btn-outline-secondary selectEnable" id="openConfigPanel" onclick="handleCreateConfig()" title="Open configuration panel">
+                            <i class="fa fa-cog me-1"></i>Open Config Panel
+                        </button>
+                        <button class="btn btn-outline-secondary selectEnable" id="deleteEntriesButton" onclick="deleteEntries()" disabled title="Delete selected entries">
+                            <i class="fa fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+    <!-- Pagination Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
+                <!-- Pagination Navigation -->
+                <nav aria-label="Page navigation" class="order-2 order-lg-1">
+                    <ul class="pagination mb-0 pagination-sm">
+                        <!-- Previous Button -->
+                        <li id="prevPageItem" class="page-item">
+                            <button id="prevPage" class="page-link" onclick="changePage('prev')" title="Previous page">
+                                <i class="fa fa-chevron-left me-1"></i>Previous
+                            </button>
+                        </li>
+                    
+                        <!-- Page number buttons (dynamically populated) -->
+                        <div id="pagination-buttons" class="d-flex align-items-center"></div>
+                    
+                        <!-- Next Button -->
+                        <li id="nextPageItem" class="page-item">
+                            <button id="nextPage" class="page-link" onclick="changePage('next')" title="Next page">
+                                Next<i class="fa fa-chevron-right ms-1"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>                
+                <!-- Page Info and Jump -->
+                <div class="pagination-controls order-1 order-lg-2">
+                    <small class="text-muted" id="pageInfo">
+                        <!-- Page info will be populated by JavaScript -->
+                    </small>
+                    
+                    <!-- Rows per page selector -->
+                    <div class="rows-per-page-control">
+                        <label for="rowsPerPage" class="form-label small mb-0 text-nowrap">Rows:</label>
+                        <select id="rowsPerPage" class="form-select form-select-sm" onchange="changeRowsPerPage()" title="Rows per page">
+                            <option value="10">10</option>
+                            <option value="15" selected>15</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input type="number" id="customRowsInput" class="form-control form-control-sm" style="display: none;" 
+                               min="1" max="200" placeholder="Custom" title="Custom rows per page" onchange="applyCustomRows()" />
+                    </div>
+                    
+                    <form class="d-flex align-items-center gap-2" id="goToPageForm" onsubmit="event.preventDefault(); changePage(parseInt(document.getElementById('pageInput').value))">
+                        <label for="pageInput" class="form-label small mb-0 text-nowrap">Go to:</label>
+                        <input type="number" id="pageInput" class="form-control form-control-sm" style="width: 80px;"
+                                min="1" placeholder="Page" title="Enter page number" />
+                        <button id="goToPage" class="btn btn-outline-primary btn-sm" type="submit" title="Go to page">
+                            <i class="fa fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>    
+    
+    <!-- Entry Modal -->
+    <div id="entryModal" class="modal fade" tabindex="-1" aria-labelledby="entryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="entryModalLabel">Entry Details</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ID Section -->
+                    <div class="mb-3">
+                        <label>ID</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalId"></code>
+                        </pre>
+                    </div>
+                    <!-- Timestamp Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Entry creation timestamp">Timestamp</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalTimestamp"></code>
+                        </pre>
+                    </div>
+                    <!-- Index Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="New index to parse similar logs">Index</label>
+                        <input type="text" class="form-control" id="modalIndex">
+                    </div>
+                    <!-- Source Type Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Custom tag for classifying logs">Source Type</label>
+                        <input type="text" class="form-control" id="modalSourceType">
+                    </div>
+                    <!-- Log Type Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Logtype as determined by LLM">Suggested Log Type</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalLogType"></code>
+                        </pre>
+                    </div>
+                    <!-- RuleType Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Suggested Rule Types">Suggested Rule Type</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalRuleTypes"></code>
+                        </pre>
+                    </div>
+                    <!-- Log Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Log content">Log</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalLog"></code>
+                        </pre>
+                    </div>
+                    <!-- Regex Section -->
+                    <div class="mb-3">
+                        <label  data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="LLM-generated regex for the log">Regex</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalRegex"></code>
+                        </pre>
+                    </div>
+                    <!-- Status Section -->
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Log's parsing state">Status</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalStatus"></code>
+                        </pre>
+                    </div>
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Retrieved from following SIEM">SIEM</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalSiem"></code>
+                        </pre>
+                    </div>
+                    <div class="mb-3">
+                        <label data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Retrieved using following search query">Query</label>
+                        <pre class="bg-light border rounded p-2 text-wrap position-relative" style="min-height: 40px;">
+                            <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
+                            <code id="modalQuery"></code>
+                        </pre>
+                    </div>
+                </div>
+                <div id="modalButtons" class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-outline-secondary modalButton" id="openParserButton" onclick="openParserWindow()">
+                        <i class="fa fa-edit"></i> Parse
+                    </button>
+                    <button class="btn btn-outline-secondary modalButton" id="deleteEntriesButton" onclick="deleteEntries()">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                    <button class="btn btn-outline-secondary" id="saveEntryChangesBtn">
+                        <i class="fa fa-save"></i> Save Changes
+                    </button>
+                    <button class="btn btn-outline-secondary" id="openConfigPanelBtn" onclick="handleCreateConfig()">
+                        <i class="fa fa-cog"></i> Open Config Panel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-table me-2"></i>Log Entries
+            </h6>            <small class="text-muted" id="resultsCount">
+                <!-- Results count will be populated by JavaScript -->
+            </small>
+            <div id="smartlpLogger" class="badge bg-info fs-6"></div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="entryTable" class="table table-hover mb-0 entry-table">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th id="entry_id" class="fw-semibold">
+                                <i class="fa fa-tag me-1"></i>ID
+                            </th>
+                            <th id="entry_timestamp" class="fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Entry creation timestamp">
+                                <i class="fa fa-clock-o me-1"></i>Timestamp
+                            </th>
+                            <th id="entry_log" class="fw-semibold">
+                                <i class="fa fa-file-text-o me-1"></i>Log Content
+                            </th>
+                            <th id="entry_regex" class="fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="LLM-generated regex for the log">
+                                <i class="fa fa-code me-1"></i>Regex Pattern
+                            </th>
+                            <th id="entry_status" class="fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Log's parsing state">
+                                <i class="fa fa-info-circle me-1"></i>Status
+                            </th>
+                            <th id="entry_action" class="fw-semibold text-center" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Use checkboxes for bulk actions">
+                                <i class="fa fa-check-square-o me-1"></i>Select
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="entryTableBody">
+                        <!-- Results will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div id="popupBox" class="popup-box collapsed">
+        <div class="popup-header" onclick="togglePopup()">
+            <button class="arrow-btn"><i class="fa fa-chevron-up"></i></button>
+            <span class="flex-grow-1 text-center">Configuration Panel</span>
+        </div>        
+        <div class="popup-content">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Smart Log Config</h5>
+                <small class="text-muted" id="configSelectionCounter">
+                    <i class="fa fa-list me-1"></i>
+                    <span id="configSelectionCount">0</span> entries
+                </small>
+            </div>
+
+            <div class="table-responsive">            
+                <table id="configTable" class="table table-bordered table-hover table-striped entry-table">
+                    <thead class="table-light">
+                    <tr>
+                        <th id="entry_id">ID</th>
+                        <th id="entry_timestamp" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Entry creation timestamp">Time</th>
+                        <th id="entry_index" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="New index to parse similar logs">Index</th>
+                        <th id="entry_sourcetype"data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Custom tag for classifying logs">SourceType</th>
+                        <th id="entry_log">Log</th>
+                        <th id="entry_action" class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Remove from configuration">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="configTableBody">
+                        {% for entry in entries %}
+                            <tr>
+                                <td>{{ entry.id }}</td>
+                                <td>{{ entry.timestamp }}</td>
+                                <td>{{ entry.index }}</td>
+                                <td>{{ entry.source_type }}</td>
+                                <td>{{ entry.log }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div id="smartlpConfigLogger"></div>
+                <button type="button" class="btn btn-primary btn-sm" id="validateAndConfig">
+                    <i class="fa fa-upload"></i> Create Config
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div id="configModal" class="modal fade" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="configModalLabel">Generated Config</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="codeblock-with-lines">
+                    <pre class="bg-light border rounded mb-0 p-3" style="position:relative; overflow:auto;">
+<code id="configPreview" class="config-preview" style="white-space:pre; display:block;">Placeholder config will appear here...</code>
+                    </pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-success" onclick="deploy()">Deploy</button>
+                <button class="btn btn-success" id="hfBtn" onclick="deployHF()" style="display: none;">Deploy to HF</button>
+                <!-- Add deployment feedback area -->
+                <div id="deploymentFeedback" class="w-100 mt-2" style="display: none;">
+                    <div class="alert mb-0" role="alert" id="deploymentMessage"></div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="modal fade" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <label class="modal-title" id="errorModalLabel"><i class="fa fa-exclamation-triangle" style="color: #ffa70f;"></i> Error</label>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="errorMessage"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
