@@ -16,8 +16,3 @@ def register_main_routes(app: Flask) -> None:
     def dashboard():
         """Main dashboard page."""
         return render_template("dashboard.html", page_title="SmartSOC")
-    
-    @app.route("/smartdb")
-    def smartdb():
-        """SmartDB dashboard page."""
-        return render_template("smartdb.html", page_title="SmartSOC Dashboard")

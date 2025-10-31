@@ -886,7 +886,7 @@ async function updateSmartUCConfigField(entryId, field, value, siem) {
 /**
  * Deploy entries to Ansible
  * @param {Array<string>} ids - Array of entry IDs to deploy
- * @param {string} type - The deployment type (e.g., 'smartlp', 'smartuc')
+ * @param {string} type - The deployment type (e.g., 'smartlp')
  * @returns {Promise<Object>} - The deployment response
  */
 async function deployToAnsible(ids, type) {
@@ -899,7 +899,7 @@ async function deployToAnsible(ids, type) {
 /**
  * Deploy entries to Ansible with UI feedback
  * @param {Array<string>} ids - Array of entry IDs to deploy
- * @param {string} type - The deployment type (e.g., 'smartlp', 'smartuc')
+ * @param {string} type - The deployment type (e.g., 'smartlp')
  * @param {Object} options - UI configuration options
  * @param {string} options.deployBtnSelector - CSS selector for deploy button
  * @param {string} options.feedbackDivId - ID of feedback container element

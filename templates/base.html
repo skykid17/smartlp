@@ -54,35 +54,12 @@
                         </ul>
                     </li>
 
-                    <!-- SmartUC Dropdown -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link text-white" href="{{ url_for('smartuc') }}">
-                            SmartUC
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item" href="{{ url_for('smartuc') }}">Overview</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('attacknavigator') }}">ATT&CK Navigator</a>
-                            </li>
-                        </ul>
-                    </li>
-
-                    <!-- SmartDB -->
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('smartdb') }}">SmartDB</a>
-                    </li>
-
                     <!-- SmartReport -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link text-white">
-                            SmartReport
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-dark">
-                            <li><a class="dropdown-item" href="{{ url_for('smartlp_report') }}">SmartLP</a></li>
-                            <li><a class="dropdown-item">SmartUC</a></li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{{ url_for('smartlp_report') }}">SmartReport</a>
                     </li>
 
-                    <!-- Report -->
+                    <!-- Settings -->
                     <li class="nav-item">
                         <a class="nav-link text-white" href="{{ url_for('settings') }}">Settings</a>
                     </li>
