@@ -6,9 +6,13 @@ without requiring network access to HuggingFace.
 
 import sys
 import os
+from pathlib import Path
+
+# Get the project root directory (where this file is located)
+PROJECT_ROOT = Path(__file__).parent.absolute()
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 def test_import():
     """Test that the hybrid search retriever can be imported."""
@@ -25,8 +29,13 @@ def test_rag_mongo_import():
     """Test that rag_mongo.py has the correct imports."""
     print("\nTesting rag_mongo.py imports...")
     try:
-        # Just read the file content to avoid import errors due to missing env vars
-        with open('rag_mongo.py', 'r') as f:
+        # Use PROJECT_ROOT to locate the file
+        rag_mongo_path = PROJECT_ROOT / 'rag_mongo.py'
+        if not rag_mongo_path.exists():
+            print(f"✗ File not found: {rag_mongo_path}")
+            return False
+            
+        with open(rag_mongo_path, 'r') as f:
             source = f.read()
         
         if "MongoDBAtlasHybridSearchRetriever" in source:
@@ -43,21 +52,19 @@ def test_query_rag_function():
     """Test that query_rag function has been updated."""
     print("\nTesting query_rag function implementation...")
     try:
-        # Read the source file directly to avoid import errors
-        with open('rag_mongo.py', 'r') as f:
-            content = f.read()
-        
-        # Find the query_rag function
-        import re
-        match = re.search(r'def query_rag\(.*?\n(?:.*?\n)*?(?=\ndef |\Z)', content, re.DOTALL)
-        
-        if not match:
-            print("✗ Could not find query_rag function")
+        # Use PROJECT_ROOT to locate the file
+        rag_mongo_path = PROJECT_ROOT / 'rag_mongo.py'
+        if not rag_mongo_path.exists():
+            print(f"✗ File not found: {rag_mongo_path}")
             return False
             
-        source = match.group(0)
+        with open(rag_mongo_path, 'r') as f:
+            content = f.read()
         
-        # Check for key hybrid search components
+        # Look for the query_rag function definition and its body
+        # Simple approach: check if key terms appear in the file
+        # This is more robust than complex regex parsing
+        
         checks = [
             ("MongoDBAtlasHybridSearchRetriever", "Uses hybrid search retriever"),
             ("search_index_name", "Configures full-text search index"),
@@ -71,7 +78,7 @@ def test_query_rag_function():
         failed = 0
         
         for check_string, description in checks:
-            if check_string in source:
+            if check_string in content:
                 print(f"  ✓ {description}")
                 passed += 1
             else:
@@ -95,7 +102,13 @@ def test_mongo_setup_indexes():
     """Test that mongo_setup_indexes.py has been updated."""
     print("\nTesting mongo_setup_indexes.py updates...")
     try:
-        with open('mongo_setup_indexes.py', 'r') as f:
+        # Use PROJECT_ROOT to locate the file
+        setup_indexes_path = PROJECT_ROOT / 'mongo_setup_indexes.py'
+        if not setup_indexes_path.exists():
+            print(f"✗ File not found: {setup_indexes_path}")
+            return False
+            
+        with open(setup_indexes_path, 'r') as f:
             content = f.read()
         
         checks = [

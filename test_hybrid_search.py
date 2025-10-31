@@ -15,8 +15,11 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Get the project root directory (where this file is located)
+PROJECT_ROOT = Path(__file__).parent.absolute()
+
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 def test_imports():
     """Test that all required imports work."""
