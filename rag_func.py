@@ -1,5 +1,3 @@
-import db
-import utility
 import os
 import sys
 import logging
@@ -8,9 +6,17 @@ import json
 import hashlib
 import datetime
 from pathlib import Path
-from typing import List, Dict, Set
+from typing import List, Dict
 import yaml
 import chromadb
+
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from database.connection import get_db_connection
+from services.settings import SettingsService
+from utils.logging import log_message
 from langchain.chains import RetrievalQA
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI
@@ -31,6 +37,17 @@ persistent_client = chromadb.PersistentClient(
         is_persistent=True
     )
 )
+
+settings_service = SettingsService()
+
+
+def get_global_settings() -> Dict:
+    """Fetch global application settings with graceful fallback."""
+    try:
+        return settings_service.get_global_settings()
+    except Exception as exc:
+        logging.error("Failed to load global settings: %s", exc)
+        return {}
 
 class FileMetadata:
     """Helper class to manage file metadata for change detection"""
@@ -740,14 +757,23 @@ def query_rag(collection: str,
         embedding_function=embeddings,
         collection_name=collection
     )
-    endpoint_id = utility.get_settings().get("activeLlmEndpoint")
-    url = db.db_query(db.mongo_settings_llms, filter={"id": endpoint_id}, limit=1).get("url")
+    settings = get_global_settings()
+    endpoint_id = settings.get("activeLlmEndpoint")
+    if not endpoint_id:
+        raise RuntimeError("Active LLM endpoint is not configured")
+
+    db_connection = get_db_connection()
+    llms_collection = db_connection.get_collection('llms_settings')
+    endpoint_doc = llms_collection.find_one({"id": endpoint_id}) or {}
+    url = endpoint_doc.get("url")
+    if not url:
+        raise RuntimeError("LLM endpoint URL is not configured for the active endpoint")
     url = url.split("/v1")[0] + "/v1"
 
     llm = ChatOpenAI(
         base_url=url,
         api_key="EMPTY",
-        model=utility.get_settings().get("activeLlm"),
+        model=settings.get("activeLlm"),
         temperature=0.2
     )
     
@@ -760,20 +786,20 @@ def query_rag(collection: str,
 
     result = qa_chain.invoke({"query": query})
 
-    utility.log_message('log', f"Answer: {result['result']}")
-    utility.log_message('log', f"Source documents:")
+    log_message('log', f"Answer: {result['result']}")
+    log_message('log', f"Source documents:")
     for i, doc in enumerate(result['source_documents']):
-        utility.log_message('log', f"\nDocument {i+1}:")
-        utility.log_message('log', f"Content: {doc.page_content[:100]}...")
+        log_message('log', f"\nDocument {i+1}:")
+        log_message('log', f"Content: {doc.page_content[:100]}...")
         if hasattr(doc, 'metadata'):
-            utility.log_message('log', f"Source: {doc.metadata}")
+            log_message('log', f"Source: {doc.metadata}")
 
     return result["result"], 200, result["source_documents"]
 
 
 # ============================= Example usage ========================================
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
     # Create initial embeddings (clean slate)
     # success = create_embeddings("./rag/repos/splunk_repo", "splunk_addons")
 
@@ -810,6 +836,6 @@ def query_rag(collection: str,
     # Remove specific file from collection
     # success = delete_file_from_collection("splunk_addons", "configs/cisco.yaml")
 
-    # query = '''Given a regular expression, replace field names denoted by (?P<fieldname>) with elastic common schema field names. Return the full regular expression with modified field names. The regular expression is: ^<(?P<priority>\d+)>(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<hostname>[\w\-.]+)\s+\d+,(?P<event_time>[\d\/:\s]*),(?P<generated_time>[\d\/:\s]*),(?P<process>\S+),(?P<pid>\d+),(?P<content>.+?)$'''
-    # Query the RAG (unchanged)
-    # result, status, sources = query_rag("elastic_fields", query)
+    # Example RAG query
+    query = '''Given a regular expression, replace field names denoted by (?P<fieldname>) with elastic common schema field names. Return the full regular expression with modified field names. The regular expression is: ^<(?P<priority>\d+)>(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<hostname>[\w\-.]+)\s+\d+,(?P<event_time>[\d\/:\s]*),(?P<generated_time>[\d\/:\s]*),(?P<process>\S+),(?P<pid>\d+),(?P<content>.+?)$'''
+    result, status, sources = query_rag("elastic_fields", query)

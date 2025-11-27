@@ -1,12 +1,12 @@
-"""
-Database connection and basic operations for SmartSOC.
-"""
+"""Database connection and basic operations for SmartSOC."""
 
 import logging
+import threading
+import time
 from typing import Optional, Dict, List, Any, Union
 from pymongo import MongoClient, DESCENDING, ASCENDING
 from pymongo.collection import Collection
-from pymongo.errors import ConnectionFailure, OperationFailure
+from pymongo.errors import ConnectionFailure
 
 from config.settings import config
 
@@ -18,22 +18,63 @@ class DatabaseError(Exception):
     pass
 
 
+DEFAULT_MAX_ATTEMPTS = getattr(config.database, "connection_attempts", 3)
+DEFAULT_BACKOFF_SECONDS = getattr(config.database, "connection_backoff_seconds", 1.0)
+HEALTH_CHECK_INTERVAL = getattr(config.database, "connection_health_interval", 30.0)
+
+
 class DatabaseConnection:
     """Manages MongoDB connections and provides basic CRUD operations."""
-    
+
     def __init__(self):
-        """Initialize database connection."""
         self._client: Optional[MongoClient] = None
         self._databases: Dict[str, Any] = {}
         self._collections: Dict[str, Collection] = {}
-        self._connect()
-    
-    def _connect(self) -> None:
-        """Establish connection to MongoDB."""
+        self._last_health_check: float = 0.0
+
+    def connect(self, max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+                backoff_seconds: float = DEFAULT_BACKOFF_SECONDS) -> None:
+        """Attempt to establish a connection with retry/backoff."""
+        last_error: Optional[Exception] = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                self._connect_once()
+                return
+            except DatabaseError as exc:
+                last_error = exc
+                if attempt == max_attempts:
+                    break
+                sleep_for = backoff_seconds * attempt
+                logger.warning(
+                    "MongoDB connection attempt %s/%s failed: %s. Retrying in %.1fs",
+                    attempt, max_attempts, exc, sleep_for
+                )
+                time.sleep(max(sleep_for, 0))
+
+        if last_error:
+            raise last_error
+
+    def ensure_connection(self) -> None:
+        """Ensure an active connection exists, reconnecting if needed."""
+        if self._client is None:
+            self.connect()
+            return
+
+        if not self.is_healthy():
+            logger.warning("MongoDB health check failed; reconnecting")
+            self.connect()
+
+    def _connect_once(self) -> None:
+        """Establish connection to MongoDB without retries."""
+        self.close()
         try:
-            self._client = MongoClient(config.database.mongo_url)
-            # Test connection
-            self._client.admin.command('ismaster')
+            self._client = MongoClient(
+                config.database.mongo_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000,
+            )
+            self._client.admin.command('ping')
             logger.info("Successfully connected to MongoDB")
             self._initialize_collections()
         except ConnectionFailure as e:
@@ -42,94 +83,62 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Unexpected error connecting to MongoDB: {e}")
             raise DatabaseError(f"Database initialization error: {e}")
-    
+
     def _initialize_collections(self) -> None:
         """Initialize database collections."""
         try:
             # Parser database
             parser_db = self._client[config.database.parser_db_name]
             self._collections['parser_entries'] = parser_db[config.database.parser_entries_collection]
-            self._collections['prefix_entries'] = parser_db['prefix_entries']  # Add prefix collection
-            
+            self._collections['prefix_entries'] = parser_db['prefix_entries']
+
             # Settings database
             settings_db = self._client[config.database.settings_db_name]
             self._collections['global_settings'] = settings_db[config.database.global_settings_collection]
             self._collections['llms_settings'] = settings_db[config.database.llms_settings_collection]
             self._collections['siems_settings'] = settings_db[config.database.siems_settings_collection]
-            
+
             # MITRE database
             mitre_db = self._client[config.database.mitre_db_name]
             self._collections['sigma_rules'] = mitre_db[config.database.sigma_rules_collection]
             self._collections['splunk_rules'] = mitre_db[config.database.splunk_rules_collection]
             self._collections['elastic_rules'] = mitre_db[config.database.elastic_rules_collection]
             self._collections['secops_rules'] = mitre_db[config.database.secops_rules_collection]
-            
+
             # MITRE Techniques database
             mitre_tech_db = self._client[config.database.mitre_tech_db_name]
             self._collections['mitre_techniques'] = mitre_tech_db[config.database.mitre_techniques_collection]
-            
+
             logger.info("Database collections initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize collections: {e}")
             raise DatabaseError(f"Collection initialization failed: {e}")
     
     def get_collection(self, collection_name: str) -> Collection:
-        """Get a collection by name.
-        
-        Args:
-            collection_name: Name of the collection
-            
-        Returns:
-            MongoDB collection object
-            
-        Raises:
-            DatabaseError: If collection doesn't exist
-        """
+        """Get a collection by name."""
+        self.ensure_connection()
+
         if collection_name not in self._collections:
             raise DatabaseError(f"Collection '{collection_name}' not found")
         return self._collections[collection_name]
-    
-    def query(self, collection_name: str, filter_dict: Optional[Dict] = None, 
-              projection: Optional[Dict] = None, skip: int = 0, limit: int = 0, 
+
+    def query(self, collection_name: str, filter_dict: Optional[Dict] = None,
+              projection: Optional[Dict] = None, skip: int = 0, limit: int = 0,
               sort: Optional[List] = None, **kwargs) -> Union[Dict, List]:
-        """Execute a query on a collection.
-        
-        Args:
-            collection_name: Name of the collection
-            filter_dict: MongoDB filter dictionary
-            projection: Fields to include/exclude
-            skip: Number of documents to skip
-            limit: Maximum number of documents to return (0 = no limit)
-            sort: Sort criteria
-            **kwargs: Additional query options
-            
-        Returns:
-            Query results (single document if limit=1, cursor otherwise)
-        """
+        """Execute a query on a collection."""
         try:
             collection = self.get_collection(collection_name)
-            
+
             if limit == 1:
                 return collection.find_one(filter_dict, projection, skip=skip, sort=sort, **kwargs)
-            else:
-                cursor = collection.find(filter_dict, projection, skip=skip, limit=limit, sort=sort, **kwargs)
-                return list(cursor)
+            cursor = collection.find(filter_dict, projection, skip=skip, limit=limit, sort=sort, **kwargs)
+            return list(cursor)
         except Exception as e:
             logger.error(f"Query failed on collection '{collection_name}': {e}")
             raise DatabaseError(f"Query operation failed: {e}")
-    
+
     def update_one(self, collection_name: str, filter_dict: Dict, update_dict: Dict, **kwargs) -> bool:
-        """Update a single document.
-        
-        Args:
-            collection_name: Name of the collection
-            filter_dict: Filter to match documents
-            update_dict: Update operations
-            **kwargs: Additional update options
-            
-        Returns:
-            True if document was modified, False otherwise
-        """
+        """Update a single document."""
         try:
             collection = self.get_collection(collection_name)
             result = collection.update_one(filter_dict, update_dict, **kwargs)
@@ -137,19 +146,9 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Update failed on collection '{collection_name}': {e}")
             raise DatabaseError(f"Update operation failed: {e}")
-    
+
     def update_many(self, collection_name: str, filter_dict: Dict, update_dict: Dict, **kwargs) -> int:
-        """Update multiple documents.
-        
-        Args:
-            collection_name: Name of the collection
-            filter_dict: Filter to match documents
-            update_dict: Update operations
-            **kwargs: Additional update options
-            
-        Returns:
-            Number of documents modified
-        """
+        """Update multiple documents."""
         try:
             collection = self.get_collection(collection_name)
             result = collection.update_many(filter_dict, update_dict, **kwargs)
@@ -252,115 +251,63 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Distinct failed on collection '{collection_name}': {e}")
             raise DatabaseError(f"Distinct operation failed: {e}")
+
+    def is_healthy(self) -> bool:
+        """Return True if the current connection responds to ping."""
+        if not self._client:
+            return False
+
+        now = time.monotonic()
+        if now - self._last_health_check < HEALTH_CHECK_INTERVAL:
+            return True
+
+        try:
+            self._client.admin.command('ping')
+            self._last_health_check = now
+            return True
+        except Exception as exc:
+            logger.warning(f"MongoDB health check failed: {exc}")
+            return False
     
     def close(self) -> None:
         """Close database connection."""
         if self._client:
-            self._client.close()
-            logger.info("Database connection closed")
+            try:
+                self._client.close()
+            finally:
+                self._client = None
+                self._collections.clear()
+                logger.info("Database connection closed")
 
 
-# Global database instance
-db_connection = DatabaseConnection()
+# Global database accessor helpers
+_connection_lock = threading.Lock()
+_db_connection_instance: Optional[DatabaseConnection] = None
 
-# Backward compatibility - expose constants and functions for existing code
-DESCENDING = DESCENDING
-ASCENDING = ASCENDING
 
-def db_query(collection, filter_dict=None, projection=None, skip=0, limit=0, sort=None, **kwargs):
-    """Backward compatibility wrapper for query operations."""
-    # Extract collection name from collection object if needed
-    if hasattr(collection, 'name'):
-        collection_name = collection.name
-    else:
-        # Map collection objects to names for backward compatibility
-        collection_mapping = {
-            'parser_entries': 'parser_entries',
-            'global_settings': 'global_settings',
-            'llms_settings': 'llms_settings',
-            'siems_settings': 'siems_settings',
-            'sigma_rules': 'sigma_rules',
-            'splunk_rules': 'splunk_rules',
-            'elastic_rules': 'elastic_rules',
-            'secops_rules': 'secops_rules',
-            'mitre_techniques': 'mitre_techniques',
-        }
-        collection_name = str(collection)
-        for key in collection_mapping:
-            if key in collection_name:
-                collection_name = key
-                break
-    
-    return db_connection.query(collection_name, filter_dict, projection, skip, limit, sort, **kwargs)
+def get_db_connection(force_refresh: bool = False) -> DatabaseConnection:
+    """Return an initialized DatabaseConnection, lazily creating it."""
+    global _db_connection_instance
 
-def db_update_one(collection, filter_dict, update_dict, **kwargs):
-    """Backward compatibility wrapper for update_one operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.update_one(collection_name, filter_dict, update_dict, **kwargs)
+    with _connection_lock:
+        if _db_connection_instance is None:
+            _db_connection_instance = DatabaseConnection()
 
-def db_update_many(collection, filter_dict, update_dict, **kwargs):
-    """Backward compatibility wrapper for update_many operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.update_many(collection_name, filter_dict, update_dict, **kwargs)
+        if force_refresh:
+            _db_connection_instance.close()
 
-def db_insert_one(collection, document, **kwargs):
-    """Backward compatibility wrapper for insert_one operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.insert_one(collection_name, document, **kwargs)
+        _db_connection_instance.ensure_connection()
+        return _db_connection_instance
 
-def db_delete_one(collection, filter_dict, **kwargs):
-    """Backward compatibility wrapper for delete_one operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.delete_one(collection_name, filter_dict, **kwargs)
 
-def db_delete_many(collection, filter_dict, **kwargs):
-    """Backward compatibility wrapper for delete_many operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.delete_many(collection_name, filter_dict, **kwargs)
+class _DatabaseConnectionProxy:
+    """Proxy that defers attribute access until a connection is requested."""
 
-def db_count(collection, filter_dict, **kwargs):
-    """Backward compatibility wrapper for count operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.count_documents(collection_name, filter_dict, **kwargs)
+    def __getattr__(self, item):
+        return getattr(get_db_connection(), item)
 
-def get_unique_values(collection, field, filter_dict=None, **kwargs):
-    """Backward compatibility wrapper for distinct operations."""
-    collection_name = _get_collection_name(collection)
-    return db_connection.get_distinct_values(collection_name, field, filter_dict, **kwargs)
+    def __repr__(self) -> str:
+        return "<LazyDatabaseConnectionProxy>"
 
-def _get_collection_name(collection):
-    """Helper to extract collection name for backward compatibility."""
-    if hasattr(collection, 'name'):
-        return collection.name
-    
-    # Map common collection references
-    collection_mapping = {
-        'mongo_parser_entries': 'parser_entries',
-        'mongo_settings_global': 'global_settings',
-        'mongo_settings_llms': 'llms_settings',
-        'mongo_settings_siems': 'siems_settings',
-        'mongo_collection_sigmarules': 'sigma_rules',
-        'mongo_collection_splunk': 'splunk_rules',
-        'mongo_collection_elastic': 'elastic_rules',
-        'mongo_collection_secops': 'secops_rules',
-        'mongo_collection_mitretech': 'mitre_techniques',
-    }
-    
-    collection_str = str(collection)
-    for key, value in collection_mapping.items():
-        if key in collection_str:
-            return value
-    
-    # Default fallback
-    return 'parser_entries'
 
-# Expose collections for backward compatibility
-mongo_parser_entries = db_connection.get_collection('parser_entries')
-mongo_settings_global = db_connection.get_collection('global_settings')
-mongo_settings_llms = db_connection.get_collection('llms_settings')
-mongo_settings_siems = db_connection.get_collection('siems_settings')
-mongo_collection_sigmarules = db_connection.get_collection('sigma_rules')
-mongo_collection_splunk = db_connection.get_collection('splunk_rules')
-mongo_collection_elastic = db_connection.get_collection('elastic_rules')
-mongo_collection_secops = db_connection.get_collection('secops_rules')
-mongo_collection_mitretech = db_connection.get_collection('mitre_techniques')
+db_connection = _DatabaseConnectionProxy()
