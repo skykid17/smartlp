@@ -100,13 +100,33 @@ class SmartLPService(CRUDService):
                 return
             
             # Perform log ingestion
+            # Normalize SIEM config keys to accept either snake_case or camelCase
+            def _siem_param(conf: dict, snake_name: str, default=None):
+                # e.g. snake_name='search_index' -> camelName='searchIndex'
+                if not isinstance(conf, dict):
+                    return default
+                if snake_name in conf and conf.get(snake_name) not in (None, ''):
+                    return conf.get(snake_name)
+                parts = snake_name.split('_')
+                camel = parts[0] + ''.join(p.capitalize() for p in parts[1:])
+                if camel in conf and conf.get(camel) not in (None, ''):
+                    return conf.get(camel)
+                return default
+
+            search_index = _siem_param(siem_config, 'search_index', '')
+            search_query = _siem_param(siem_config, 'search_query', '')
+            entry_count = int(_siem_param(siem_config, 'search_entry_count', 10) or 10)
+
+            # Log the SIEM query parameters for debugging
+            self.log_info(f"[INGESTION] SIEM search_index='{search_index}' search_query='{search_query}' entry_count={entry_count}")
+
             logs, error = self.ingest_from_siem(
                 active_siem,
-                siem_config.get('search_query', ''),
-                siem_config.get('search_index', ''),
-                int(siem_config.get('search_entry_count', 10))
+                search_query,
+                search_index,
+                entry_count
             )
-            self.log_info(f"[INGESTION] SIEM search_index='{siem_config.get('search_index', '')}' search_query='{siem_config.get('search_query', '')}' entry_count={int(siem_config.get('search_entry_count', 10))}")
+            
             if error:
                 self.log_error(f"[INGESTION] SIEM ingestion failed: {error}")
                 return
