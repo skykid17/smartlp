@@ -323,12 +323,12 @@ def register_smartlp_routes(app: Flask) -> None:
         try:
             from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            
-            # Get ingestion status information
+
+            # Get ingestion status information (backend uses snake_case)
             is_running = smartlp_service._ingestion_running
-            is_enabled = settings.get('ingestOn', False)
-            active_siem = settings.get('activeSiem', 'elastic')
-            frequency = settings.get('ingestFrequency', 30)
+            is_enabled = settings.get('ingest_on', False)
+            active_siem = settings.get('active_siem', 'elastic')
+            frequency = settings.get('ingest_frequency', 30)
             
             # Get recent log counts
             unmatched_count = smartlp_service.get_unmatched_entries_count()
@@ -386,7 +386,7 @@ def register_smartlp_routes(app: Flask) -> None:
             # Determine filename based on active SIEM
             from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            active_siem = settings.get('activeSiem', 'elastic')
+            active_siem = settings.get('active_siem', 'elastic')
             
             if active_siem == 'splunk':
                 filename = f"smartlp_splunk_{len(entry_ids)}_entries.conf"

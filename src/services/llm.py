@@ -68,12 +68,10 @@ class LLMService(BaseService):
             Dictionary containing LLM configuration or None if not found
         """
         try:
-            # Prefer the new settings schema: global settings hold `activeLlmEndpoint`
-            # and `settings_service.get_llm_settings()` returns a list of endpoint docs.
+            # Read active endpoint id from global settings (accept snake_case and camelCase)
             global_settings = settings_service.get_global_settings()
             active_endpoint_id = None
 
-            # Primary keys (camelCase produced by SettingsService)
             if isinstance(global_settings, dict):
                 active_endpoint_id = global_settings.get('active_llm_endpoint')
 
@@ -81,13 +79,22 @@ class LLMService(BaseService):
                 self.log_warning("No active LLM endpoint configured")
                 return None
 
-            # Get list of endpoints using the dedicated getter (returns docs)
+            # Get list of endpoints (stored as-is in DB). Be defensive about key names.
             endpoints = settings_service.get_llm_settings()
             for endpoint in endpoints:
-                if endpoint.get('id') == active_endpoint_id or endpoint.get('name').lower() == active_endpoint_id.lower():
-                    return endpoint
+                if not isinstance(endpoint, dict):
+                    continue
+                eid = endpoint.get('id') or endpoint.get('ID') or endpoint.get('Id')
+                name = endpoint.get('name') or endpoint.get('Name')
 
-            # If not found, log and return None
+                try:
+                    if eid and str(eid).lower() == str(active_endpoint_id).lower():
+                        return endpoint
+                    if name and str(name).lower() == str(active_endpoint_id).lower():
+                        return endpoint
+                except Exception:
+                    continue
+
             self.log_warning(f"Active LLM endpoint '{active_endpoint_id}' not found in configuration")
             return None
 

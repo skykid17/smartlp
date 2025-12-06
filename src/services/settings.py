@@ -32,13 +32,13 @@ class SettingsService(BaseService):
             )
             
             if settings:
-                return convert_key_to_camel(settings)
+                return settings
             else:
                 # Return default settings if none exist
-                return convert_key_to_camel(self._get_default_global_settings())
+                return self._get_default_global_settings()
         except Exception as e:
             self.log_error("Failed to get global settings", e)
-            return convert_key_to_camel(self._get_default_global_settings())
+            return self._get_default_global_settings()
     
     def get_siem_settings(self) -> List[Dict[str, Any]]:
         """Get SIEM configuration settings.
@@ -52,8 +52,8 @@ class SettingsService(BaseService):
                 {"category": "siem_config"},
                 projection={"_id": 0}
             ))
-
-            return [convert_key_to_camel(siem) for siem in siems]
+            
+            return siems
         except Exception as e:
             self.log_error("Failed to get SIEM settings", e)
             return []
@@ -70,68 +70,32 @@ class SettingsService(BaseService):
                 {"category": "llm_config"},
                 projection={"_id": 0}
             ))
-
-            return [convert_key_to_camel(llm) for llm in llms]
-
-    # --- Raw (snake_case) getters for internal backend use ---
-    def get_global_settings_snake(self) -> Dict[str, Any]:
-        """Return global settings as stored in DB (snake_case keys) for internal use."""
-        try:
-            settings = self.db.query(
-                'config',
-                {"category": "global_config"},
-                {"_id": 0, "amendments": 0},
-                limit=1
-            )
-
-            if settings:
-                return settings
-            else:
-                return self._get_default_global_settings()
-        except Exception as e:
-            self.log_error("Failed to get global settings (snake)", e)
-            return self._get_default_global_settings()
-
-    def get_siem_settings_snake(self) -> List[Dict[str, Any]]:
-        """Return SIEM settings as stored in DB (snake_case keys) for internal use."""
-        try:
-            siems = list(self.db.query(
-                'config',
-                {"category": "siem_config"},
-                projection={"_id": 0}
-            ))
-            return siems
-        except Exception as e:
-            self.log_error("Failed to get SIEM settings (snake)", e)
-            return []
-
-    def get_llm_settings_snake(self) -> List[Dict[str, Any]]:
-        """Return LLM endpoint settings as stored in DB (snake_case keys) for internal use."""
-        try:
-            llms = list(self.db.query(
-                'config',
-                {"category": "llm_config"},
-                projection={"_id": 0}
-            ))
+            
             return llms
-        except Exception as e:
-            self.log_error("Failed to get LLM settings (snake)", e)
-            return []
         except Exception as e:
             self.log_error("Failed to get LLM settings", e)
             return []
     
     def get_all_settings(self) -> Dict[str, Any]:
-        """Get all application settings.
+        """Get all application settings (for frontend).
         
         Returns:
             All settings grouped by category
         """
-        return {
-            "settings": self.get_global_settings(),
-            "siems": self.get_siem_settings(),
-            "llmEndpoints": self.get_llm_settings()
-        }
+        # Convert backend (snake_case) docs to camelCase for frontend/API responses
+        try:
+            global_settings = self.get_global_settings() or {}
+            siems = self.get_siem_settings() or []
+            llms = self.get_llm_settings() or []
+
+            return {
+                "settings": convert_key_to_camel(global_settings) if isinstance(global_settings, dict) else {},
+                "siems": [convert_key_to_camel(s) for s in siems],
+                "llmEndpoints": [convert_key_to_camel(l) for l in llms]
+            }
+        except Exception as e:
+            self.log_error("Failed to prepare frontend settings response", e)
+            return {"settings": {}, "siems": [], "llmEndpoints": []}
     
     def get_human_friendly_change_description(self, field: str, new_value: Any, current_siems: Dict = None, current_llms: Dict = None) -> str:
         """Generate human-friendly change descriptions.
@@ -384,7 +348,8 @@ class SettingsService(BaseService):
             Active SIEM type or None if not configured
         """
         settings = self.get_global_settings()
-        return settings.get('activeSiem')
+        # Backend stores snake_case; be defensive and accept either
+        return settings.get('active_siem') or settings.get('activeSiem')
     
     def set_active_siem(self, siem_type: str) -> bool:
         """Set the active SIEM type.

@@ -77,17 +77,18 @@ class SmartLPService(CRUDService):
             from services.settings import settings_service
             settings = settings_service.get_global_settings()
             self.log_info("[INGESTION] Checking ingestion settings...")
-            
-            if not settings.get('ingestOn', False):
+
+            # Backend uses snake_case keys for settings
+            if not settings.get('ingest_on', False):
                 self.log_info("[INGESTION] Log ingestion is disabled in settings")
                 return
-            
-            # Get ingestion parameters
-            active_siem = settings.get('activeSiem', 'elastic')
-            ingest_frequency = int(settings.get('ingestFrequency', 30))
-            similarity_check = settings.get('similarityCheck', False)
-            similarity_threshold = float(settings.get('similarityThreshold', 0.8))
-            fix_count = int(settings.get('fixCount', 3))
+
+            # Get ingestion parameters (snake_case)
+            active_siem = settings.get('active_siem', 'elastic')
+            ingest_frequency = int(settings.get('ingest_frequency', 30))
+            similarity_check = settings.get('similarity_check', False)
+            similarity_threshold = float(settings.get('similarity_threshold', 0.8))
+            fix_count = int(settings.get('fix_count', 3))
             
             self.log_info(f"[INGESTION] Starting ingestion cycle for SIEM: {active_siem}")
             
@@ -98,24 +99,10 @@ class SmartLPService(CRUDService):
             if not siem_config:
                 self.log_error(f"[INGESTION] No configuration found for SIEM: {active_siem}")
                 return
-            
-            # Perform log ingestion
-            # Normalize SIEM config keys to accept either snake_case or camelCase
-            def _siem_param(conf: dict, snake_name: str, default=None):
-                # e.g. snake_name='search_index' -> camelName='searchIndex'
-                if not isinstance(conf, dict):
-                    return default
-                if snake_name in conf and conf.get(snake_name) not in (None, ''):
-                    return conf.get(snake_name)
-                parts = snake_name.split('_')
-                camel = parts[0] + ''.join(p.capitalize() for p in parts[1:])
-                if camel in conf and conf.get(camel) not in (None, ''):
-                    return conf.get(camel)
-                return default
 
-            search_index = _siem_param(siem_config, 'search_index', '')
-            search_query = _siem_param(siem_config, 'search_query', '')
-            entry_count = int(_siem_param(siem_config, 'search_entry_count', 10) or 10)
+            search_index = siem_config.get('search_index', '')
+            search_query = siem_config.get('search_query', '')
+            entry_count = int(siem_config.get('search_entry_count', 10) or 10)
 
             # Log the SIEM query parameters for debugging
             self.log_info(f"[INGESTION] SIEM search_index='{search_index}' search_query='{search_query}' entry_count={entry_count}")
@@ -938,10 +925,10 @@ class SmartLPService(CRUDService):
         try:
             self.log_info(f"Creating SmartLP config for {len(entry_ids)} entries")
             
-            # Get active SIEM from settings
+            # Get active SIEM from settings (snake_case)
             from .settings import settings_service
             settings = settings_service.get_global_settings()
-            active_siem = settings.get('activeSiem', 'elastic')
+            active_siem = settings.get('active_siem', 'elastic')
             
             self.log_info(f"Active SIEM: {active_siem}")
             
