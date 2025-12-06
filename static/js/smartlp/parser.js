@@ -1,18 +1,29 @@
+// Element references used across functions — declare in module scope so
+// all functions can access them (avoids ReferenceError when functions
+// run outside the DOMContentLoaded callback).
+let logDisplay, regexDisplay, matchDisplay, matchLogger;
+let fixButton, generateButton, saveToDBButton;
+let fixSpinner, generateSpinner, saveToDBSpinner;
+
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize if parser section exists (unified interface)
     const parserSection = document.getElementById("parser-section");
     if (parserSection) {
-        // Initialize elements
-        let logDisplay = document.getElementById("logDisplay");
-        let regexDisplay = document.getElementById("regexDisplay");
-        let matchDisplay = document.getElementById("matchDisplay");
-        let matchLogger = document.getElementById("matchLogger");
-        let fixButton = document.getElementById("fixButton");
-        let generateButton = document.getElementById("generateButton");
-        let saveToDBButton = document.getElementById("saveToDBButton");
-        let fixSpinner = document.getElementById('fixSpinner');
-        let generateSpinner = document.getElementById('generateSpinner');
-        let saveToDBSpinner = document.getElementById('saveToDBSpinner');
+        // Assign elements to the module-scope variables
+        logDisplay = document.getElementById("logDisplay");
+        regexDisplay = document.getElementById("regexDisplay");
+        matchDisplay = document.getElementById("matchDisplay");
+        matchLogger = document.getElementById("matchLogger");
+        // Primary logger element used across this module. If an element with id
+        // `logger` is not present in the DOM, fall back to the match logger so
+        // existing UI still receives status messages.
+        logger = document.getElementById("logger") || matchLogger;
+        fixButton = document.getElementById("fixButton");
+        generateButton = document.getElementById("generateButton");
+        saveToDBButton = document.getElementById("saveToDBButton");
+        fixSpinner = document.getElementById('fixSpinner');
+        generateSpinner = document.getElementById('generateSpinner');
+        saveToDBSpinner = document.getElementById('saveToDBSpinner');
 
         // Add event listeners
         addEventIfExists(regexDisplay, "input", findMatch);
@@ -235,24 +246,35 @@ async function findMatch() {
 
         const data = await response.json();
         matchLogger.innerText = data.logger; // Use .innerText and set class manually.
-        if (data.logger.includes("Error")) matchLogger.className = "text-danger";
-        else if (data.logger.includes("Partial")) matchLogger.className = "text-warning";
+        if (data.logger && data.logger.includes("Error")) matchLogger.className = "text-danger";
+        else if (data.logger && data.logger.includes("Partial")) matchLogger.className = "text-warning";
         else if (data.logger == "Fully Matched") matchLogger.className = "text-success";
         matchDisplay.innerText = '';
 
-        if (data.matches && Object.keys(data.matches).length > 0) {
-            // Skip if key starts with 'matched
-            const output = data.matches
+        // Normalize matches shape to an array of [name, {value,start,end}]
+        let matches = [];
+        if (Array.isArray(data.matches)) {
+            matches = data.matches;
+        } else if (data.matches && typeof data.matches === 'object') {
+            matches = Object.entries(data.matches).map(([k, v]) => [k, v]);
+        }
+
+        if (matches && matches.length > 0) {
+            // Skip if key starts with 'matched'
+            const output = matches
                 .filter(([key]) => !key.startsWith('matched'))
-                .map(([key, val]) => `${key}: ${val.value}`)
+                .map(([key, val]) => `${key}: ${val && val.value !== undefined ? val.value : ''}`)
                 .join('\n');
             matchDisplay.innerText = output;
 
             // Highlight matched substrings in the logDisplay
-            highlightMatches(log, data.matches);
+            highlightMatches(log, matches);
         } else {
             // If no matches, display the original log without highlights
             logDisplay.innerText = log;
+            // Remove overlay if present
+            const ov = document.getElementById('logOverlay');
+            if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
         }
     } catch (error) {
         console.error("Error in findMatch:", error);
@@ -261,82 +283,99 @@ async function findMatch() {
 }
 
 function highlightMatches(logText, matches) {
-    const matchArray = matches.filter(([key]) => key == 'matched1'); // Only get first regex match. Rest is ignored 
-    if (matchArray.length === 0) {
-        logDisplay.innerText = logText;
+    // Find the full match (matched1) and capture groups
+    const matchArray = matches.filter(([key]) => key === 'matched1');
+    const full = matchArray.length ? matchArray[0][1] : (matches.length ? matches[0][1] : null);
+    if (!full) {
+        // Nothing to highlight
+        if (logDisplay && (logDisplay.tagName !== 'TEXTAREA' && logDisplay.tagName !== 'INPUT')) {
+            logDisplay.innerText = logText;
+        }
         return;
     }
+
+    const matchValue = full.value || '';
+    const matchStartIndex = typeof full.start === 'number' ? full.start : 0;
+    const matchEndIndex = typeof full.end === 'number' ? full.end : (matchStartIndex + matchValue.length);
+
     const matchGroups = matches.filter(([key]) => !key.startsWith('matched'));
-    console.log(matchGroups);
 
-    const matchValue = matchArray[0][1].value;
-    const matchStartIndex = matchArray[0][1].start;
-    const matchEndIndex = matchArray[0][1].end;
-    logDisplay.innerText = '';
-
-    // Add text before match
-    logDisplay.appendChild(
-        document.createTextNode(logText.substring(0, matchStartIndex))
-    );
-
-    // Add highlighted match
-    const highlightElement = document.createElement('mark');
-    highlightElement.setAttribute('class', 'highlight-base');
-    // Create nested highlights for each capture group
-    if (matchGroups.length > 0) {
-        var processedGroups = [];
-
-        matchGroups.forEach(([groupName, groupData], index) => {
-            // Skip if outside main match
-            if (groupData.start < matchStartIndex || groupData.end > matchEndIndex) {
-                return;
-            }
-
-            // Determine info about the groups
-            const relativeStart = groupData.start - matchStartIndex;
-            const relativeEnd = groupData.end - matchStartIndex;
-            const groupContent = matchValue.substring(relativeStart, relativeEnd);
-            const groupHighlight = document.createElement('mark');
-            groupHighlight.setAttribute('class', index % 2 === 0 ? 'highlight1' : 'highlight2');
-            groupHighlight.setAttribute('title', groupName);
-            groupHighlight.textContent = groupContent;
-
-            // Store information about this group for processing
-            processedGroups.push({
-                start: relativeStart,
-                end: relativeEnd,
-                element: groupHighlight,
-                name: groupName
-            });
-        });
-        // Sort groups by start position (to handle nesting correctly)
-        processedGroups.sort((a, b) => a.start - b.start);
-
-        // Add the groups
-        var lastPosition = 0;
-        for (const group of processedGroups) {
-            if (group.start > lastPosition) {
-                highlightElement.appendChild(
-                    document.createTextNode(matchValue.substring(lastPosition, group.start))
-                );
-            }
-            highlightElement.appendChild(group.element);
-            lastPosition = group.end;
-        }
-
-        // Add any remaining text
-        if (lastPosition < matchValue.length) {
-            highlightElement.appendChild(
-                document.createTextNode(matchValue.substring(lastPosition))
-            );
-        }
+    // Escape HTML
+    function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
-    logDisplay.appendChild(highlightElement);
 
-    logDisplay.appendChild(
-        document.createTextNode(logText.substring(matchEndIndex))
-    );
+    // Build highlighted HTML
+    let highlighted = '';
+    highlighted += escapeHtml(logText.substring(0, matchStartIndex));
+    const inner = matchValue;
 
+    // Build group segments
+    let segments = [];
+    matchGroups.forEach(([groupName, groupData], idx) => {
+        if (!groupData || typeof groupData.start !== 'number' || typeof groupData.end !== 'number') return;
+        if (groupData.start < matchStartIndex || groupData.end > matchEndIndex) return;
+        const relStart = groupData.start - matchStartIndex;
+        const relEnd = groupData.end - matchStartIndex;
+        segments.push({ start: relStart, end: relEnd, name: groupName, idx });
+    });
+    segments.sort((a, b) => a.start - b.start);
+
+    let last = 0;
+    segments.forEach((seg, idx) => {
+        if (seg.start > last) highlighted += escapeHtml(inner.substring(last, seg.start));
+        const cls = (idx % 2 === 0) ? 'highlight1' : 'highlight2';
+        highlighted += `<mark class="${cls}" title="${escapeHtml(seg.name)}">${escapeHtml(inner.substring(seg.start, seg.end))}</mark>`;
+        last = seg.end;
+    });
+    if (last < inner.length) highlighted += escapeHtml(inner.substring(last));
+    highlighted += escapeHtml(logText.substring(matchEndIndex));
+
+    // If the logDisplay is a textarea/input create an overlay to render highlights
+    const isTextInput = logDisplay && (logDisplay.tagName === 'TEXTAREA' || logDisplay.tagName === 'INPUT');
+    if (isTextInput) {
+        const parent = logDisplay.parentNode;
+        if (parent && !parent.classList.contains('log-overlay-container')) {
+            parent.classList.add('log-overlay-container');
+            parent.style.position = parent.style.position || 'relative';
+        }
+
+        let overlay = document.getElementById('logOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'logOverlay';
+            overlay.style.position = 'absolute';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.zIndex = 2;
+            overlay.style.whiteSpace = 'pre-wrap';
+            parent.appendChild(overlay);
+        }
+
+        // copy size and font styles
+        const cs = window.getComputedStyle(logDisplay);
+        overlay.style.top = (logDisplay.offsetTop) + 'px';
+        overlay.style.left = (logDisplay.offsetLeft) + 'px';
+        overlay.style.width = logDisplay.offsetWidth + 'px';
+        overlay.style.height = logDisplay.offsetHeight + 'px';
+        overlay.style.font = cs.font;
+        overlay.style.lineHeight = cs.lineHeight;
+        overlay.style.padding = cs.padding;
+        overlay.style.boxSizing = cs.boxSizing;
+
+        overlay.innerHTML = `<div class="log-highlight-inner">${highlighted}</div>`;
+
+        // make textarea background transparent so overlay is visible
+        logDisplay.style.background = 'transparent';
+        logDisplay.style.position = logDisplay.style.position || 'relative';
+        return;
+    }
+
+    // Inline element: set innerHTML
+    try {
+        logDisplay.innerHTML = highlighted;
+    } catch (e) {
+        logDisplay.innerText = logText;
+    }
 }
 
 async function reduceRegex() {

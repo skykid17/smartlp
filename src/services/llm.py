@@ -68,21 +68,29 @@ class LLMService(BaseService):
             Dictionary containing LLM configuration or None if not found
         """
         try:
-            settings = settings_service.get_all_settings()
-            active_endpoint_id = settings.get('llms', {}).get('active_endpoint')
-            
+            # Prefer the new settings schema: global settings hold `activeLlmEndpoint`
+            # and `settings_service.get_llm_settings()` returns a list of endpoint docs.
+            global_settings = settings_service.get_global_settings()
+            active_endpoint_id = None
+
+            # Primary keys (camelCase produced by SettingsService)
+            if isinstance(global_settings, dict):
+                active_endpoint_id = global_settings.get('active_llm_endpoint')
+
             if not active_endpoint_id:
                 self.log_warning("No active LLM endpoint configured")
                 return None
-                
-            endpoints = settings.get('llms', {}).get('endpoints', [])
+
+            # Get list of endpoints using the dedicated getter (returns docs)
+            endpoints = settings_service.get_llm_settings()
             for endpoint in endpoints:
-                if endpoint.get('id') == active_endpoint_id:
+                if endpoint.get('id') == active_endpoint_id or endpoint.get('name').lower() == active_endpoint_id.lower():
                     return endpoint
-                    
+
+            # If not found, log and return None
             self.log_warning(f"Active LLM endpoint '{active_endpoint_id}' not found in configuration")
             return None
-            
+
         except Exception as e:
             self.log_error(f"Error getting active LLM config: {str(e)}", e)
             return None

@@ -289,6 +289,7 @@ class ElasticsearchService(BaseSIEMService):
             query_dict["size"] = max_results
             
             # Execute search
+            self.logger.debug(f"Executing ES search: index={index} body={query_dict}")
             response = self._connection.search(
                 index=index,
                 body=query_dict
@@ -296,8 +297,11 @@ class ElasticsearchService(BaseSIEMService):
             
             # Extract results
             results = []
-            if 'hits' in response and 'hits' in response['hits']:
-                for hit in response['hits']['hits']:
+            # Defensive handling of response structure
+            try:
+                hits_container = response.get('hits', {})
+                hit_items = hits_container.get('hits', []) if isinstance(hits_container, dict) else []
+                for hit in hit_items:
                     result = hit.get('_source', {})
                     result.update({
                         '_index': hit.get('_index'),
@@ -305,7 +309,13 @@ class ElasticsearchService(BaseSIEMService):
                         '_score': hit.get('_score')
                     })
                     results.append(result)
-            
+            except Exception as e:
+                self.logger.error(f"Failed to parse ES response hits: {e}")
+
+            # If no results, log raw response for debugging
+            if not results:
+                self.logger.debug(f"Elasticsearch empty result. Raw response: {response}")
+
             self.logger.info(f"Elasticsearch search returned {len(results)} results")
             return results, None
             

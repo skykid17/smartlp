@@ -31,9 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Initialize local logger for SmartLP
         smartlpLogger = document.getElementById("smartlpLogger");
 
-        // Initialize ingestion status monitoring
-        initializeIngestionStatus();
-
         selectEnableButtons = document.querySelectorAll(".selectEnable");
 
         if (entryModal) {
@@ -59,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
             checkboxSelector: 'input[type="checkbox"].entry-checkbox'
         });        // Run initial search and initialize ingestion status
         searchData();
-        initializeIngestionStatus();
 
         // Initialize rows per page dropdown
         initializeRowsPerPage();
@@ -644,59 +640,3 @@ function initializeRowsPerPage() {
         customInput.style.display = 'block';
     }
 }
-
-// Ingestion Status Functions
-function initializeIngestionStatus() {
-    updateIngestionStatus();
-    // Update status every 30 seconds
-    setInterval(updateIngestionStatus, 30000);
-}
-
-function updateIngestionStatus() {
-    fetch('/api/smartlp/ingestion/status')
-        .then(response => response.json())
-        .then(data => {
-            displayIngestionStatus(data);
-        })
-        .catch(error => {
-            console.error('Error fetching ingestion status:', error);
-            displayIngestionStatus({
-                ingestion_running: false,
-                ingestion_enabled: false,
-                active_siem: 'unknown',
-                error: 'Status unavailable'
-            });
-        });
-}
-
-function startIngestion() {
-    fetch('/api/smartlp/ingestion/start', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                updateIngestionStatus(); // Refresh status
-            } else {
-                console.error('Failed to start ingestion:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error starting ingestion:', error);
-        });
-}
-
-function stopIngestion() {
-    fetch('/api/smartlp/ingestion/stop', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                updateIngestionStatus(); // Refresh status
-            } else {
-                console.error('Failed to stop ingestion:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error stopping ingestion:', error);
-        });
-}
-
-// --- End Rows Per Page Functionality ---

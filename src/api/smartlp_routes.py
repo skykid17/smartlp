@@ -176,6 +176,101 @@ def register_smartlp_routes(app: Flask) -> None:
                 "error_at": datetime.utcnow().isoformat()
             }), 500
 
+    @app.route('/api/find_match', methods=['POST'])
+    def find_match():
+        """Find regex matches in a log string and return capture spans.
+
+        Tries to use the third-party `regex` module (PCRE-like) if available,
+        otherwise falls back to Python's built-in `re` module.
+        Returns a JSON object with keys:
+          - logger: human-readable status (e.g. 'Fully Matched', 'Partial Match', or error)
+          - matches: array of [name, {value, start, end}] pairs where 'matched1'
+                     is the full match and subsequent items are capture groups.
+        """
+        payload = request.get_json() or {}
+        log_text = payload.get('log', '')
+        pattern = payload.get('regex', '')
+
+        if not pattern:
+            return jsonify({"logger": "No regex provided", "matches": []}), 400
+
+        try:
+            # Prefer the `regex` module if available for better PCRE compatibility
+            try:
+                import regex as re_engine
+            except Exception:
+                import re as re_engine
+
+            # Compile pattern
+            try:
+                prog = re_engine.compile(pattern)
+            except Exception as e:
+                return jsonify({"logger": f"Error compiling regex: {str(e)}", "matches": []}), 200
+
+            # Search for the first match in the text
+            m = prog.search(log_text)
+            if not m:
+                return jsonify({"logger": "No Match", "matches": []}), 200
+
+            # Determine if the regex fully matches the entire log
+            is_full = False
+            try:
+                if prog.fullmatch(log_text):
+                    is_full = True
+            except Exception:
+                try:
+                    # fallback to module-level fullmatch if compiled pattern missing
+                    if hasattr(re_engine, 'fullmatch') and re_engine.fullmatch(pattern, log_text):
+                        is_full = True
+                except Exception:
+                    is_full = False
+
+            matches = []
+            # Full match entry
+            try:
+                full_val = m.group(0)
+                full_start, full_end = m.start(0), m.end(0)
+            except Exception:
+                full_val, full_start, full_end = m.group(0), 0, len(log_text)
+            matches.append(["matched1", {"value": full_val, "start": full_start, "end": full_end}])
+
+            # Named groups
+            try:
+                groupindex = prog.groupindex if hasattr(prog, 'groupindex') else {}
+            except Exception:
+                groupindex = {}
+
+            named_indices = set(groupindex.values()) if groupindex else set()
+            for name, idx in (groupindex.items() if groupindex else []):
+                try:
+                    val = m.group(idx)
+                    if val is None:
+                        continue
+                    s, e = m.start(idx), m.end(idx)
+                    matches.append([name, {"value": val, "start": s, "end": e}])
+                except Exception:
+                    continue
+
+            # Unnamed numbered groups
+            total_groups = m.lastindex or 0
+            for i in range(1, total_groups + 1):
+                if i in named_indices:
+                    continue
+                try:
+                    val = m.group(i)
+                    if val is None:
+                        continue
+                    s, e = m.start(i), m.end(i)
+                    matches.append([f"group{i}", {"value": val, "start": s, "end": e}])
+                except Exception:
+                    continue
+
+            logger_text = "Fully Matched" if is_full else "Partial Match"
+            return jsonify({"logger": logger_text, "matches": matches}), 200
+
+        except Exception as e:
+            return jsonify({"logger": f"Error processing match: {str(e)}", "matches": []}), 500
+
     @app.route("/api/entries/stats", methods=["GET"])
     def get_entry_statistics():
         """Get SmartLP entry statistics.

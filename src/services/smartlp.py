@@ -100,14 +100,13 @@ class SmartLPService(CRUDService):
                 return
             
             # Perform log ingestion
-            self.log_info(f"[INGESTION] Connecting to {active_siem} SIEM...")
             logs, error = self.ingest_from_siem(
-                active_siem, 
+                active_siem,
                 siem_config.get('search_query', ''),
                 siem_config.get('search_index', ''),
-                siem_config.get('search_entry_count', 10)
+                int(siem_config.get('search_entry_count', 10))
             )
-            
+            self.log_info(f"[INGESTION] SIEM search_index='{siem_config.get('search_index', '')}' search_query='{siem_config.get('search_query', '')}' entry_count={int(siem_config.get('search_entry_count', 10))}")
             if error:
                 self.log_error(f"[INGESTION] SIEM ingestion failed: {error}")
                 return

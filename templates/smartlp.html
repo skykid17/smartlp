@@ -180,7 +180,6 @@
     <script src="/js/settings.js"></script>
     <script src="/js/smartlp/smartlp.js"></script>
     <script src="/js/smartlp/parser.js"></script>
-    <script src="/js/smartlp/prefix.js"></script>
     <script src="/js/smartlp/report.js"></script>
 
     <script>
@@ -267,12 +266,6 @@
                         if (typeof loadEntryStatistics === 'function') {
                             loadEntryStatistics();
                         }
-                    }
-                    break;
-                case 'prefix':
-                    // Prefix initialization handled by prefix.js on load
-                    if (typeof loadPrefixes === 'function') {
-                        loadPrefixes();
                     }
                     break;
             }
