@@ -160,30 +160,65 @@ class ConfigManager:
     
     def get_env_dict(self) -> Dict[str, Any]:
         """Get all configuration as a dictionary for debugging."""
-        return {
+        # Assemble config data from the `config` collection so the frontend
+        # receives the runtime configuration (global, llm endpoints, and siem configs).
+        from pymongo import MongoClient
+        import json
+
+        mongo_url = os.getenv('MONGO_URL')
+        db_name = self.database.db_name
+        result: Dict[str, Any] = {
             'database': {
-                'mongo_url': '***' if self.database.mongo_url else None,
-                'parser_db_name': self.database.parser_db_name,
-                'settings_db_name': self.database.settings_db_name,
-                'mitre_db_name': self.database.mitre_db_name,
-            },
-            'splunk': {
-                'host': self.splunk.host,
-                'port': self.splunk.port,
-                'username': self.splunk.username,
-                'password': '***' if self.splunk.password else None,
-            },
-            'elastic': {
-                'host': self.elastic.host,
-                'username': self.elastic.username,
-                'password': '***' if self.elastic.password else None,
+                'mongo_url': '***' if mongo_url else None,
+                'db_name': db_name,
+                'knowledge_collection': self.database.knowledge_collection,
+                'logs_collection': self.database.logs_collection,
+                'config_collection': self.database.config_collection,
             },
             'app': {
                 'host': self.app.host,
                 'port': self.app.port,
                 'debug': self.app.debug,
-            }
+            },
+            'global': {},
+            'llms': [],
+            'siems': [],
         }
+
+        try:
+            client = MongoClient(mongo_url)
+            cfg = client.get_database(db_name).get_collection(self.database.config_collection)
+
+            # Global config (single doc with category 'global_config')
+            global_doc = cfg.find_one({'category': 'global_config'}) or {}
+            # convert values to JSON-safe types (mask sensitive fields)
+            gd = json.loads(json.dumps(global_doc, default=str))
+            result['global'] = gd
+
+            # LLM endpoints
+            llm_docs = list(cfg.find({'category': 'llm_config'}))
+            for d in llm_docs:
+                doc = json.loads(json.dumps(d, default=str))
+                # mask api_key if present
+                if 'api_key' in doc and doc['api_key']:
+                    doc['api_key'] = '***'
+                result['llms'].append(doc)
+
+            # SIEM configs
+            siem_docs = list(cfg.find({'category': 'siem_config'}))
+            for d in siem_docs:
+                doc = json.loads(json.dumps(d, default=str))
+                if 'password' in doc and doc['password']:
+                    doc['password'] = '***'
+                if 'api_key' in doc and doc['api_key']:
+                    doc['api_key'] = '***'
+                result['siems'].append(doc)
+
+        except Exception:
+            # If DB access fails, return what we can (caller should handle empty fields)
+            pass
+
+        return result
 
 
 # Global configuration instance

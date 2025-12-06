@@ -28,6 +28,12 @@ def register_settings_routes(app: Flask) -> None:
             return jsonify(all_settings), 200
         except Exception as e:
             return jsonify({"error": f"Failed to get settings: {str(e)}"}), 500
+
+    # Backwards-compatible alias expected by frontend
+    @app.route('/api/config', methods=['GET'])
+    def get_config_route():
+        """Alias to get settings for frontend compatibility."""
+        return get_settings_route()
     
     @app.route('/api/settings', methods=['PUT'])
     def save_settings():
@@ -42,6 +48,11 @@ def register_settings_routes(app: Flask) -> None:
             
         except Exception as e:
             return jsonify({"error": f"Failed to save settings: {str(e)}"}), 500
+
+    # Alias for frontend compatibility
+    @app.route('/api/config', methods=['PUT'])
+    def put_config_route():
+        return save_settings()
     
     @app.route('/api/query_llm', methods=['POST'])
     def query_llm_route():

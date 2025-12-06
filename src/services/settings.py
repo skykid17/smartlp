@@ -150,8 +150,13 @@ class SettingsService(BaseService):
             
             # Get current settings for comparison
             current_global = self.get_global_settings()
+            # keep camelCase maps for display/name lookups
             current_siems = {siem['id']: siem for siem in self.get_siem_settings()}
             current_llms = {llm['id']: llm for llm in self.get_llm_settings()}
+            # snake_case maps for value comparisons
+            current_global_snake = convert_key_to_snake(current_global)
+            current_siems_snake = {siem['id']: convert_key_to_snake(siem) for siem in self.get_siem_settings()}
+            current_llms_snake = {llm['id']: convert_key_to_snake(llm) for llm in self.get_llm_settings()}
             
             # Prepare global settings update
             global_settings_to_update = {}
@@ -167,8 +172,8 @@ class SettingsService(BaseService):
                     field_snake = list(snake_field.keys())[0]
                     new_value = snake_field[field_snake]
                     
-                    # Compare with current value
-                    if current_global.get(field_snake) != new_value:
+                    # Compare with current value (use snake-case map)
+                    if current_global_snake.get(field_snake) != new_value:
                         global_settings_to_update[field_snake] = new_value
                         change_desc = self.get_human_friendly_change_description(field, new_value, current_siems, current_llms)
                         changes.append(change_desc)
@@ -179,7 +184,7 @@ class SettingsService(BaseService):
                 global_settings_to_update['updated_at'] = datetime.now().isoformat()
                 
                 result = self.db.update_one(
-                    'global_settings',
+                    'config',
                     {"id": "global"},
                     {"$set": global_settings_to_update}
                 )
@@ -200,8 +205,8 @@ class SettingsService(BaseService):
                         field_snake = list(snake_field.keys())[0]
                         new_value = snake_field[field_snake]
                         
-                        # Compare with current value
-                        current_siem = current_siems.get(siem_id, {})
+                        # Compare with current value (use snake-case map)
+                        current_siem = current_siems_snake.get(siem_id, {})
                         if current_siem.get(field_snake) != new_value:
                             siem_updates[field_snake] = new_value
                             change_desc = self.get_human_friendly_change_description(field, new_value, current_siems, current_llms)
@@ -213,8 +218,8 @@ class SettingsService(BaseService):
                     siem_updates['updated_at'] = datetime.now().isoformat()
                     
                     result = self.db.update_one(
-                        'siems_settings',
-                        {"id": siem_id},
+                        'config',
+                        {"category": "siem_config", "id": siem_id},
                         {"$set": siem_updates}
                     )
                     
@@ -230,7 +235,7 @@ class SettingsService(BaseService):
                 if 'llmUrl' in settings_data:
                     new_url = settings_data['llmUrl']
                     current_llm = current_llms.get(llm_id, {})
-                    if current_llm.get('url') != new_url:
+                    if current_llms_snake.get(llm_id, {}).get('url') != new_url:
                         llm_updates['url'] = new_url
                         llm_name = current_llms.get(llm_id, {}).get('name', llm_id)
                         changes.append(f"{llm_name} URL: {new_url}")
@@ -239,7 +244,7 @@ class SettingsService(BaseService):
                 if 'models' in settings_data:
                     new_models = settings_data['models']
                     current_llm = current_llms.get(llm_id, {})
-                    current_models = current_llm.get('models', [])
+                    current_models = current_llms_snake.get(llm_id, {}).get('models', [])
                     
                     # Compare model arrays
                     if set(new_models) != set(current_models):
@@ -258,8 +263,8 @@ class SettingsService(BaseService):
                     llm_updates['updated_at'] = datetime.now().isoformat()
                     
                     result = self.db.update_one(
-                        'llms_settings',
-                        {"id": llm_id},
+                        'config',
+                        {"category": "llm_config", "id": llm_id},
                         {"$set": llm_updates}
                     )
                     
@@ -275,17 +280,18 @@ class SettingsService(BaseService):
                     
                     # Check if this is a new endpoint
                     if not current_endpoint:
-                        # Create new endpoint
+                        # Create new endpoint document in 'config' collection
                         new_endpoint = {
                             'id': endpoint_id,
                             'name': endpoint_data.get('name', endpoint_id),
                             'url': endpoint_data.get('url', ''),
                             'models': endpoint_data.get('models', []),
                             'created_at': datetime.now().isoformat(),
-                            'updated_at': datetime.now().isoformat()
+                            'updated_at': datetime.now().isoformat(),
+                            'category': 'llm_config'
                         }
-                        
-                        result = self.db.insert_one('llms_settings', new_endpoint)
+
+                        result = self.db.insert_one('config', new_endpoint)
                         if result:
                             changes.append(f"Added new LLM endpoint: {new_endpoint['name']}")
                             self.log_info(f"New LLM endpoint created: {endpoint_id}")
@@ -305,11 +311,11 @@ class SettingsService(BaseService):
                         if endpoint_updates:
                             endpoint_updates['updated_at'] = datetime.now().isoformat()
                             result = self.db.update_one(
-                                'llms_settings',
-                                {"id": endpoint_id},
+                                'config',
+                                {"category": "llm_config", "id": endpoint_id},
                                 {"$set": endpoint_updates}
                             )
-                            
+
                             if result:
                                 endpoint_name = endpoint_data.get('name', endpoint_id)
                                 changes.append(f"Updated LLM endpoint: {endpoint_name}")
@@ -351,8 +357,8 @@ class SettingsService(BaseService):
                 return False
             
             result = self.db.update_one(
-                'global_settings',
-                {"id": "global"},
+                'config',
+                {"category": "global_config", "id": "global"},
                 {"$set": {
                     "active_siem": siem_type,
                     "updated_at": datetime.now().isoformat()

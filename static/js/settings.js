@@ -122,41 +122,40 @@ async function getSettings() {
         sessionStorage.setItem('activeSiem', data.settings.activeSiem);
         sessionStorage.setItem('activeLlmEndpoint', data.settings.activeLlmEndpoint);
         sessionStorage.setItem('activeLlm', data.settings.activeLlm);
-        if (window.location.pathname === "/settings") {
-            setDropdown(siemsData, siem);
-            setDropdown(siemsData, activeSiem);
-            setDropdown(llmEndpointsData, activeLlmEndpoint);
-            setDropdown(llmEndpointsData, activeLlm);
+        // Populate settings UI regardless of current pathname (modal usage on main page)
+        setDropdown(siemsData, siem);
+        setDropdown(siemsData, activeSiem);
+        setDropdown(llmEndpointsData, activeLlmEndpoint);
+        setDropdown(llmEndpointsData, activeLlm);
 
-            // Create LLM endpoint tabs
-            createLlmEndpointTabs();
+        // Create LLM endpoint tabs
+        createLlmEndpointTabs();
 
-            // Set values for SmartLP settings
-            Object.entries(data.settings).forEach(([key, value]) => {
-                const el = document.getElementById(key);
-                if (el) {
-                    if (el.type === "checkbox") {
-                        // Handle checkbox specially
-                        el.checked = value === true || value === "true";
-                    } else {
-                        el.value = value;
-                    }
+        // Set values for SmartLP settings
+        Object.entries(data.settings).forEach(([key, value]) => {
+            const el = document.getElementById(key);
+            if (el) {
+                if (el.type === "checkbox") {
+                    // Handle checkbox specially
+                    el.checked = value === true || value === "true";
+                } else {
+                    el.value = value;
                 }
-            });
-
-            // Select the active endpoint from settings and load its models
-            const activeEndpointId = data.settings.activeLlmEndpoint;
-            if (activeEndpointId && llmEndpointsData[activeEndpointId]) {
-                selectLlmEndpoint(activeEndpointId);
             }
-            toggleActiveLlmField();
-            toggleSIEMFields();
-            toggleIngestFields(ingestOn, ingestGroup);
-            toggleIngestFields(similarityCheck, similarityThresholdGroup);
+        });
 
-            // Store original settings after loading for change detection
-            storeOriginalSettings();
+        // Select the active endpoint from settings and load its models
+        const activeEndpointId = data.settings.activeLlmEndpoint;
+        if (activeEndpointId && llmEndpointsData[activeEndpointId]) {
+            selectLlmEndpoint(activeEndpointId);
         }
+        toggleActiveLlmField();
+        toggleSIEMFields();
+        toggleIngestFields(ingestOn, ingestGroup);
+        toggleIngestFields(similarityCheck, similarityThresholdGroup);
+
+        // Store original settings after loading for change detection
+        storeOriginalSettings();
     } catch (error) {
         console.error("Error fetching settings:", error);
     }
