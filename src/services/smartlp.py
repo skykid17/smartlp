@@ -100,18 +100,11 @@ class SmartLPService(CRUDService):
                 self.log_error(f"[INGESTION] No configuration found for SIEM: {active_siem}")
                 return
 
-            search_index = siem_config.get('search_index', '')
-            search_query = siem_config.get('search_query', '')
-            entry_count = int(siem_config.get('search_entry_count', 10) or 10)
-
-            # Log the SIEM query parameters for debugging
-            self.log_info(f"[INGESTION] SIEM search_index='{search_index}' search_query='{search_query}' entry_count={entry_count}")
-
             logs, error = self.ingest_from_siem(
                 active_siem,
-                search_query,
-                search_index,
-                entry_count
+                siem_config.get('search_index', ''),
+                siem_config.get('search_query', ''),
+                int(siem_config.get('search_entry_count', 10) or 10)
             )
             
             if error:
@@ -139,13 +132,13 @@ class SmartLPService(CRUDService):
                     
                     # Create log entry in database
                     entry_data = {
+                        'id': self.generate_alphanumeric_id(8),
                         'log': log_entry,
                         'regex': regex,
                         'status': 'Matched' if regex else 'Unmatched',
                         'log_type': log_type,
                         'source_type': source_type,
                         'timestamp': datetime.now().isoformat(),
-                        'ingestion_method': 'automatic'
                     }
                     
                     entry_id = self.create(entry_data)
