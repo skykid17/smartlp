@@ -36,11 +36,6 @@ def register_smartlp_routes(app: Flask) -> None:
         """SmartLP parser page - redirect to unified dashboard with parser section."""
         return redirect("/#parser")
     
-    @app.route("/smartlp/prefix")
-    def smartlp_prefix():
-        """SmartLP prefix page - redirect to unified dashboard with prefix section."""
-        return redirect("/#prefix")
-    
     @app.route("/smartlp/report")
     def smartlp_report():
         """SmartLP report page."""
@@ -216,86 +211,6 @@ def register_smartlp_routes(app: Flask) -> None:
         except Exception as e:
             app_logger.log_message("log", f"Error getting entry statistics: {str(e)}", "ERROR")
             return jsonify({"message": f"Failed to get statistics: {str(e)}"}), 500
-
-    # Prefix API Endpoints
-    @app.route("/api/prefix", methods=["GET"])
-    def get_prefixes():
-        """Get all prefix entries."""
-        try:
-            prefixes = smartlp_service.get_prefixes()
-            total_count = smartlp_service.get_prefix_count()
-            
-            return jsonify({
-                "prefix": prefixes,
-                "total_count": total_count,
-                "retrieved_at": datetime.utcnow().isoformat()
-            }), 200
-            
-        except Exception as e:
-            app_logger.log_message("log", f"Error retrieving prefixes: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to retrieve prefixes: {str(e)}"}), 500
-
-    @app.route("/api/prefix", methods=["POST"])
-    def add_prefix():
-        """Add a new prefix entry."""
-        try:
-            data = request.get_json()
-            if not data or not data.get('regex'):
-                return jsonify({"message": "Regex is required"}), 400
-            
-            regex = data.get('regex')
-            description = data.get('description')
-            
-            prefix_id = smartlp_service.add_prefix(regex, description)
-            
-            if prefix_id:
-                return jsonify({
-                    "message": "Prefix added successfully",
-                    "id": prefix_id
-                }), 201
-            else:
-                return jsonify({"message": "Failed to add prefix"}), 500
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error adding prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to add prefix: {str(e)}"}), 500
-
-    @app.route("/api/prefix/<prefix_id>", methods=["DELETE"])
-    def delete_prefix(prefix_id):
-        """Delete a prefix entry."""
-        try:
-            success = smartlp_service.delete_prefix(prefix_id)
-            
-            if success:
-                return jsonify({"message": "Prefix deleted successfully"}), 200
-            else:
-                return jsonify({"message": "Prefix not found"}), 404
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error deleting prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to delete prefix: {str(e)}"}), 500
-
-    @app.route("/api/prefix/<prefix_id>", methods=["PUT"])
-    def update_prefix(prefix_id):
-        """Update a prefix entry."""
-        try:
-            data = request.get_json()
-            if not data or not data.get('regex'):
-                return jsonify({"message": "Regex is required"}), 400
-            
-            regex = data.get('regex')
-            description = data.get('description')
-            
-            success = smartlp_service.update_prefix(prefix_id, regex, description)
-            
-            if success:
-                return jsonify({"message": "Prefix updated successfully"}), 200
-            else:
-                return jsonify({"message": "Prefix not found"}), 404
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error updating prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to update prefix: {str(e)}"}), 500
 
     @app.route("/api/report/smartlp", methods=["GET"])
     def get_report_smartlp():

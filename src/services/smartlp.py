@@ -16,7 +16,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
 
 from .base import BaseService, CRUDService
-from models.core import LogEntry, RuleStatus, PrefixEntry
+from models.core import LogEntry, RuleStatus
 from .siem import SIEMServiceFactory
 from .settings import settings_service
 
@@ -34,7 +34,6 @@ class SmartLPService(CRUDService):
     def __init__(self):
         """Initialize SmartLP service."""
         super().__init__("smartlp", "logs")
-        self._prefix_collection = "prefix_entries"
         self._ingestion_thread: Optional[threading.Thread] = None
         self._stop_ingestion = threading.Event()
         self._ingestion_running = False
@@ -359,149 +358,6 @@ class SmartLPService(CRUDService):
                 'generated_at': time.strftime('%Y-%m-%d %H:%M:%S'),
                 'error': str(e)
             }
-
-    # Prefix Management Methods
-    def get_prefixes(self) -> List[Dict[str, Any]]:
-        """Get all prefix entries from database.
-        
-        Returns:
-            List of prefix entries
-        """
-        try:
-            self.log_info("Retrieving all prefix entries")
-            
-            prefixes = self.db.query(
-                self._prefix_collection,
-                {},
-                projection={"_id": 0},
-                sort=[("created_at", -1)]
-            )
-            
-            self.log_info(f"Retrieved {len(prefixes)} prefix entries")
-            return prefixes
-            
-        except Exception as e:
-            self.log_error(f"Failed to get prefixes: {str(e)}", e)
-            return []
-
-    def add_prefix(self, regex: str, description: Optional[str] = None) -> Optional[str]:
-        """Add a new prefix entry.
-        
-        Args:
-            regex: The prefix regex pattern
-            description: Optional description
-            
-        Returns:
-            ID of created prefix or None if failed
-        """
-        try:
-            import uuid
-            from datetime import datetime
-            
-            prefix_id = str(uuid.uuid4())
-            current_time = datetime.utcnow()
-            
-            prefix_data = {
-                "id": prefix_id,
-                "regex": regex,
-                "description": description,
-                "created_at": current_time.isoformat(),
-                "updated_at": current_time.isoformat()
-            }
-            
-            self.log_info(f"Adding new prefix entry: {prefix_id}")
-            
-            # Insert into database
-            result = self.db.insert_one(self._prefix_collection, prefix_data)
-            
-            if result:
-                self.log_info(f"Successfully added prefix entry: {prefix_id}")
-                return prefix_id
-            else:
-                self.log_error("Failed to insert prefix entry")
-                return None
-                
-        except Exception as e:
-            self.log_error(f"Failed to add prefix: {str(e)}", e)
-            return None
-
-    def delete_prefix(self, prefix_id: str) -> bool:
-        """Delete a prefix entry by ID.
-        
-        Args:
-            prefix_id: ID of prefix to delete
-            
-        Returns:
-            True if deleted successfully, False otherwise
-        """
-        try:
-            self.log_info(f"Deleting prefix entry: {prefix_id}")
-            
-            result = self.db.delete_one(self._prefix_collection, {"id": prefix_id})
-            
-            if result:
-                self.log_info(f"Successfully deleted prefix entry: {prefix_id}")
-                return True
-            else:
-                self.log_warning(f"Prefix entry not found: {prefix_id}")
-                return False
-                
-        except Exception as e:
-            self.log_error(f"Failed to delete prefix {prefix_id}: {str(e)}", e)
-            return False
-
-    def update_prefix(self, prefix_id: str, regex: str, description: Optional[str] = None) -> bool:
-        """Update an existing prefix entry.
-        
-        Args:
-            prefix_id: ID of prefix to update
-            regex: New regex pattern
-            description: New description
-            
-        Returns:
-            True if updated successfully, False otherwise
-        """
-        try:
-            from datetime import datetime
-            
-            self.log_info(f"Updating prefix entry: {prefix_id}")
-            
-            update_data = {
-                "regex": regex,
-                "description": description,
-                "updated_at": datetime.utcnow().isoformat()
-            }
-            
-            result = self.db.update_one(
-                self._prefix_collection,
-                {"id": prefix_id},
-                {"$set": update_data}
-            )
-            
-            if result:
-                self.log_info(f"Successfully updated prefix entry: {prefix_id}")
-                return True
-            else:
-                self.log_warning(f"Prefix entry not found for update: {prefix_id}")
-                return False
-                
-        except Exception as e:
-            self.log_error(f"Failed to update prefix {prefix_id}: {str(e)}", e)
-            return False
-
-    def get_prefix_count(self) -> int:
-        """Get total count of prefix entries.
-        
-        Returns:
-            Number of prefix entries
-        """
-        try:
-            count = self.db.count_documents(self._prefix_collection, {})
-            self.log_info(f"Found {count} prefix entries")
-            return count
-        except Exception as e:
-            self.log_error(f"Failed to count prefixes: {str(e)}", e)
-            return 0
 
     def test_llm_model(self, task: str, model: str, url: str, llm_endpoint: str) -> Tuple[Optional[str], Optional[str]]:
         """Test LLM model connectivity and functionality.
