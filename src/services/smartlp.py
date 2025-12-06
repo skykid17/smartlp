@@ -33,7 +33,7 @@ class SmartLPService(CRUDService):
     
     def __init__(self):
         """Initialize SmartLP service."""
-        super().__init__("smartlp", "parser_entries")
+        super().__init__("smartlp", "logs")
         self._prefix_collection = "prefix_entries"
         self._ingestion_thread: Optional[threading.Thread] = None
         self._stop_ingestion = threading.Event()

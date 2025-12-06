@@ -6,27 +6,20 @@ import os
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 from dataclasses import dataclass
+from pymongo import MongoClient
+
 
 
 @dataclass
 class DatabaseConfig:
     """Database configuration settings."""
     mongo_url: str
-    parser_db_name: str
-    settings_db_name: str
-    mitre_db_name: str
-    mitre_tech_db_name: str
+    db_name: str
     
     # Collections
-    parser_entries_collection: str
-    global_settings_collection: str
-    llms_settings_collection: str
-    siems_settings_collection: str
-    sigma_rules_collection: str
-    splunk_rules_collection: str
-    elastic_rules_collection: str
-    secops_rules_collection: str
-    mitre_techniques_collection: str
+    knowledge_collection: str
+    logs_collection: str
+    config_collection: str
 
 
 @dataclass
@@ -87,19 +80,10 @@ class ConfigManager:
         if self._database_config is None:
             self._database_config = DatabaseConfig(
                 mongo_url=self._get_env('MONGO_URL'),
-                parser_db_name=self._get_env('MONGO_DB_PARSER'),
-                settings_db_name=self._get_env('MONGO_DB_SETTINGS'),
-                mitre_db_name=self._get_env('MONGO_DB_MITRE'),
-                mitre_tech_db_name=self._get_env('MONGO_DB_MITRE_TECH'),
-                parser_entries_collection=self._get_env('MONGO_COLLECTION_ENTRIES'),
-                global_settings_collection=self._get_env('MONGO_COLLECTION_GLOBAL_SETTINGS'),
-                llms_settings_collection=self._get_env('MONGO_COLLECTION_LLMS_SETTINGS'),
-                siems_settings_collection=self._get_env('MONGO_COLLECTION_SIEMS_SETTINGS'),
-                sigma_rules_collection=self._get_env('MONGO_COLLECTION_SIGMA_RULES'),
-                splunk_rules_collection=self._get_env('MONGO_COLLECTION_SPLUNK_RULES'),
-                elastic_rules_collection=self._get_env('MONGO_COLLECTION_ELASTIC_RULES'),
-                secops_rules_collection=self._get_env('MONGO_COLLECTION_SECOPS_RULES'),
-                mitre_techniques_collection=self._get_env('MONGO_COLLECTION_MITRE_TECHNIQUES'),
+                db_name="soc_rag_db",
+                knowledge_collection="knowledge_base",
+                logs_collection="logs",
+                config_collection="config",
             )
         return self._database_config
     
@@ -107,11 +91,13 @@ class ConfigManager:
     def splunk(self) -> SplunkConfig:
         """Get Splunk configuration."""
         if self._splunk_config is None:
+            db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
+            config_collection = db.get_collection("config")
             self._splunk_config = SplunkConfig(
-                host=self._get_env('SPLUNK_HOST'),
-                port=self._get_env('SPLUNK_PORT'),
-                username=self._get_env('SPLUNK_USER'),
-                password=self._get_env('SPLUNK_PASSWORD'),
+                host=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['host'],
+                port=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['port'],
+                username=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['user'],
+                password=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['password'],
             )
         return self._splunk_config
     
@@ -119,11 +105,13 @@ class ConfigManager:
     def elastic(self) -> ElasticConfig:
         """Get Elasticsearch configuration."""
         if self._elastic_config is None:
+            db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
+            config_collection = db.get_collection("config")
             self._elastic_config = ElasticConfig(
-                host=self._get_env('ELASTIC_HOST'),
-                username=self._get_env('ELASTIC_USER'),
-                password=self._get_env('ELASTIC_PASSWORD'),
-                cert_path=self._get_env('ELASTIC_CERT_PATH'),
+                host=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['host'],
+                username=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['user'],
+                password=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['password'],
+                cert_path=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['cert_path'],
             )
         return self._elastic_config
     

@@ -1,4 +1,0 @@
-event_id,object_category,action
-upgrade-url-database-success,file,modified
-auth-fail,auth,failure
-auth-success,auth,success

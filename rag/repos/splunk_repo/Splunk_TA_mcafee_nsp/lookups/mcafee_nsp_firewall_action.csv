@@ -1,5 +1,0 @@
-acl_action,action
-PERMIT,allowed
-DENY,blocked
-IGNORE,allowed
-DROP,blocked

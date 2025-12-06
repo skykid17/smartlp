@@ -1,7 +1,0 @@
-threadState,thread_state
-NEW,active
-RUNNABLE,active
-BLOCKED,hung
-WAITING,hung
-TIMED_WAITING,hung
-TERMINATED,active

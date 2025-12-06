@@ -1,6 +1,0 @@
-vendor_action_for_cim_obj,action
-"Passcode accepted",success
-"ACCESS DENIED",failure
-"SUCCESS",success
-"FAIL",failure
-"LOCKOUT",modified

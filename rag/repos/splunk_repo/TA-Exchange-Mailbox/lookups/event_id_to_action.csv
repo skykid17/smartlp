@@ -1,6 +1,0 @@
-event_id,action
-BADMAIL,blocked
-DEFER,unknown
-DELIVER,delivered
-FAIL,blocked
-RECEIVE,delivered

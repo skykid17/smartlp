@@ -25,8 +25,8 @@ class SettingsService(BaseService):
         """
         try:
             settings = self.db.query(
-                'global_settings',
-                {"id": "global"},
+                'config',
+                {"category": "global_config"},
                 {"_id": 0, "amendments": 0},
                 limit=1
             )
@@ -48,7 +48,8 @@ class SettingsService(BaseService):
         """
         try:
             siems = list(self.db.query(
-                'siems_settings',
+                'config',
+                {"category": "siem_config"},
                 projection={"_id": 0}
             ))
             
@@ -65,7 +66,8 @@ class SettingsService(BaseService):
         """
         try:
             llms = list(self.db.query(
-                'llms_settings',
+                'config',
+                {"category": "llm_config"},
                 projection={"_id": 0}
             ))
             

@@ -1,3 +1,0 @@
-[<name>]
-certificate = 
-username = 

@@ -669,65 +669,6 @@ function updateIngestionStatus() {
         });
 }
 
-function displayIngestionStatus(status) {
-    const siemStatus = document.getElementById('siemStatus');
-    if (!siemStatus) return;
-
-    let statusHtml = '';
-
-    if (status.error) {
-        statusHtml = `
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-secondary">
-                    <i class="fa fa-exclamation-triangle me-1"></i>Status: Unavailable
-                </span>
-            </div>
-        `;
-    } else {
-        const runningClass = status.ingestion_running ? 'bg-success' : 'bg-secondary';
-        const runningIcon = status.ingestion_running ? 'fa-play' : 'fa-pause';
-        const runningText = status.ingestion_running ? 'Running' : 'Stopped';
-
-        const enabledClass = status.ingestion_enabled ? 'bg-primary' : 'bg-warning';
-        const enabledText = status.ingestion_enabled ? 'Enabled' : 'Disabled';
-
-        statusHtml = `
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="badge ${runningClass}" title="Ingestion Process Status">
-                    <i class="fa ${runningIcon} me-1"></i>Ingestion: ${runningText}
-                </span>
-                <span class="badge bg-info" title="Active SIEM">
-                    <i class="fa fa-database me-1"></i>SIEM: ${status.active_siem.toUpperCase()}
-                </span>
-                ${status.unmatched_entries !== undefined ? `
-                    <span class="badge bg-warning text-dark" title="Unmatched Entries">
-                        <i class="fa fa-exclamation me-1"></i>Unmatched: ${status.unmatched_entries}
-                    </span>
-                ` : ''}
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fa fa-cog"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="startIngestion()">
-                            <i class="fa fa-play me-2"></i>Start Ingestion
-                        </a></li>
-                        <li><a class="dropdown-item" href="#" onclick="stopIngestion()">
-                            <i class="fa fa-stop me-2"></i>Stop Ingestion
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/settings">
-                            <i class="fa fa-cog me-2"></i>Configure Settings
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        `;
-    }
-
-    siemStatus.innerHTML = statusHtml;
-}
-
 function startIngestion() {
     fetch('/api/smartlp/ingestion/start', { method: 'POST' })
         .then(response => response.json())
