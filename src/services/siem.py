@@ -51,7 +51,7 @@ class BaseSIEMService(ABC):
         pass
     
     @abstractmethod
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute search query.
         
         Args:
@@ -121,7 +121,7 @@ class SplunkService(BaseSIEMService):
             self.logger.error(f"Splunk connection test failed: {e}")
             return False
     
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute Splunk search.
         
         Args:
@@ -253,7 +253,7 @@ class ElasticsearchService(BaseSIEMService):
             self.logger.error(f"Elasticsearch connection test failed: {e}")
             return False
     
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute Elasticsearch search.
         
         Args:

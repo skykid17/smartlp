@@ -422,8 +422,8 @@ class SmartLPService(CRUDService):
                 
                 # Execute test query
                 results, error = siem_service.search(
-                    query=search_query,
                     index=search_index,
+                    query=search_query,
                     max_results=limit
                 )
                 
@@ -474,8 +474,8 @@ class SmartLPService(CRUDService):
             
             # Execute search query
             results, error = siem_service.search(
-                query=search_query,
                 index=search_index,
+                query=search_query,
                 max_results=entry_count
             )
             
