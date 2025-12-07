@@ -455,7 +455,7 @@ class SmartLPService(CRUDService):
             self.log_error(error_msg, e)
             return None, error_msg
 
-    def ingest_from_siem(self, siem_type: str, search_query: str, search_index: str, entry_count: int) -> Tuple[Optional[List[str]], Optional[str]]:
+    def ingest_from_siem(self, siem_type: str, search_index: str, search_query: str, entry_count: int) -> Tuple[Optional[List[str]], Optional[str]]:
         """Ingest logs from the specified SIEM.
         
         Args:
