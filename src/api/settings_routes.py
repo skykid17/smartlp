@@ -2,11 +2,11 @@
 Settings API routes for SmartSOC.
 """
 
-from flask import Flask, render_template, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect
 
 from services.settings import settings_service
 from utils.logging import app_logger
-
+from services.llm import llm_service
 
 def register_settings_routes(app: Flask) -> None:
     """Register settings routes.
@@ -54,40 +54,37 @@ def register_settings_routes(app: Flask) -> None:
     def put_config_route():
         return save_settings()
     
-    @app.route('/api/query_llm', methods=['POST'])
-    def query_llm_route():
-        """Test LLM model connectivity."""
+    @app.route('/api/test_llm_connection', methods=['POST'])
+    def test_llm_connection():
         try:
             data = request.get_json()
             if not data:
-                return jsonify({"error": "No data provided"}), 400
-            
+                return jsonify({"status_code": 400, "error": {"error": "No data provided"}}), 400
+
             required_fields = ['task', 'model', 'url', 'llmEndpoint']
             for field in required_fields:
                 if field not in data:
-                    return jsonify({"error": f"Missing required field: {field}"}), 400
-            
-            # Import here to avoid circular imports
-            from services.smartlp import smartlp_service
-            
-            # Test the LLM model
-            response, error = smartlp_service.test_llm_model(
-                data['task'],
-                data['model'],
-                data['url'],
-                data['llmEndpoint']
+                    return jsonify({"status_code": 400, "error": {"error": f"Missing required field: {field}"}}), 400
+
+            user_prompt = settings_service.get_prompts_settings("test")
+
+            # OVERRIDE the model + URL being used.
+            result = llm_service.query_llm(
+                query=user_prompt,
+                model_override=data['model'],
+                url_override=data['url']
             )
-            
-            if response:
-                return jsonify({"status_code": 200, "response": response}), 200
-            else:
-                return jsonify({"status_code": 500, "error": {"error": error}}), 500
-                
+
+            return jsonify(result), (result["status_code"] or 500)
+
         except Exception as e:
-            return jsonify({"status_code": 500, "error": {"error": f"LLM test failed: {str(e)}"}}, 500), 500
-    
-    @app.route('/api/test_connection', methods=['POST'])
-    def test_connection():
+            return jsonify({
+                "status_code": 500,
+                "error": {"error": f"LLM test failed: {str(e)}"}
+            }), 500
+
+    @app.route('/api/test_siem_connection', methods=['POST'])
+    def test_siem_connection():
         """Test SIEM connection with comprehensive diagnostics."""
         try:
             data = request.get_json() or {}

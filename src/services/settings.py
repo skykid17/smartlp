@@ -75,7 +75,27 @@ class SettingsService(BaseService):
         except Exception as e:
             self.log_error("Failed to get LLM settings", e)
             return []
-    
+
+    def get_prompts_settings(self, key) -> Any:
+        """Return the value of a specific prompt field from config (id='prompts')."""
+        try:
+            doc = self.db.query(
+                'config',
+                {"id": "prompts"},
+                projection={"_id": 0, key: 1},
+                limit=1
+            )
+
+            if not doc:
+                return None
+
+            # Return the actual value, not the whole document
+            return doc.get(key)
+
+        except Exception as e:
+            self.log_error("Failed to get prompts doc", e)
+            return None
+
     def get_all_settings(self) -> Dict[str, Any]:
         """Get all application settings (for frontend).
         

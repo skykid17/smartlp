@@ -16,6 +16,8 @@ from flask import Flask, render_template, request, jsonify, redirect
 
 # Import services
 from services.smartlp import smartlp_service
+from services.settings import settings_service
+from services.llm import llm_service
 from utils.logging import app_logger
 
 
@@ -563,3 +565,26 @@ def register_smartlp_routes(app: Flask) -> None:
             error_msg = f"Error deleting pipeline: {str(e)}"
             app_logger.log_message("log", error_msg, "ERROR")
             return jsonify({"error": error_msg}), 500
+        
+    @app.route('/api/query())', methods=['POST'])
+    def query():
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Test the LLM model
+        match data['task']:
+            
+            case "generate":
+                user_prompt = data.get('log', '')
+                system_prompt = settings_service.get_prompts_settings("generate_regex")
+                result = llm_service.query_llm(user_prompt, system_prompt)
+            case "fix":
+                user_prompt = data.get('regex', '')
+                system_prompt = settings_service.get_prompts_settings("fix_regex")
+                result = llm_service.query_llm(user_prompt, system_prompt)
+            case _:
+                user_prompt = data.get('prompt', '')
+                result = llm_service.query_llm(user_prompt)
+            
+        return jsonify(result)

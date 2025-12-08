@@ -135,7 +135,7 @@ async function queryLLM(task) {
     logger.innerText = taskMessages[task];
 
     try {
-        const response = await fetch("/api/query_llm", {
+        const response = await fetch("/api/query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ task, regex, log: getSessionItem("log") })

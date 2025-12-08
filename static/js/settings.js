@@ -205,7 +205,7 @@ function createLlmEndpointTabs() {
     Object.values(llmEndpointsData).forEach(endpoint => {
         const tab = document.createElement('button');
         tab.className = 'btn btn-outline-primary btn-sm';
-        tab.textContent = endpoint.name || endpoint.id;
+        tab.textContent = endpoint.name;
         tab.onclick = () => selectLlmEndpoint(endpoint.id);
         tab.dataset.endpointId = endpoint.id;
         tabContainer.appendChild(tab);
@@ -856,8 +856,8 @@ async function testModel(model) {
             testModelLogger.innerHTML = `<div class="alert alert-danger" role="alert">LLM URL is empty. Please enter a valid API URL.</div>`;
             return;
         }
-
-        const response = await fetch("/api/query_llm", {
+        console.log(`Testing model ${model} at URL ${llmUrlElement.value} for endpoint ${currentLlmEndpoint}`);
+        const response = await fetch("/api/test_llm_connection", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -869,12 +869,11 @@ async function testModel(model) {
         });
 
         const data = await response.json();
-
-        if (data.status_code === 200) {
-            testModelLogger.innerHTML = `<div class="alert alert-success" role="alert">Success for ${model}</div>`;
+        console.log("Model test response data:", data);
+        if (data.success) {
+            testModelLogger.innerHTML = `<div class="alert alert-success">Success for ${model}</div>`;
         } else {
-            const errorMsg = data.error?.error || "Unknown error";
-            testModelLogger.innerHTML = `<div class="alert alert-danger" role="alert">Error for ${model}: ${errorMsg}</div>`;
+            testModelLogger.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
         }
     } catch (error) {
         testModelLogger.innerHTML = `<div class="alert alert-danger" role="alert">Network error testing ${model}: ${error.message}</div>`;
@@ -897,7 +896,7 @@ async function testConnection() {
     connectionTestLogger.innerHTML = '<div class="alert alert-info"><i class="fa fa-spinner fa-spin me-2"></i>Testing SIEM connections...</div>';
 
     try {
-        const response = await fetch('/api/test_connection', {
+        const response = await fetch('/api/test_siem_connection', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

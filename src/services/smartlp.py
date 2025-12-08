@@ -19,6 +19,7 @@ from .base import BaseService, CRUDService
 from models.core import LogEntry, RuleStatus
 from .siem import SIEMServiceFactory
 from .settings import settings_service
+from utils.formatters import generate_alphanumeric_id
 
 # Import for Elasticsearch deployment
 try:
@@ -125,14 +126,16 @@ class SmartLPService(CRUDService):
                         continue
                     
                     # Generate regex for the log
-                    regex = self.generate_regex_for_log(log_entry, fix_count)
+                    regex = self.generate_regex(log_entry, fix_count)
                     
                     # Determine log type and source type
-                    log_type, source_type = self.determine_log_type(log_entry)
+                    results = self.determine_log_type(log_entry)
+                    log_type = results["log_type"]
+                    source_type = results["source_type"]
                     
                     # Create log entry in database
                     entry_data = {
-                        'id': self.generate_alphanumeric_id(8),
+                        'id': generate_alphanumeric_id(8),
                         'log': log_entry,
                         'regex': regex,
                         'status': 'Matched' if regex else 'Unmatched',
@@ -358,41 +361,6 @@ class SmartLPService(CRUDService):
                 'error': str(e)
             }
 
-    def test_llm_model(self, task: str, model: str, url: str, llm_endpoint: str) -> Tuple[Optional[str], Optional[str]]:
-        """Test LLM model connectivity and functionality.
-        
-        Args:
-            task: Task type (e.g., 'test')
-            model: Model name to test
-            url: LLM endpoint URL
-            llm_endpoint: LLM endpoint identifier
-            
-        Returns:
-            Tuple of (response, error) - one will be None
-        """
-        try:
-            self.log_info(f"Testing LLM model: {model} at {url}")
-            
-            # Use the new LLM service for testing
-            from .llm import llm_service
-            
-            # Test the connection with the specific URL and model
-            result = llm_service.test_connection(url=url, model=model)
-            
-            if result['success']:
-                response = result['response']
-                self.log_info(f"LLM model test successful: {model}")
-                return response, None
-            else:
-                error_msg = result['error']
-                self.log_error(f"LLM model test failed: {error_msg}")
-                return None, error_msg
-                
-        except Exception as e:
-            error_msg = f"LLM model test failed: {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
-
     def test_siem_query(self, siem_type: str, search_query: str, search_index: str, entries_count: str) -> Tuple[Optional[Dict], Optional[str]]:
         """Test SIEM query connectivity and functionality.
         
@@ -575,37 +543,53 @@ class SmartLPService(CRUDService):
         
         return masked
 
-    def generate_regex_for_log(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex pattern for a log entry.
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
-            
-        Returns:
-            Generated regex pattern
+    def generate_regex(self, log_entry: str, fix_count: int = 3) -> Dict[str, Any]:
+        """Generate a regex pattern for a log entry using the LLM.
+        Handles cleaning, fallback, and duplicate capture groups.
+        Returns: {success, regex, error, latency}
         """
-        try:
-            # Import the LLM service (now available)
-            from .llm import llm_service
-            
-            # Use the LLM service to generate regex
-            response = llm_service.generate_regex(log_entry, fix_count)
-            
-            if response and response.get('success'):
-                regex = response.get('regex', '')
-                self.log_info(f"Generated regex for log: {regex[:100]}...")
-                return self.resolve_duplicate_capture_groups(regex)
-            else:
-                self.log_warning(f"Failed to generate regex: {response.get('error', 'Unknown error')}")
-                
-                # Fallback to simple pattern-based approach
-                return self.generate_fallback_regex(log_entry)
-                
-        except Exception as e:
-            self.log_error(f"Error generating regex: {str(e)}", e)
-            # Fallback to simple pattern-based approach
-            return self.generate_fallback_regex(log_entry)
+        from .llm import llm_service
+        self.log_info("Generating regex for log entry")
+
+        # Get the prompt from MongoDB
+        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+        
+        # Query the LLM
+        result = llm_service.query_llm(
+            query=log_entry,
+            system_prompt=sys_prompt
+        )
+
+        # LLM failed → fallback
+        if not result["success"]:
+            self.log_warning(f"Regex generation failed: {result['error']}")
+            fallback = self.generate_fallback_regex(log_entry)
+            return {
+                "success": False,
+                "regex": fallback,
+                "error": result["error"],
+                "latency": result.get("latency", 0)
+            }
+
+        # Extract LLM content
+        raw_regex = result["content"].strip()
+
+        # Clean response
+        cleaned = self.clean_regex_output(raw_regex)
+
+        # Remove duplicate capture groups
+        cleaned = self.resolve_duplicate_capture_groups(cleaned)
+
+        # Ensure `$` at end
+        if not cleaned.endswith("$"):
+            cleaned += "$"
+
+        return {
+            "success": True,
+            "regex": cleaned,
+            "error": None,
+            "latency": result["latency"]
+        }
     
     def generate_fallback_regex(self, log_entry: str) -> str:
         """Generate a simple fallback regex when LLM is not available.
@@ -816,38 +800,50 @@ class SmartLPService(CRUDService):
         
         return regex
 
-    def determine_log_type(self, log_entry: str) -> Tuple[str, str]:
-        """Determine the log type and source type for a log entry.
-        
-        Args:
-            log_entry: The log entry to analyze
-            
-        Returns:
-            Tuple of (log_type, source_type)
-        """
+    def determine_log_type(self, log_entry: str) -> Dict[str, Any]:
+        """Return { success, source_type, log_type, error }"""
+
         try:
-            # Import the LLM service (now available)
-            from .llm import llm_service
+            self.log_info("Determining log type for entry")
             
-            # Use LLM to determine log type
-            response = llm_service.determine_log_type(log_entry)
-            
-            if response and response.get('success'):
-                result = response.get('result', '')
-                if ',' in result:
-                    source_type, log_type = [part.strip() for part in result.split(',', 1)]
-                    return log_type, source_type
-                else:
-                    return result, 'unknown'
-            else:
-                self.log_warning(f"Failed to determine log type: {response.get('error', 'Unknown error')}")
-                # Fallback to heuristic approach
-                return self.determine_log_type_heuristic(log_entry)
-                
+            system_prompt = settings_service.get_prompts_settings("detect_type")
+            response = self.query_llm(log_entry, system_prompt)
+
+            if not response["success"]:
+                return {
+                    "success": False,
+                    "error": response["error"],
+                    "source_type": "unknown",
+                    "log_type": "unknown"
+                }
+
+            # Parse JSON
+            try:
+                result = json.loads(response["content"])
+                return {
+                    "success": True,
+                    "source_type": result.get("source_type", "unknown"),
+                    "log_type": result.get("log_type", "unknown"),
+                    "error": None
+                }
+
+            except Exception as e:
+                self.log_warning(f"LLM returned invalid JSON: {response['content']}")
+                return {
+                    "success": False,
+                    "error": f"Invalid JSON from LLM: {str(e)}",
+                    "source_type": "unknown",
+                    "log_type": "unknown"
+                }
+
         except Exception as e:
-            self.log_error(f"Error determining log type: {str(e)}", e)
-            # Fallback to heuristic approach
-            return self.determine_log_type_heuristic(log_entry)
+            return {
+                "success": False,
+                "error": str(e),
+                "source_type": "unknown",
+                "log_type": "unknown"
+            }
+
     
     def determine_log_type_heuristic(self, log_entry: str) -> Tuple[str, str]:
         """Determine log type using simple heuristics as fallback.
