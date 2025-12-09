@@ -22,7 +22,7 @@ from models.core import LogEntry, RuleStatus
 from .siem import SIEMServiceFactory
 from .settings import settings_service
 from .regex_engine import regex_engine_service
-from .llm import llm_service
+from .rag import rag_service
 from utils.formatters import generate_alphanumeric_id
 
 # Import for Elasticsearch deployment
@@ -75,7 +75,7 @@ class SmartLPService(CRUDService):
         while not self._stop_ingestion.is_set():
             # Load settings every cycle
             settings = settings_service.get_global_settings()
-            interval = int(settings.get("ingest_frequency", 30))  # seconds
+            interval = int(settings.get("ingest_frequency", 30))
 
             try:
                 self.perform_ingestion()
@@ -135,6 +135,9 @@ class SmartLPService(CRUDService):
             processed_count = 0
             for log in logs:
                 try:
+                    # Generate embedding
+                    embedding = rag_service.generate_embeddings(log)
+
                     # Check for similarity if enabled
                     if similarity_check and self.check_log_similarity(log, similarity_threshold):
                         self.log_info(f"[INGESTION] Skipped similar log: {log[:50]}...")
@@ -495,43 +498,51 @@ class SmartLPService(CRUDService):
             return None, error_msg
 
     def check_log_similarity(self, log: str, threshold: float) -> bool:
-        """Check if a log entry is similar to existing entries.
-        
-        Args:
-            log: The log entry to check
-            threshold: Similarity threshold (0.0 to 1.0)
-            
-        Returns:
-            True if similar log found, False otherwise
-        """
+        """Check if a log entry is similar to existing entries using
+        both text and semantic similarity."""
         try:
             from difflib import SequenceMatcher
-            
-            # Get recent log entries for comparison
+
+            # Fetch recent entries
             recent_entries = self.db.query(
                 self.collection_name,
                 {},
                 projection={"log": 1},
                 sort=[("timestamp", -1)],
-                limit=100  # Check against last 100 entries
+                limit=100
             )
-            
-            # Mask the log entry for comparison
+
             masked_log = self.mask_log_entry(log)
-            
+
+            # Precompute embedding for incoming log
+            semantic_log_emb = rag_service.generate_embeddings([masked_log])[0]
+
             for entry in recent_entries:
-                existing_log = entry.get('log', '')
+                if isinstance(entry, tuple):
+                    entry = entry[1]  # or whatever contains the actual dict
+
+                existing_log = entry.get("log", "")
                 masked_existing = self.mask_log_entry(existing_log)
-                
-                # Calculate similarity ratio
-                similarity = SequenceMatcher(None, masked_log, masked_existing).ratio()
-                
-                if similarity >= threshold:
-                    self.log_info(f"Found similar log with similarity: {similarity:.2f}")
+
+                # ---- Text similarity ----
+                text_sim = SequenceMatcher(None, masked_log, masked_existing).ratio()
+
+                # ---- Semantic similarity ----
+                existing_emb = rag_service.generate_embeddings([masked_existing])[0]
+                semantic_sim = rag_service.cosine(semantic_log_emb, existing_emb)
+
+                # ---- Final combined similarity ----
+                final_sim = (text_sim + semantic_sim) / 2.0
+
+                if final_sim >= threshold:
+                    self.log_info(
+                        f"Similar log found (text={text_sim:.2f}, "
+                        f"semantic={semantic_sim:.2f}, avg={final_sim:.2f})"
+                    )
                     return True
-            
+
             return False
-            
+
         except Exception as e:
             self.log_error(f"Error checking log similarity: {str(e)}", e)
             return False
@@ -599,11 +610,11 @@ class SmartLPService(CRUDService):
     def generate_regex_v1(self, log: str) -> Dict[str, Any]:
         self.log_info("Generating regex (v1)...")
 
-        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
 
-        result = llm_service.query_llm(
-            query=log,
-            system_prompt=sys_prompt
+        result = rag_service.query_rag(
+            user_prompt=log, 
+            system_prompt=system_prompt
         )
 
         if not result["success"]:
@@ -630,7 +641,7 @@ class SmartLPService(CRUDService):
     def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:
         self.log_info("Generating regex (v2)...")
 
-        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
 
         remaining = log
         final_regex = ""
@@ -639,9 +650,9 @@ class SmartLPService(CRUDService):
         for i in range(fix_count):
             # Ask LLM for this segment
             self.log_info(f"Generating regex round {i+1}...")
-            result = llm_service.query_llm(
-                query=remaining,
-                system_prompt=sys_prompt
+            result = rag_service.query_rag(
+                user_prompt=remaining, 
+                system_prompt=system_prompt
             )
 
             total_latency += result.get("latency", 0)
@@ -694,15 +705,15 @@ class SmartLPService(CRUDService):
         }
 
     def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
-        sys_prompt = settings_service.get_prompts_settings("fix_regex")
+        system_prompt = settings_service.get_prompts_settings("fix_regex")
 
         # shrink to longest matching core
         longest = regex_engine_service.run_reduce_regex(log, regex)
         longest = longest["regex"]
 
-        result = llm_service.query_llm(
-            query=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}",
-            system_prompt=sys_prompt
+        result = rag_service.query_rag(
+            user_prompt=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}", 
+            system_prompt=system_prompt
         )
 
         if not result["success"]:

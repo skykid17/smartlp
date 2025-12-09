@@ -487,6 +487,6 @@ def register_smartlp_routes(app: Flask) -> None:
                 result = smartlp_service.fix_regex(log, regex)
             case _:
                 user_prompt = data.get('prompt', '')
-                result = llm_service.query_llm(user_prompt)
+                result = rag_service.query_rag(user_prompt)
             
         return jsonify(result)

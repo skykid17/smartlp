@@ -103,7 +103,7 @@ class LLMService(BaseService):
                 "latency": 0
             }
 
-    def query_llm(self, query: str, system_prompt: str = None, model_override=None, url_override=None, api_key_override=None):
+    def query_llm(self, user_prompt: str, system_prompt: str = None, model_override=None, url_override=None, api_key_override=None):
     
         start_time = time.time()
 
@@ -119,7 +119,7 @@ class LLMService(BaseService):
         messages = []
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
-        messages.append(HumanMessage(content=query))
+        messages.append(HumanMessage(content=user_prompt))
 
         try:
             response = llm.invoke(messages)

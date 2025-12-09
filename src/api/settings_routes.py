@@ -70,7 +70,7 @@ def register_settings_routes(app: Flask) -> None:
 
             # OVERRIDE the model + URL being used.
             result = llm_service.query_llm(
-                query=user_prompt,
+                user_prompt=user_prompt,
                 model_override=data['model'],
                 url_override=data['url']
             )
