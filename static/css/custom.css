@@ -582,7 +582,8 @@ td {
     background-color: #f8d7da;
 }
 
-.status-badge.pending {
+.status-badge.pending,
+.status-badge.partially-matched {
     color: #856404;
     background-color: #fff3cd;
 }

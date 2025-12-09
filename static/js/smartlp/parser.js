@@ -1,7 +1,7 @@
 // Element references used across functions — declare in module scope so
 // all functions can access them (avoids ReferenceError when functions
 // run outside the DOMContentLoaded callback).
-let logDisplay, regexDisplay, matchDisplay, matchLogger;
+let logDisplay, regexDisplay, matchDisplay, captureGroupDisplay, matchLogger;
 let fixButton, generateButton, saveToDBButton;
 let fixSpinner, generateSpinner, saveToDBSpinner;
 
@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
         logDisplay = document.getElementById("logDisplay");
         regexDisplay = document.getElementById("regexDisplay");
         matchDisplay = document.getElementById("matchDisplay");
+        captureGroupDisplay = document.getElementById("captureGroupDisplay");
         matchLogger = document.getElementById("matchLogger");
         // Primary logger element used across this module. If an element with id
         // `logger` is not present in the DOM, fall back to the match logger so
@@ -226,14 +227,15 @@ async function saveToDB() {
     if (saveToDBSpinner) saveToDBSpinner.classList.add('d-none');
 }
 
-// Find matches using regex
 async function findMatch() {
     const log = getSessionItem("log") || logDisplay.innerText;
     const regex = regexDisplay?.value || getSessionItem("regex") || "";
 
     if (!regex.trim()) {
         matchDisplay.innerText = '';
+        captureGroupDisplay.innerText = '';
         matchLogger.innerText = "No Regex";
+        logDisplay.innerText = log;
         return;
     }
 
@@ -243,146 +245,94 @@ async function findMatch() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ log, regex })
         });
-
         const data = await response.json();
-        matchLogger.innerText = data.logger; // Use .innerText and set class manually.
-        if (data.logger && data.logger.includes("Error")) matchLogger.className = "text-danger";
-        else if (data.logger && data.logger.includes("Partial")) matchLogger.className = "text-warning";
-        else if (data.logger == "Fully Matched") matchLogger.className = "text-success";
-        matchDisplay.innerText = '';
 
-        // Normalize matches shape to an array of [name, {value,start,end}]
+        // --- Status UI ---
+        matchLogger.innerText = data.status;
+        matchLogger.className =
+            data.status.includes("Unmatched") ? "text-danger" :
+                data.status.includes("Partially") ? "text-warning" :
+                    data.status === "Matched" ? "text-success" : "";
+
+        // --- Normalise matches ---
         let matches = [];
-        if (Array.isArray(data.matches)) {
-            matches = data.matches;
-        } else if (data.matches && typeof data.matches === 'object') {
-            matches = Object.entries(data.matches).map(([k, v]) => [k, v]);
+        if (data.full) {
+            matches.push(["matched1", data.full]);
+            if (Array.isArray(data.groups)) {
+                data.groups.forEach((g, i) => matches.push([g.name, g]));
+            }
         }
 
-        if (matches && matches.length > 0) {
-            // Skip if key starts with 'matched'
-            const output = matches
-                .filter(([key]) => !key.startsWith('matched'))
-                .map(([key, val]) => `${key}: ${val && val.value !== undefined ? val.value : ''}`)
-                .join('\n');
-            matchDisplay.innerText = output;
+        const fullMatchObj = matches.find(([k]) => k === "matched1")?.[1] || null;
+        const groupMatches = matches.filter(([k]) => k !== "matched1");
 
-            // Highlight matched substrings in the logDisplay
-            highlightMatches(log, matches);
-        } else {
-            // If no matches, display the original log without highlights
-            logDisplay.innerText = log;
-            // Remove overlay if present
-            const ov = document.getElementById('logOverlay');
-            if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-        }
-    } catch (error) {
-        console.error("Error in findMatch:", error);
+        // --- Update displays ---
+        matchDisplay.innerText = fullMatchObj ? fullMatchObj.value : '';
+        captureGroupDisplay.innerText = groupMatches
+            .map(([k, v]) => `${k}: ${v?.value ?? ''}`)
+            .join('\n');
+
+        // --- Highlight log ---
+        highlightLog(log, fullMatchObj, groupMatches);
+
+    } catch (err) {
+        console.error("findMatch() error:", err);
         matchLogger.innerText = "Request Error";
     }
 }
+function highlightLog(logText, fullMatch, groups) {
+    if (!logDisplay) return;
 
-function highlightMatches(logText, matches) {
-    // Find the full match (matched1) and capture groups
-    const matchArray = matches.filter(([key]) => key === 'matched1');
-    const full = matchArray.length ? matchArray[0][1] : (matches.length ? matches[0][1] : null);
-    if (!full) {
-        // Nothing to highlight
-        if (logDisplay && (logDisplay.tagName !== 'TEXTAREA' && logDisplay.tagName !== 'INPUT')) {
-            logDisplay.innerText = logText;
-        }
-        return;
+    const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Collect all highlights: full match first (lower priority), capture groups higher priority
+    const highlights = [];
+
+    if (fullMatch && typeof fullMatch.start === 'number') {
+        highlights.push({ start: fullMatch.start, end: fullMatch.end, color: 'rgba(255,255,0,0.3)' });
     }
 
-    const matchValue = full.value || '';
-    const matchStartIndex = typeof full.start === 'number' ? full.start : 0;
-    const matchEndIndex = typeof full.end === 'number' ? full.end : (matchStartIndex + matchValue.length);
-
-    const matchGroups = matches.filter(([key]) => !key.startsWith('matched'));
-
-    // Escape HTML
-    function escapeHtml(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    // Build highlighted HTML
-    let highlighted = '';
-    highlighted += escapeHtml(logText.substring(0, matchStartIndex));
-    const inner = matchValue;
-
-    // Build group segments
-    let segments = [];
-    matchGroups.forEach(([groupName, groupData], idx) => {
-        if (!groupData || typeof groupData.start !== 'number' || typeof groupData.end !== 'number') return;
-        if (groupData.start < matchStartIndex || groupData.end > matchEndIndex) return;
-        const relStart = groupData.start - matchStartIndex;
-        const relEnd = groupData.end - matchStartIndex;
-        segments.push({ start: relStart, end: relEnd, name: groupName, idx });
+    groups.forEach(([_, g]) => {
+        if (!g || typeof g.start !== 'number' || typeof g.end !== 'number') return;
+        highlights.push({ start: g.start, end: g.end, color: 'rgba(0,0,255,0.2)' });
     });
-    segments.sort((a, b) => a.start - b.start);
 
-    let last = 0;
-    segments.forEach((seg, idx) => {
-        if (seg.start > last) highlighted += escapeHtml(inner.substring(last, seg.start));
-        const cls = (idx % 2 === 0) ? 'highlight1' : 'highlight2';
-        highlighted += `<mark class="${cls}" title="${escapeHtml(seg.name)}">${escapeHtml(inner.substring(seg.start, seg.end))}</mark>`;
-        last = seg.end;
-    });
-    if (last < inner.length) highlighted += escapeHtml(inner.substring(last));
-    highlighted += escapeHtml(logText.substring(matchEndIndex));
+    // Sort by start
+    highlights.sort((a, b) => a.start - b.start || a.end - b.end);
 
-    // If the logDisplay is a textarea/input create an overlay to render highlights
-    const isTextInput = logDisplay && (logDisplay.tagName === 'TEXTAREA' || logDisplay.tagName === 'INPUT');
-    if (isTextInput) {
-        const parent = logDisplay.parentNode;
-        if (parent && !parent.classList.contains('log-overlay-container')) {
-            parent.classList.add('log-overlay-container');
-            parent.style.position = parent.style.position || 'relative';
+    // Merge highlights into segments
+    const segments = [];
+    let pointer = 0;
+    while (pointer < logText.length) {
+        let overlapping = highlights.filter(h => h.start <= pointer && h.end > pointer);
+        let nextBoundary = logText.length;
+        if (overlapping.length) {
+            nextBoundary = Math.min(...overlapping.map(h => h.end));
+        } else {
+            const future = highlights.find(h => h.start > pointer);
+            if (future) nextBoundary = future.start;
         }
 
-        let overlay = document.getElementById('logOverlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'logOverlay';
-            overlay.style.position = 'absolute';
-            overlay.style.pointerEvents = 'none';
-            overlay.style.zIndex = 2;
-            overlay.style.whiteSpace = 'pre-wrap';
-            parent.appendChild(overlay);
-        }
-
-        // copy size and font styles
-        const cs = window.getComputedStyle(logDisplay);
-        overlay.style.top = (logDisplay.offsetTop) + 'px';
-        overlay.style.left = (logDisplay.offsetLeft) + 'px';
-        overlay.style.width = logDisplay.offsetWidth + 'px';
-        overlay.style.height = logDisplay.offsetHeight + 'px';
-        overlay.style.font = cs.font;
-        overlay.style.lineHeight = cs.lineHeight;
-        overlay.style.padding = cs.padding;
-        overlay.style.boxSizing = cs.boxSizing;
-
-        overlay.innerHTML = `<div class="log-highlight-inner">${highlighted}</div>`;
-
-        // make textarea background transparent so overlay is visible
-        logDisplay.style.background = 'transparent';
-        logDisplay.style.position = logDisplay.style.position || 'relative';
-        return;
+        const segmentText = logText.slice(pointer, nextBoundary);
+        segments.push({ text: segmentText, highlights: overlapping.slice() });
+        pointer = nextBoundary;
     }
 
-    // Inline element: set innerHTML
-    try {
-        logDisplay.innerHTML = highlighted;
-    } catch (e) {
-        logDisplay.innerText = logText;
-    }
+    // Build final HTML
+    const finalHtml = segments.map(seg => {
+        let text = escapeHtml(seg.text);
+        seg.highlights.forEach(h => {
+            text = `<mark style="background:${h.color}">${text}</mark>`;
+        });
+        return text;
+    }).join('');
+
+    logDisplay.innerHTML = finalHtml;
 }
 
 async function reduceRegex() {
-    if (regexDisplay.value === "") {
-        logger.innerText = "No regex to reduce";
-        return;
-    }
+    if (!regexDisplay.value) return logger.innerText = "No regex to reduce";
+
     const response = await fetch('/api/reduce_regex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

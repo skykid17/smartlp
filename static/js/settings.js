@@ -254,7 +254,6 @@ function selectLlmEndpoint(endpointId) {
 
     // Update modelArray with current endpoint's models
     modelArray = Array.isArray(selectedLlm.models) ? [...selectedLlm.models] : [];
-    console.log(`Loaded models for ${endpointId}:`, modelArray);
     setModelList();
 }
 

@@ -63,77 +63,11 @@ class LLMService(BaseService):
             self.log_error(f"Error getting active LLM config: {str(e)}", e)
             return None
     
-    def _clean_response(self, response: str) -> str:
-        """Clean up LLM response text.
-        
-        Args:
-            response: Raw response text
-            
-        Returns:
-            Cleaned response text
-        """
-        # Remove code block markers
-        response = response.replace("```", "")
-        
-        # Remove regex prefix if present
-        if response.startswith("regex"):
-            response = response[len("regex"):].strip()
-        
-        # Remove newlines
-        response = response.replace("\n", "")
-        
-        return response.strip()
-            
-    def determine_log_type(self, log_entry: str) -> Dict[str, Any]:
-        """Return { success, source_type, log_type, error }"""
-
-        try:
-            self.log_info("Determining log type for entry")
-            
-            system_prompt = settings_service.get_prompts_settings("detect_type")
-            response = self.query_llm(log_entry, system_prompt)
-
-            if not response["success"]:
-                return {
-                    "success": False,
-                    "error": response["error"],
-                    "source_type": "unknown",
-                    "log_type": "unknown"
-                }
-
-            # Parse JSON
-            try:
-                result = json.loads(response["content"])
-                return {
-                    "success": True,
-                    "source_type": result.get("source_type", "unknown"),
-                    "log_type": result.get("log_type", "unknown"),
-                    "error": None
-                }
-
-            except Exception as e:
-                self.log_warning(f"LLM returned invalid JSON: {response['content']}")
-                return {
-                    "success": False,
-                    "error": f"Invalid JSON from LLM: {str(e)}",
-                    "source_type": "unknown",
-                    "log_type": "unknown"
-                }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "source_type": "unknown",
-                "log_type": "unknown"
-            }
-
-    
     def _build_llm_client(self, model_override=None, url_override=None, api_key_override=None):
         """Build a ChatOpenAI client from DB settings or frontend overrides."""
         config = self._get_active_llm_config()
         global_settings = settings_service.get_global_settings()
-        active_llm = global_settings.get('active_llm_endpoint', '') if isinstance(global_settings, dict) else None
+        active_llm = global_settings.get('active_llm', '') if isinstance(global_settings, dict) else None
 
         if not config:
             return None, {

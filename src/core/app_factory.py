@@ -137,8 +137,6 @@ class ApplicationFactory:
                     daemon=True
                 )
                 thread.start()
-                
-                app_logger.log_message('log', 'Background log ingestion started')
     
     @staticmethod
     def _setup_signal_handlers() -> None:

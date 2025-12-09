@@ -356,7 +356,7 @@ function populateRow(row, item) {
     statusCell.classList.add('align-middle');
     const status = item.status || 'Unknown';
     const statusBadge = document.createElement('span');
-    statusBadge.className = `status-badge ${status.toLowerCase()}`;
+    statusBadge.className = `status-badge ${status.toLowerCase().replace(/\s+/g, '-')}`;
     statusBadge.textContent = status;
     statusCell.appendChild(statusBadge);
 

@@ -11,6 +11,8 @@ This service handles:
 import threading
 import time
 import os
+import re
+import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
@@ -19,6 +21,8 @@ from .base import BaseService, CRUDService
 from models.core import LogEntry, RuleStatus
 from .siem import SIEMServiceFactory
 from .settings import settings_service
+from .regex_engine import regex_engine_service
+from .llm import llm_service
 from utils.formatters import generate_alphanumeric_id
 
 # Import for Elasticsearch deployment
@@ -38,6 +42,7 @@ class SmartLPService(CRUDService):
         self._ingestion_thread: Optional[threading.Thread] = None
         self._stop_ingestion = threading.Event()
         self._ingestion_running = False
+        self.logger.propagate = False  # Prevent double logging
     
     def start_log_ingestion(self) -> None:
         """Start background log ingestion."""
@@ -65,11 +70,22 @@ class SmartLPService(CRUDService):
     
     def ingestion_loop(self) -> None:
         """Main ingestion loop running in background thread."""
-        while not self._stop_ingestion.wait(timeout=30):  # Check every 30 seconds
+        from services.settings import settings_service
+
+        while not self._stop_ingestion.is_set():
+            # Load settings every cycle
+            settings = settings_service.get_global_settings()
+            interval = int(settings.get("ingest_frequency", 30))  # seconds
+
             try:
                 self.perform_ingestion()
             except Exception as e:
                 self.log_error("[INGESTION] Error during log ingestion", e)
+
+            # Sleep with exit awareness
+            if self._stop_ingestion.wait(timeout=interval):
+                break
+
     
     def perform_ingestion(self) -> None:
         """Perform a single ingestion cycle."""
@@ -86,7 +102,6 @@ class SmartLPService(CRUDService):
 
             # Get ingestion parameters (snake_case)
             active_siem = settings.get('active_siem', 'elastic')
-            ingest_frequency = int(settings.get('ingest_frequency', 30))
             similarity_check = settings.get('similarity_check', False)
             similarity_threshold = float(settings.get('similarity_threshold', 0.8))
             fix_count = int(settings.get('fix_count', 3))
@@ -118,27 +133,32 @@ class SmartLPService(CRUDService):
             
             # Process each ingested log
             processed_count = 0
-            for log_entry in logs:
+            for log in logs:
                 try:
                     # Check for similarity if enabled
-                    if similarity_check and self.check_log_similarity(log_entry, similarity_threshold):
-                        self.log_info(f"[INGESTION] Skipped similar log: {log_entry[:50]}...")
+                    if similarity_check and self.check_log_similarity(log, similarity_threshold):
+                        self.log_info(f"[INGESTION] Skipped similar log: {log[:50]}...")
                         continue
                     
                     # Generate regex for the log
-                    regex = self.generate_regex(log_entry, fix_count)
+                    results = self.generate_regex(log, fix_count)
+                    regex = results['regex']
+                    
+                    # Run regex match to get status
+                    match_result = regex_engine_service.run_regex_match(log, regex)
+                    status = match_result['status']
                     
                     # Determine log type and source type
-                    results = self.determine_log_type(log_entry)
+                    results = self.determine_log_type(log)
                     log_type = results["log_type"]
                     source_type = results["source_type"]
-                    
+
                     # Create log entry in database
                     entry_data = {
                         'id': generate_alphanumeric_id(8),
-                        'log': log_entry,
+                        'log': log,
                         'regex': regex,
-                        'status': 'Matched' if regex else 'Unmatched',
+                        'status': status,
                         'log_type': log_type,
                         'source_type': source_type,
                         'timestamp': datetime.now().isoformat(),
@@ -474,11 +494,11 @@ class SmartLPService(CRUDService):
             self.log_error(error_msg, e)
             return None, error_msg
 
-    def check_log_similarity(self, log_entry: str, threshold: float) -> bool:
+    def check_log_similarity(self, log: str, threshold: float) -> bool:
         """Check if a log entry is similar to existing entries.
         
         Args:
-            log_entry: The log entry to check
+            log: The log entry to check
             threshold: Similarity threshold (0.0 to 1.0)
             
         Returns:
@@ -497,7 +517,7 @@ class SmartLPService(CRUDService):
             )
             
             # Mask the log entry for comparison
-            masked_log = self.mask_log_entry(log_entry)
+            masked_log = self.mask_log_entry(log)
             
             for entry in recent_entries:
                 existing_log = entry.get('log', '')
@@ -543,271 +563,175 @@ class SmartLPService(CRUDService):
         
         return masked
 
-    def generate_regex(self, log_entry: str, fix_count: int = 3) -> Dict[str, Any]:
-        """Generate a regex pattern for a log entry using the LLM.
-        Handles cleaning, fallback, and duplicate capture groups.
-        Returns: {success, regex, error, latency}
-        """
-        from .llm import llm_service
-        self.log_info("Generating regex for log entry")
-
-        # Get the prompt from MongoDB
-        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+    def clean_response(self, response: str) -> str:
+        """Clean up LLM response text.
         
-        # Query the LLM
+        Args:
+            response: Raw response text
+            
+        Returns:
+            Cleaned response text
+        """
+        # Remove code block markers
+        response = response.replace("```", "")
+        
+        # Remove regex prefix if present
+        if response.startswith("regex"):
+            response = response[len("regex"):].strip()
+        
+        if response.startswith("`"):
+            response = response[1:-1].strip()
+
+        # Remove newlines
+        response = response.replace("\n", "")
+        
+        return response.strip()
+
+    def generate_regex(self, log: str, fix_count: int = 3) -> Dict[str, Any]:
+        """Unified entrypoint for regex generation."""
+        settings = settings_service.get_global_settings()
+        algo = settings.get("ingest_algo_version", "v2")
+
+        if algo == "v2":
+            return self.generate_regex_v2(log, fix_count)
+        return self.generate_regex_v1(log)
+
+    def generate_regex_v1(self, log: str) -> Dict[str, Any]:
+        self.log_info("Generating regex (v1)...")
+
+        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+
         result = llm_service.query_llm(
-            query=log_entry,
+            query=log,
             system_prompt=sys_prompt
         )
 
-        # LLM failed → fallback
         if not result["success"]:
-            self.log_warning(f"Regex generation failed: {result['error']}")
-            fallback = self.generate_fallback_regex(log_entry)
             return {
                 "success": False,
-                "regex": fallback,
+                "regex": None,
                 "error": result["error"],
-                "latency": result.get("latency", 0)
+                "latency": result["latency"]
             }
 
-        # Extract LLM content
-        raw_regex = result["content"].strip()
-
-        # Clean response
-        cleaned = self.clean_regex_output(raw_regex)
-
-        # Remove duplicate capture groups
-        cleaned = self.resolve_duplicate_capture_groups(cleaned)
-
-        # Ensure `$` at end
-        if not cleaned.endswith("$"):
-            cleaned += "$"
+        # Clean
+        regex = self.clean_response(result["content"])
+        if not regex.endswith("$"):
+            regex += "$"
 
         return {
             "success": True,
-            "regex": cleaned,
+            "regex": regex,
             "error": None,
             "latency": result["latency"]
         }
     
-    def generate_fallback_regex(self, log_entry: str) -> str:
-        """Generate a simple fallback regex when LLM is not available.
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            
-        Returns:
-            Simple regex pattern
-        """
-        import re
-        
-        # Very simple approach: just escape the entire log
-        regex = re.escape(log_entry)
-        
-        # Ensure regex ends with $
-        if not regex.endswith("$"):
-            regex += "$"
-            
-        return regex
     
-    def generate_regex_v1(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex using iterative fix approach (legacy v1 algorithm).
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
-            
-        Returns:
-            Generated regex pattern
-        """
-        try:
-            from .llm import llm_service
-            
-            # Initial regex generation
-            response = llm_service.generate_regex(log_entry, 0)
-            if not response.get('success'):
-                return ''
-            
-            regex = response.get('regex', '')
-            
-            # Iterative fixing
-            for count in range(fix_count):
-                if self.is_fully_matched(log_entry, regex):
-                    self.log_info(f"Regex is fully matched after round {count}.")
-                    break
-                    
-                self.log_info(f"Fixing regex for round {count+1}...")
-                reduced = self.reduce_regex(log_entry, regex)
-                
-                # Send fix request to LLM
-                payload = {
-                    "model": "default",
-                    "messages": [
-                        {"role": "system", "content": "You are an expert in fixing PCRE2 regex patterns. Fix the provided regex to match the log entry completely."},
-                        {"role": "user", "content": f"Log: {log_entry}\nRegex: {reduced}"}
-                    ],
-                    "temperature": 0.1
-                }
-                
-                # This would need LLM service enhancement for fix requests
-                # For now, just use the reduced regex
-                regex = reduced
-                self.log_info(f"New regex after round {count+1}: {regex}")
-            
-            return self.resolve_duplicate_capture_groups(regex)
-            
-        except Exception as e:
-            self.log_error(f"Error in regex generation v1: {str(e)}", e)
-            return ''
-    
-    def generate_regex_v2(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex using progressive matching approach (legacy v2 algorithm).
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
-            
-        Returns:
-            Generated regex pattern
-        """
-        try:
-            from .llm import llm_service
-            import re
-            
-            regex = ""
-            remaining_log = log_entry
-            count = 0
-            
-            while remaining_log and count <= fix_count:
-                if count == 0:
-                    self.log_info(f"Generating regex for log: {remaining_log}")
-                else:
-                    self.log_info(f"Fixing regex for round {count}...")
-                
-                # Generate regex for remaining log
-                response = llm_service.generate_regex(remaining_log, 0)
-                if not response.get('success'):
-                    break
-                
-                current_regex = response.get('regex', '')
-                current_regex = current_regex.replace("```", "").replace("\n", "")
-                
-                if current_regex.startswith("regex"):
-                    current_regex = current_regex[len("regex"):]
-                
-                if not current_regex.endswith("$"):
-                    current_regex += "$"
-                
-                if count != fix_count:
-                    reduced_regex = self.reduce_regex(remaining_log, current_regex)
-                    self.log_info(f"Reduced regex: {reduced_regex}")
-                else:
-                    reduced_regex = current_regex
-                
-                # Try to match the reduced regex
-                try:
-                    match = re.search(reduced_regex, remaining_log)
-                    if not match:
-                        break
-                    
-                    matched_part = match.group(0)
-                    self.log_info(f"Matched part of log: {matched_part}")
-                    
-                    remaining_log = remaining_log[match.end():].replace("\n", "")
-                    self.log_info(f"Remaining log after match: {remaining_log}")
-                    
-                    if regex:
-                        regex += (r"\s?" + reduced_regex)
-                    else:
-                        regex = reduced_regex
-                        
-                    self.log_info(f"New regex after round {count+1}: {regex}")
-                    count += 1
-                    
-                except re.error as e:
-                    self.log_error(f"Regex error: {str(e)}")
-                    break
-            
-            if count >= fix_count:
-                self.log_info(f"Reached maximum fix count of {fix_count}.")
-            else:
-                self.log_info(f"Regex is fully matched after round {count}.")
-            
-            regex = self.resolve_duplicate_capture_groups(regex)
-            
-            # Escape unescaped double quotes
-            if '"' in regex:
-                index_counter = 0
-                while True:
-                    try:
-                        double_quote_index = regex.index('"', index_counter + 1, len(regex))
-                        if regex[double_quote_index - 1] != '\\':
-                            regex = regex[:double_quote_index] + '\\"' + regex[double_quote_index + 1:]
-                        index_counter = double_quote_index + 1
-                    except ValueError:
-                        break
-            
-            return regex
-            
-        except Exception as e:
-            self.log_error(f"Error in regex generation v2: {str(e)}", e)
-            return ''
-    
-    def is_fully_matched(self, log: str, regex: str) -> bool:
-        """Check if regex fully matches the log entry.
-        
-        Args:
-            log: The log entry to test
-            regex: The regex pattern to test
-            
-        Returns:
-            True if fully matched, False otherwise
-        """
-        try:
-            import re
-            match = re.search(regex, log)
-            if match:
-                return match.group(0) == log
-            return False
-        except re.error:
-            return False
-    
-    def reduce_regex(self, log: str, regex: str) -> str:
-        """Reduce regex pattern until it matches the log.
-        
-        Args:
-            log: The log entry to match
-            regex: The regex pattern to reduce
-            
-        Returns:
-            Reduced regex pattern
-        """
-        import re
-        
-        # Ensure regex is a string
-        if not isinstance(regex, str):
-            self.log_warning(f"Expected regex to be a string, got {type(regex)}. Converting to string.")
-            regex = str(regex)
-        
-        while regex:
-            try:
-                if re.search(regex, log):
-                    break
-            except re.error:
-                pass  # Skip invalid patterns silently
-            regex = regex[:-1]
-        
-        return regex
+    def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:
+        self.log_info("Generating regex (v2)...")
 
-    def determine_log_type(self, log_entry: str) -> Dict[str, Any]:
+        sys_prompt = settings_service.get_prompts_settings("generate_regex")
+
+        remaining = log
+        final_regex = ""
+        total_latency = 0.0
+
+        for i in range(fix_count):
+            # Ask LLM for this segment
+            self.log_info(f"Generating regex round {i+1}...")
+            result = llm_service.query_llm(
+                query=remaining,
+                system_prompt=sys_prompt
+            )
+
+            total_latency += result.get("latency", 0)
+
+            if not result["success"]:
+                return {
+                    "success": False,
+                    "regex": final_regex or None,
+                    "error": result["error"],
+                    "latency": total_latency
+                }
+
+            raw = self.clean_response(result["content"])
+            if not raw.endswith("$"):
+                raw += "$"
+
+            # reduce to longest valid partial match
+            reduced = regex_engine_service.run_reduce_regex(remaining, raw)
+            reduced = reduced["regex"]
+            self.log_info(f"Reduced regex: {reduced}")
+
+            # match it
+            match_info = regex_engine_service.run_regex_match(remaining, reduced)
+            if match_info["status"] == "Not Matched":
+                self.log_warning("Reduced regex no longer matches, stopping.")
+                break
+
+            matched = match_info["full"]["value"]
+            end = match_info["full"]["end"]
+
+            # append
+            if final_regex:
+                final_regex += r"\s?" + reduced
+            else:
+                final_regex = reduced
+
+            # move forward
+            remaining = remaining[end:]
+            if not remaining:
+                break
+
+        # post-process result
+        final_regex = self.resolve_duplicate_capture_groups(final_regex)
+
+        return {
+            "success": True,
+            "regex": final_regex,
+            "error": None,
+            "latency": total_latency
+        }
+
+    def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
+        sys_prompt = settings_service.get_prompts_settings("fix_regex")
+
+        # shrink to longest matching core
+        longest = regex_engine_service.run_reduce_regex(log, regex)
+        longest = longest["regex"]
+
+        result = llm_service.query_llm(
+            query=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}",
+            system_prompt=sys_prompt
+        )
+
+        if not result["success"]:
+            return {
+                "success": False,
+                "regex": None,
+                "error": result["error"],
+                "latency": result["latency"]
+            }
+
+        fixed = self.clean_response(result["content"])
+        if not fixed.endswith("$"):
+            fixed += "$"
+
+        return {
+            "success": True,
+            "regex": fixed,
+            "error": None,
+            "latency": result["latency"]
+        }
+
+    def determine_log_type(self, log: str) -> Dict[str, Any]:
         """Return { success, source_type, log_type, error }"""
 
         try:
             self.log_info("Determining log type for entry")
             
             system_prompt = settings_service.get_prompts_settings("detect_type")
-            response = self.query_llm(log_entry, system_prompt)
+            response = self.query_llm(log, system_prompt)
 
             if not response["success"]:
                 return {
@@ -845,16 +769,16 @@ class SmartLPService(CRUDService):
             }
 
     
-    def determine_log_type_heuristic(self, log_entry: str) -> Tuple[str, str]:
+    def determine_log_type_heuristic(self, log: str) -> Tuple[str, str]:
         """Determine log type using simple heuristics as fallback.
         
         Args:
-            log_entry: The log entry to analyze
+            log: The log entry to analyze
             
         Returns:
             Tuple of (log_type, source_type)
         """
-        log_lower = log_entry.lower()
+        log_lower = log.lower()
         
         # Simple heuristics for common log types
         if 'failed' in log_lower or 'error' in log_lower or 'authentication' in log_lower:
