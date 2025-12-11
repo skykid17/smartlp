@@ -1,90 +1,135 @@
-<!-- Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<!-- Playground/Parser Header -->
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
     <div>
-        <h2 class="mb-0">Parser</h2>
-        <small id="entryStats" class="text-muted">Loading statistics...</small>
-    </div>
-    <div class="d-flex gap-2 align-items-center ">
-
-
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Playground</h1>
+        <p id="entryStats" class="text-gray-600 dark:text-gray-400">Regex pattern testing and log parsing</p>
     </div>
 </div>
 
-<!-- Main Content -->
-<div class="row">
-    <!-- Left Column -->
-    <div id="leftColumn" class="col-md-8">
-        <!-- REGEX Section -->
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="mb-0">REGEX</h5>
-            <div class="d-flex gap-2">
-                <button class="btn btn-secondary" onclick="reduceRegex()" data-bs-toggle="tooltip"
-                    data-bs-placement="top" data-bs-title="Returns the longest matching regex sequence.">
-                    Reduce
-                </button>
-                <button id="generateButton" class="btn btn-secondary aiButton" onclick="queryLLM('generate')"
-                    data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Use AI to generate a regex for the log..">
-                    <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Generate
-                    <span id="generateSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
-                        aria-hidden="true"></span>
-                </button>
+<!-- Two-Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column (2/3 width on large screens) -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Regex Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-code mr-2 text-blue-500"></i>
+                    REGEX
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button id="reduceButton" 
+                        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 text-sm"
+                        title="Returns the longest matching regex sequence">
+                        <i class="fas fa-compress-alt mr-1"></i>Reduce
+                    </button>
+                    <button id="generateButton" 
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm flex items-center">
+                        <i class="fas fa-magic mr-2"></i>Generate
+                        <span id="generateSpinner" class="ml-2 hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <textarea id="regexDisplay" 
+                    class="w-full h-40 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm resize-none"
+                    placeholder="Generate/Add/Edit regex here..."></textarea>
             </div>
         </div>
-        <textarea id="regexDisplay" class="form-control mb-3" placeholder="Generate/Add/Edit regex here"
-            oninput="findMatch()"></textarea>
 
-        <!-- LOG Section -->
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="mb-0">LOG</h5>
-            <div class="d-flex gap-2">
-                <button id="clearEntryButton" onclick="clearEntry()" class="btn btn-secondary" data-bs-toggle="tooltip"
-                    data-bs-placement="top" data-bs-title="Clear all fields">
-                    Clear
-                </button>
-                <button id="pullEntryButton" onclick="pullEntry()" class="btn btn-secondary" data-bs-toggle="tooltip"
-                    data-bs-placement="top" data-bs-title="Pull the latest Unmatched entry">
-                    <i class="fa fa-download"></i> Pull Latest Entry
-                </button>
-                <button id="fixButton" class="btn btn-secondary aiButton" onclick="queryLLM('fix')"
-                    data-bs-toggle="tooltip" data-bs-placement="top"
-                    data-bs-title="Use AI to improve or correct the current regex.">
-                    <img src="/smartlp_ai_icon/ai2.png" width="20" height="20"> Fix
-                    <span id="fixSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
-                        aria-hidden="true"></span>
-                </button>
+        <!-- Log Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-file-alt mr-2 text-green-500"></i>
+                    LOG
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button id="clearEntryButton" 
+                        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 text-sm"
+                        title="Clear all fields">
+                        <i class="fas fa-eraser mr-1"></i>Clear
+                    </button>
+                    <button id="pullEntryButton" 
+                        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 text-sm"
+                        title="Pull the latest unmatched entry">
+                        <i class="fas fa-download mr-1"></i>Pull Latest
+                    </button>
+                    <button id="fixButton" 
+                        class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors duration-200 text-sm flex items-center"
+                        title="Use AI to improve or correct the current regex">
+                        <i class="fas fa-wrench mr-2"></i>Fix
+                        <span id="fixSpinner" class="ml-2 hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+                </div>
             </div>
-
+            <div class="p-6">
+                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[10rem] max-h-[20rem] overflow-y-auto">
+                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <pre><code id="logDisplay" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">No log loaded. Pull an entry or paste log content here...</code></pre>
+                </div>
+            </div>
         </div>
-        <pre class="bg-light border rounded p-2 text-wrap position-relative mb-3">
-                <button class="copy-btn"><i class="fa fa-solid fa-copy"></i></button>
-                <code id="logDisplay"></code>
-            </pre>
     </div>
 
-    <!-- Right Column -->
-    <div id="rightColumn" class="col-md-4">
-        <div class="d-flex flex-row justify-content-between">
-            <h5 class="mb-3">MATCHES</h5>
-            <div id="matchLogger"></div>
+    <!-- Right Column (1/3 width on large screens) -->
+    <div class="space-y-6">
+        <!-- Matches Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-check-circle mr-2 text-purple-500"></i>
+                    MATCHES
+                </h2>
+                <div id="matchLogger" class="text-xs text-gray-500 dark:text-gray-400"></div>
+            </div>
+            <div class="p-6">
+                <div id="matchDisplay" 
+                    class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[8rem] max-h-[20rem] overflow-y-auto">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Matches will appear here...</p>
+                </div>
+            </div>
         </div>
-        <div id="matchDisplay" class="bg-light rounded p-2">Matches appear here</div>
-        <div class="d-flex flex-row justify-content-between">
-            <h5 class="mb-3">CAPTURE GROUPS</h5>
+
+        <!-- Capture Groups Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-layer-group mr-2 text-yellow-500"></i>
+                    CAPTURE GROUPS
+                </h2>
+            </div>
+            <div class="p-6">
+                <div id="captureGroupDisplay" 
+                    class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[8rem] max-h-[20rem] overflow-y-auto">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Capture groups will appear here...</p>
+                </div>
+            </div>
         </div>
-        <div id="captureGroupDisplay" class="bg-light rounded p-2">Capture groups appear here</div>
     </div>
 </div>
 
-<!-- Footer -->
-<div class="d-flex justify-content-end align-items-center section-footer">
-    <button id="backButton" class="btn btn-outline-secondary" onclick="window.location.href='/smartlp'">
-        &lt; Back
+<!-- Footer Actions -->
+<div class="flex justify-between items-center mt-6">
+    <button id="backButton" 
+        class="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
     </button>
-    <div id=logger></div>
-    <button id="saveToDBButton" class="btn btn-primary" onclick="saveToDB()">
-        <i class="fa fa-database"></i> Save to Database
-        <span id="saveToDBSpinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"
-            aria-hidden="true"></span>
-    </button>
+    
+    <div class="flex items-center space-x-4">
+        <div id="logger" class="text-sm text-gray-600 dark:text-gray-400"></div>
+        <button id="saveToDBButton" 
+            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center">
+            <i class="fas fa-database mr-2"></i>Save to Database
+            <span id="saveToDBSpinner" class="ml-2 hidden">
+                <i class="fas fa-spinner fa-spin"></i>
+            </span>
+        </button>
+    </div>
 </div>
