@@ -9,7 +9,9 @@ class Chatbot {
         this.messagesContainer = document.getElementById('chatMessages');
         this.input = document.getElementById('chatInput');
         this.sendBtn = document.getElementById('chatSend');
-        
+
+        this.session = [];
+
         this.init();
     }
 
@@ -47,20 +49,34 @@ class Chatbot {
         const message = this.input?.value.trim();
         if (!message) return;
 
-        // Add user message
+        // UI
         this.addMessage(message, 'user');
-        
-        // Clear input
-        this.input.value = '';
 
-        // Send to backend and get response
-        this.getResponse(message);
+        // Save to session
+        this.session.push({
+            role: 'user',
+            content: message
+        });
+
+        this.input.value = '';
+        this.getResponse();
     }
+
+    buildPrompt() {
+        return this.session
+            .map(m =>
+                m.role === 'user'
+                    ? `User: ${m.content}`
+                    : `Assistant: ${m.content}`
+            )
+            .join('\n');
+    }
+
 
     addMessage(text, sender = 'bot') {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'flex items-start space-x-3';
-        
+
         if (sender === 'user') {
             messageDiv.className += ' flex-row-reverse space-x-reverse';
             messageDiv.innerHTML = `
@@ -86,35 +102,43 @@ class Chatbot {
         this.scrollToBottom();
     }
 
-    async getResponse(message) {
-        // Show typing indicator
+    async getResponse() {
         this.showTyping();
 
         try {
-            const response = await fetch('/api/chatbot', {
+            const prompt = this.buildPrompt();
+
+            const response = await fetch('/api/query', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    task: 'chat',
+                    prompt: prompt
+                })
             });
 
             const data = await response.json();
-            
-            // Remove typing indicator
             this.removeTyping();
 
-            if (data.response) {
-                this.addMessage(data.response, 'bot');
+            if (data.success && data.content) {
+                this.addMessage(data.content, 'bot');
+
+                // 🧠 Save assistant reply
+                this.session.push({
+                    role: 'assistant',
+                    content: data.content
+                });
             } else {
-                this.addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                this.addMessage('Sorry, I encountered an error.', 'bot');
             }
+
         } catch (error) {
             console.error('Chatbot error:', error);
             this.removeTyping();
-            this.addMessage('I\'m having trouble connecting right now. Please try again later.', 'bot');
+            this.addMessage('Connection issue. Please try again later.', 'bot');
         }
     }
+
 
     showTyping() {
         const typingDiv = document.createElement('div');

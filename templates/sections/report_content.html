@@ -4,7 +4,7 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Analytics Report</h1>
         <p class="text-gray-600 dark:text-gray-400">SmartLP parsing summary and statistics</p>
     </div>
-    <div class="flex items-center space-x-2">
+    <div class="flex items-center space-x-2 no-print">
         <button id="refreshReportButton"
             class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
             <i class="fas fa-sync-alt mr-2"></i>Refresh
@@ -24,7 +24,7 @@
 </div>
 
 <!-- Analytics Cards Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6 no-print">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
     <!-- Total Logs Card -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
         <div class="flex items-center justify-between mb-2">
@@ -185,8 +185,49 @@
 <!-- Print styles -->
 <style>
     @media print {
-        .no-print {
+        body.print-report {
+            margin: 0;
+            padding: 0;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+        }
+
+        body.print-report * {
+            visibility: hidden !important;
+        }
+
+        body.print-report #report-section,
+        body.print-report #report-section * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body.print-report #report-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            margin: 0;
+            padding: 1in;
+            background: #ffffff;
+        }
+
+        body.print-report #report-section .no-print,
+        body.print-report #report-section button,
+        body.print-report #sidebar,
+        body.print-report #mainFooter,
+        body.print-report #loggerPanel,
+        body.print-report #configHub,
+        body.print-report #chatbotBtn {
             display: none !important;
+        }
+
+        body.print-report canvas {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
     }
 </style>

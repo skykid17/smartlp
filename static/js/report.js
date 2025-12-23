@@ -11,6 +11,7 @@ class Report {
         this.charts = {};
         this.reportData = null;
         this.isLoading = false;
+        this.printClass = 'print-report';
 
         this.cacheElements();
         this.bindEvents();
@@ -311,8 +312,29 @@ class Report {
     }
 
     async handleGenerateReport() {
-        await this.loadReportData();
-        window.print();
+        const data = await this.loadReportData();
+        if (!data) {
+            return;
+        }
+
+        this.togglePrintMode(true);
+
+        let cleanupCalled = false;
+        const cleanup = () => {
+            if (cleanupCalled) return;
+            cleanupCalled = true;
+            this.togglePrintMode(false);
+            window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup);
+
+        setTimeout(() => {
+            window.print();
+            if (!('onafterprint' in window)) {
+                setTimeout(cleanup, 500);
+            }
+        }, 100);
     }
 
     async handleSaveReport() {
@@ -341,6 +363,12 @@ class Report {
             this.charts[key].destroy();
             delete this.charts[key];
         }
+    }
+
+    togglePrintMode(enable) {
+        const body = document.body;
+        if (!body) return;
+        body.classList.toggle(this.printClass, Boolean(enable));
     }
 
     setLoadingState(isLoading) {
