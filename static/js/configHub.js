@@ -8,7 +8,7 @@ class ConfigHub {
         this.panel = document.getElementById('configHub');
         this.content = document.getElementById('configHubContent');
         this.selectedEntries = [];
-        
+
         this.init();
     }
 
@@ -51,10 +51,10 @@ class ConfigHub {
                 </div>
 
                 <div class="space-y-2" id="configEntries">
-                    ${this.selectedEntries.length === 0 ? 
-                        '<p class="text-sm text-gray-500 dark:text-gray-400">No entries selected</p>' :
-                        this.renderEntries()
-                    }
+                    ${this.selectedEntries.length === 0 ?
+                '<p class="text-sm text-gray-500 dark:text-gray-400">No entries selected</p>' :
+                this.renderEntries()
+            }
                 </div>
 
                 ${this.selectedEntries.length > 0 ? `
@@ -115,17 +115,17 @@ class ConfigHub {
     removeEntry(entryId) {
         this.selectedEntries = this.selectedEntries.filter(e => e.id !== entryId);
         this.loadContent();
-        
+
         // Dispatch event for table to update
-        window.dispatchEvent(new CustomEvent('configEntryRemoved', { 
-            detail: { entryId } 
+        window.dispatchEvent(new CustomEvent('configEntryRemoved', {
+            detail: { entryId }
         }));
     }
 
     clearSelection() {
         this.selectedEntries = [];
         this.loadContent();
-        
+
         // Dispatch event for table to update
         window.dispatchEvent(new Event('configSelectionCleared'));
     }
@@ -145,22 +145,21 @@ class ConfigHub {
             }
 
             // Call API to generate config
-            const response = await fetch('/api/smartlp/config/generate', {
+            const response = await fetch('/api/smartlp/generate_config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    entries: this.selectedEntries.map(e => e.id)
+                    ids: this.selectedEntries.map(e => e.id)
                 })
             });
 
             const data = await response.json();
-
-            if (data.config) {
+            if (response.ok && data.config) {
                 this.showConfigModal(data.config);
             } else {
-                window.showToast('Failed to generate configuration', 'error');
+                window.showToast(data.error || 'Failed to generate configuration', 'error');
             }
         } catch (error) {
             console.error('Config generation error:', error);
@@ -197,25 +196,25 @@ class ConfigHub {
     async deployConfig() {
         try {
             window.showToast('Deploying configuration...', 'info');
-            
-            const response = await fetch('/api/smartlp/config/deploy', {
+
+            const response = await fetch('/api/deploy', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    entries: this.selectedEntries.map(e => e.id)
+                    ids: this.selectedEntries.map(e => e.id),
+                    type: 'smartlp'
                 })
             });
 
             const data = await response.json();
-
-            if (data.success) {
-                window.showToast('Configuration deployed successfully', 'success');
+            if (response.ok) {
+                window.showToast(data.logger || 'Configuration deployed successfully', 'success');
                 this.clearSelection();
                 this.close();
             } else {
-                window.showToast('Deployment failed: ' + (data.message || 'Unknown error'), 'error');
+                window.showToast(data.logger || data.error || 'Deployment failed', 'error');
             }
         } catch (error) {
             console.error('Deployment error:', error);

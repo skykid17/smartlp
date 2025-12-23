@@ -13,7 +13,7 @@ class Dashboard {
         this.totalEntries = 0;
         this.selectedEntries = new Set();
         this.entries = [];
-        
+
         this.init();
     }
 
@@ -50,6 +50,7 @@ class Dashboard {
         // Entry modal
         document.getElementById('entryModalClose')?.addEventListener('click', () => this.closeModal());
         document.getElementById('saveEntryChangesBtn')?.addEventListener('click', () => this.saveEntryChanges());
+        document.getElementById('openParserFromModal')?.addEventListener('click', () => this.openParserFromModal());
 
         // Listen for section changes
         window.addEventListener('sectionChanged', (e) => {
@@ -78,10 +79,10 @@ class Dashboard {
 
     async searchData() {
         const searchParams = {
-            id: document.getElementById('searchId')?.value || '',
-            log: document.getElementById('searchLog')?.value || '',
-            regex: document.getElementById('searchRegex')?.value || '',
-            status: document.getElementById('filterStatusSelect')?.value || '',
+            search_id: document.getElementById('searchId')?.value || '',
+            search_log: document.getElementById('searchLog')?.value || '',
+            search_regex: document.getElementById('searchRegex')?.value || '',
+            filter_status: document.getElementById('filterStatusSelect')?.value || '',
             page: this.currentPage,
             per_page: this.entriesPerPage
         };
@@ -125,8 +126,7 @@ class Dashboard {
             const row = document.createElement('tr');
             row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-150';
             row.onclick = () => this.showEntryDetails(entry);
-
-            const statusBadge = this.getStatusBadge(entry.status);
+            const statusBadge = this.getStatusBadge(entry.status.toLowerCase());
 
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
@@ -135,10 +135,10 @@ class Dashboard {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     ${new Date(entry.timestamp).toLocaleString()}
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 truncate max-w-md" title="${this.escapeHtml(entry.log)}">
+                <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 truncate w-1/3 max-w-0" title="${this.escapeHtml(entry.log)}">
                     ${this.escapeHtml(entry.log.substring(0, 100))}${entry.log.length > 100 ? '...' : ''}
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs" title="${this.escapeHtml(entry.regex || '')}">
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 truncate w-1/4 max-w-0" title="${this.escapeHtml(entry.regex || '')}">
                     ${this.escapeHtml((entry.regex || '').substring(0, 50))}${entry.regex && entry.regex.length > 50 ? '...' : ''}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -192,13 +192,13 @@ class Dashboard {
         const start = (this.currentPage - 1) * this.entriesPerPage + 1;
         const end = Math.min(this.currentPage * this.entriesPerPage, this.totalEntries);
 
-        document.getElementById('pageInfo').textContent = 
+        document.getElementById('pageInfo').textContent =
             `Showing ${start}-${end} of ${this.totalEntries} entries`;
 
         // Update prev/next buttons
         const prevBtn = document.getElementById('prevPage');
         const nextBtn = document.getElementById('nextPage');
-        
+
         if (prevBtn) prevBtn.disabled = this.currentPage === 1;
         if (nextBtn) nextBtn.disabled = this.currentPage >= totalPages;
 
@@ -206,7 +206,7 @@ class Dashboard {
         const paginationButtons = document.getElementById('pagination-buttons');
         if (paginationButtons) {
             paginationButtons.innerHTML = '';
-            
+
             // Show at most 5 page buttons
             const startPage = Math.max(1, this.currentPage - 2);
             const endPage = Math.min(totalPages, startPage + 4);
@@ -214,11 +214,10 @@ class Dashboard {
             for (let i = startPage; i <= endPage; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
-                btn.className = `px-3 py-1 rounded-lg text-sm ${
-                    i === this.currentPage 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`;
+                btn.className = `px-3 py-1 rounded-lg text-sm ${i === this.currentPage
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`;
                 btn.onclick = () => this.changePage(i);
                 paginationButtons.appendChild(btn);
             }
@@ -228,7 +227,7 @@ class Dashboard {
     changePage(page) {
         const totalPages = Math.ceil(this.totalEntries / this.entriesPerPage);
         if (page < 1 || page > totalPages) return;
-        
+
         this.currentPage = page;
         this.searchData();
     }
@@ -245,7 +244,7 @@ class Dashboard {
     updateSelectionUI() {
         const count = this.selectedEntries.size;
         const buttons = ['clearSelectionButton', 'openParserButton', 'deleteEntriesButton'];
-        
+
         buttons.forEach(btnId => {
             const btn = document.getElementById(btnId);
             if (btn) btn.disabled = count === 0;
@@ -266,12 +265,23 @@ class Dashboard {
 
     openParser() {
         if (this.selectedEntries.size === 0) return;
-        
+
         const selectedIds = Array.from(this.selectedEntries);
-        // Store in session storage for parser page
+        const selectedEntryData = this.entries.filter(e => this.selectedEntries.has(e.id));
         sessionStorage.setItem('parserEntries', JSON.stringify(selectedIds));
-        
+        sessionStorage.setItem('parserEntryData', JSON.stringify(selectedEntryData));
+
         // Navigate to playground
+        window.navigateToSection('playground');
+    }
+
+    openParserFromModal() {
+        if (!this.currentEntry) return;
+
+        sessionStorage.setItem('parserEntries', JSON.stringify([this.currentEntry.id]));
+        sessionStorage.setItem('parserEntryData', JSON.stringify([this.currentEntry]));
+
+        this.closeModal();
         window.navigateToSection('playground');
     }
 
@@ -315,9 +325,9 @@ class Dashboard {
         document.getElementById('modalLogType').textContent = entry.log_type || 'N/A';
         document.getElementById('modalLog').textContent = entry.log;
         document.getElementById('modalRegex').textContent = entry.regex || 'N/A';
-        
+
         const statusEl = document.getElementById('modalStatus');
-        statusEl.innerHTML = this.getStatusBadge(entry.status);
+        statusEl.innerHTML = this.getStatusBadge(entry.status.toLowerCase());
 
         // Store current entry
         this.currentEntry = entry;
@@ -346,12 +356,12 @@ class Dashboard {
 
             const data = await response.json();
 
-            if (data.success) {
-                window.showToast('Entry updated successfully', 'success');
+            if (response.ok) {
+                window.showToast(data.message || 'Entry updated successfully', 'success');
                 this.closeModal();
                 this.searchData();
             } else {
-                window.showToast('Failed to update entry', 'error');
+                window.showToast(data.message || 'Failed to update entry', 'error');
             }
         } catch (error) {
             console.error('Error updating entry:', error);
@@ -382,7 +392,7 @@ class Dashboard {
         // Connect to WebSocket for status updates
         if (typeof io !== 'undefined') {
             const socket = io();
-            
+
             socket.on('status_update', (data) => {
                 const pill = document.getElementById('statusPill');
                 if (!pill) return;
@@ -394,7 +404,7 @@ class Dashboard {
                 };
 
                 const status = statusMap[data.status] || statusMap.idle;
-                
+
                 pill.className = `px-4 py-2 rounded-full ${status.color} flex items-center space-x-2`;
                 pill.innerHTML = `
                     <span class="w-2 h-2 rounded-full ${status.dot} ${status.pulse ? 'pulse-soft' : ''}"></span>

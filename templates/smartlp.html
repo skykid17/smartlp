@@ -6,19 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartLP - Smart Log Parser</title>
     <link rel="icon" type="image/x-icon" href="/logos/logo.png">
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Chart.js v4 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+
     <!-- Custom CSS Overrides -->
     <link rel="stylesheet" href="/css/overrides.css">
-    
+
     <!-- Tailwind Config for Dark Mode -->
     <script>
         tailwind.config = {
@@ -41,43 +43,56 @@
 <body class="h-full bg-gray-50 dark:bg-gray-900">
     <!-- Mobile Overlay -->
     <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden"></div>
-    
+
     <!-- Left Sidebar Navigation -->
-    <aside id="sidebar" class="fixed top-0 left-0 h-full bg-sidebar dark:bg-sidebar-dark w-64 transform transition-transform duration-200 ease-in-out z-30 shadow-lg lg:translate-x-0 -translate-x-full">
+    <aside id="sidebar"
+        class="fixed top-0 left-0 h-full bg-sidebar dark:bg-sidebar-dark w-64 transform transition-transform duration-200 ease-in-out z-30 shadow-lg lg:translate-x-0 -translate-x-full">
         <!-- Sidebar Header -->
         <div class="flex items-center justify-between p-4 border-b border-gray-700">
             <div class="flex items-center space-x-3">
-                <img src="/logos/logo_white.png" alt="SmartLP Logo" class="h-8 w-8 transition-all duration-200" id="sidebarLogo">
-                <h1 class="text-white font-semibold text-lg transition-opacity duration-200" id="sidebarTitle">SmartLP</h1>
+                <img src="/logos/logo_white.png" alt="SmartLP Logo" class="h-8 w-8 transition-all duration-200"
+                    id="sidebarLogo">
+                <h1 class="text-white font-semibold text-lg transition-opacity duration-200" id="sidebarTitle">SmartLP
+                </h1>
             </div>
             <button id="sidebarClose" class="lg:hidden text-gray-300 hover:text-white p-1">
                 <i class="fas fa-times text-xl"></i>
             </button>
         </div>
-        
+
         <!-- Navigation Links -->
         <nav class="flex-1 p-4 space-y-2">
-            <a href="#" class="nav-link active flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200" data-section="dashboard">
+            <a href="#"
+                class="nav-link active flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200"
+                data-section="dashboard">
                 <i class="fas fa-tachometer-alt w-5"></i>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200" data-section="playground">
+            <a href="#"
+                class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200"
+                data-section="playground">
                 <i class="fas fa-flask w-5"></i>
                 <span class="nav-text">Playground</span>
             </a>
-            <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200" data-section="report">
+            <a href="#"
+                class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200"
+                data-section="report">
                 <i class="fas fa-chart-bar w-5"></i>
                 <span class="nav-text">Report</span>
             </a>
-            <a href="#" class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200" data-section="settings">
+            <a href="#"
+                class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200"
+                data-section="settings">
                 <i class="fas fa-cog w-5"></i>
                 <span class="nav-text">Settings</span>
             </a>
         </nav>
-        
+
         <!-- Logger Button at Bottom -->
         <div class="border-t border-gray-700 p-4">
-            <button id="loggerToggle" class="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200 w-full" title="Toggle Logger Panel">
+            <button id="loggerToggle"
+                class="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200 w-full"
+                title="Toggle Logger Panel">
                 <i class="fas fa-terminal w-5"></i>
                 <span class="nav-text">Logger</span>
             </button>
@@ -85,24 +100,28 @@
     </aside>
 
     <!-- Hamburger Menu Button (Mobile) -->
-    <button id="mobileMenuBtn" class="fixed top-4 left-4 z-40 lg:hidden bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+    <button id="mobileMenuBtn"
+        class="fixed top-4 left-4 z-40 lg:hidden bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
         <i class="fas fa-bars text-xl"></i>
     </button>
 
     <!-- Sidebar Toggle Button (Desktop) -->
-    <button id="sidebarToggle" class="hidden lg:block fixed top-4 left-4 z-40 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+    <button id="sidebarToggle"
+        class="hidden lg:block fixed top-4 left-4 z-40 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
         <i class="fas fa-bars text-xl"></i>
     </button>
 
     <!-- Logger Panel (Left Slide-over) -->
-    <div id="loggerPanel" class="fixed top-0 left-0 h-full w-1/3 bg-white dark:bg-gray-800 shadow-2xl z-40 transform -translate-x-full transition-transform duration-200 ease-in-out overflow-hidden">
+    <div id="loggerPanel"
+        class="fixed top-0 left-0 h-full w-1/3 bg-white dark:bg-gray-800 shadow-2xl z-40 transform -translate-x-full transition-transform duration-200 ease-in-out overflow-hidden">
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <i class="fas fa-terminal"></i>
                     <span>Logger</span>
                 </h2>
-                <button id="loggerClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button id="loggerClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -112,10 +131,12 @@
                 </div>
             </div>
             <div class="border-t border-gray-200 dark:border-gray-700 p-4 space-x-2">
-                <button id="clearLogs" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200">
+                <button id="clearLogs"
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200">
                     <i class="fas fa-trash-alt mr-2"></i>Clear Logs
                 </button>
-                <button id="pauseAutoScroll" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200">
+                <button id="pauseAutoScroll"
+                    class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200">
                     <i class="fas fa-pause mr-2"></i>Pause Auto-Scroll
                 </button>
             </div>
@@ -123,14 +144,16 @@
     </div>
 
     <!-- Config Hub (Right Slide-over) -->
-    <div id="configHub" class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-40 transform translate-x-full transition-transform duration-200 ease-in-out overflow-hidden">
+    <div id="configHub"
+        class="fixed top-0 right-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-40 transform translate-x-full transition-transform duration-200 ease-in-out overflow-hidden">
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <i class="fas fa-cogs"></i>
                     <span>Config Hub</span>
                 </h2>
-                <button id="configHubClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button id="configHubClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -156,7 +179,7 @@
 
             <!-- Playground Section (formerly Parser) -->
             <div id="playground-section" class="content-section hidden">
-                {% include 'sections/parser_content.html' %}
+                {% include 'sections/playground_content.html' %}
             </div>
 
             <!-- Report Section -->
@@ -172,19 +195,23 @@
     </main>
 
     <!-- Chatbot Button (Bottom Right) -->
-    <button id="chatbotBtn" class="fixed bottom-6 right-6 z-30 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110" title="Open Chatbot">
+    <button id="chatbotBtn"
+        class="fixed bottom-6 right-6 z-30 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110"
+        title="Open Chatbot">
         <i class="fas fa-comments text-2xl"></i>
     </button>
 
     <!-- Chatbot Modal -->
-    <div id="chatbotModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div id="chatbotModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <i class="fas fa-robot text-blue-500"></i>
-                    <span>SmartLP Assistant</span>
+                    <span>SmartLP Chatbot</span>
                 </h2>
-                <button id="chatbotClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button id="chatbotClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -194,14 +221,17 @@
                         <i class="fas fa-robot text-white text-sm"></i>
                     </div>
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 max-w-md">
-                        <p class="text-sm text-gray-900 dark:text-white">Hello! I'm the SmartLP Assistant. How can I help you today?</p>
+                        <p class="text-sm text-gray-900 dark:text-white">Hello! I'm the SmartLP Chatbot. How can I
+                            help you today?</p>
                     </div>
                 </div>
             </div>
             <div class="border-t border-gray-200 dark:border-gray-700 p-4">
                 <div class="flex space-x-2">
-                    <input type="text" id="chatInput" placeholder="Type your message..." class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                    <button id="chatSend" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
+                    <input type="text" id="chatInput" placeholder="Type your message..."
+                        class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    <button id="chatSend"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
@@ -210,23 +240,28 @@
     </div>
 
     <!-- Warning Modal for SIEM Change -->
-    <div id="siemChangeWarningModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div id="siemChangeWarningModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <i class="fas fa-exclamation-triangle text-yellow-500"></i>
                     <span>Warning: Changing Active SIEM</span>
                 </h3>
-                <button id="siemWarningClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button id="siemWarningClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
             <div class="p-4">
-                <p class="text-gray-700 dark:text-gray-300">Any parsing/detection rule configurations left undone might return unintended results. Would you like to proceed?</p>
+                <p class="text-gray-700 dark:text-gray-300">Any parsing/detection rule configurations left undone might
+                    return unintended results. Would you like to proceed?</p>
             </div>
             <div class="flex justify-end space-x-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button id="cancelSiemChange" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Cancel</button>
-                <button id="confirmSiemChange" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">Proceed</button>
+                <button id="cancelSiemChange"
+                    class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Cancel</button>
+                <button id="confirmSiemChange"
+                    class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">Proceed</button>
             </div>
         </div>
     </div>
@@ -236,7 +271,8 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 id="alertModalTitle" class="text-lg font-semibold text-gray-900 dark:text-white"></h3>
-                <button id="alertModalClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button id="alertModalClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -244,20 +280,22 @@
                 <p id="alertModalBody" class="text-gray-700 dark:text-gray-300"></p>
             </div>
             <div class="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
-                <button id="alertModalOk" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">OK</button>
+                <button id="alertModalOk"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">OK</button>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="lg:ml-64 bg-sidebar dark:bg-sidebar-dark text-white text-center py-4 transition-all duration-200">
-        <p class="text-sm">SmartSOC &copy; 2025. All Rights Reserved.</p>
+    <footer id="mainFooter"
+        class="lg:ml-64 bg-sidebar dark:bg-sidebar-dark text-white text-center py-4 transition-all duration-200 w-auto border-t border-gray-700">
+        <p class="text-sm">ST Engineering &copy; 2025. All Rights Reserved.</p>
     </footer>
 
     <!-- JavaScript Libraries -->
     <script src="/js/socket.io.min.js"></script>
     <script src="/js/html2pdf.bundle.min.js"></script>
-    
+
     <!-- ES6 Module Scripts (type="module" for proper imports/exports) -->
     <script type="module" src="/js/dashboard.js"></script>
     <script type="module" src="/js/playground.js"></script>
@@ -266,7 +304,7 @@
     <script type="module" src="/js/chatbot.js"></script>
     <script type="module" src="/js/configHub.js"></script>
     <script type="module" src="/js/loggerPanel.js"></script>
-    
+
     <!-- Main Navigation and UI Controller -->
     <script>
         // Global state management
@@ -278,13 +316,13 @@
         };
 
         // Initialize app on DOM load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initializeNavigation();
             initializeSidebar();
             initializeModals();
             initializeDarkMode();
             initializeToasts();
-            
+
             // Load initial section based on URL hash
             const hash = window.location.hash.substring(1) || 'dashboard';
             navigateToSection(hash);
@@ -293,9 +331,9 @@
         // Navigation System
         function initializeNavigation() {
             const navLinks = document.querySelectorAll('.nav-link');
-            
+
             navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.preventDefault();
                     const sectionId = this.getAttribute('data-section');
                     navigateToSection(sectionId);
@@ -330,15 +368,15 @@
 
             // Trigger section-specific initialization
             initializeSection(sectionId);
-            
+
             // Close mobile menu if open
             closeMobileMenu();
         }
 
         function initializeSection(sectionId) {
             // Dispatch custom event for section initialization
-            window.dispatchEvent(new CustomEvent('sectionChanged', { 
-                detail: { section: sectionId } 
+            window.dispatchEvent(new CustomEvent('sectionChanged', {
+                detail: { section: sectionId }
             }));
         }
 
@@ -363,25 +401,35 @@
         function toggleSidebarCollapse() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
+            const footer = document.getElementById('mainFooter'); // Use the ID you added
             const sidebarTitle = document.getElementById('sidebarTitle');
             const navTexts = document.querySelectorAll('.nav-text');
-            
+            const navLinks = document.querySelectorAll('.nav-link');
+
             AppState.sidebarCollapsed = !AppState.sidebarCollapsed;
-            
+
             if (AppState.sidebarCollapsed) {
-                sidebar.classList.remove('w-64');
-                sidebar.classList.add('w-16');
-                mainContent.classList.remove('lg:ml-64');
-                mainContent.classList.add('lg:ml-16');
+                sidebar.classList.replace('w-64', 'w-16');
+                mainContent.classList.replace('lg:ml-64', 'lg:ml-16');
+                footer.classList.replace('lg:ml-64', 'lg:ml-16');
                 sidebarTitle.classList.add('hidden');
+
                 navTexts.forEach(text => text.classList.add('hidden'));
+                navLinks.forEach(link => {
+                    link.classList.remove('space-x-3', 'px-4');
+                    link.classList.add('justify-center');
+                });
             } else {
-                sidebar.classList.remove('w-16');
-                sidebar.classList.add('w-64');
-                mainContent.classList.remove('lg:ml-16');
-                mainContent.classList.add('lg:ml-64');
+                sidebar.classList.replace('w-16', 'w-64');
+                mainContent.classList.replace('lg:ml-16', 'lg:ml-64');
+                footer.classList.replace('lg:ml-16', 'lg:ml-64');
                 sidebarTitle.classList.remove('hidden');
+
                 navTexts.forEach(text => text.classList.remove('hidden'));
+                navLinks.forEach(link => {
+                    link.classList.add('space-x-3', 'px-4');
+                    link.classList.remove('justify-center');
+                });
             }
         }
 
@@ -401,15 +449,15 @@
             const chatbotBtn = document.getElementById('chatbotBtn');
             const chatbotModal = document.getElementById('chatbotModal');
             const chatbotClose = document.getElementById('chatbotClose');
-            
+
             chatbotBtn?.addEventListener('click', () => {
                 chatbotModal.classList.remove('hidden');
             });
-            
+
             chatbotClose?.addEventListener('click', () => {
                 chatbotModal.classList.add('hidden');
             });
-            
+
             chatbotModal?.addEventListener('click', (e) => {
                 if (e.target === chatbotModal) {
                     chatbotModal.classList.add('hidden');
@@ -420,11 +468,11 @@
             const alertModalClose = document.getElementById('alertModalClose');
             const alertModalOk = document.getElementById('alertModalOk');
             const alertModal = document.getElementById('alertModal');
-            
+
             alertModalClose?.addEventListener('click', () => {
                 alertModal.classList.add('hidden');
             });
-            
+
             alertModalOk?.addEventListener('click', () => {
                 alertModal.classList.add('hidden');
             });
@@ -433,11 +481,11 @@
             const siemWarningClose = document.getElementById('siemWarningClose');
             const cancelSiemChange = document.getElementById('cancelSiemChange');
             const siemModal = document.getElementById('siemChangeWarningModal');
-            
+
             siemWarningClose?.addEventListener('click', () => {
                 siemModal.classList.add('hidden');
             });
-            
+
             cancelSiemChange?.addEventListener('click', () => {
                 siemModal.classList.add('hidden');
             });
@@ -453,13 +501,13 @@
         function toggleDarkMode() {
             AppState.darkMode = !AppState.darkMode;
             localStorage.setItem('darkMode', AppState.darkMode);
-            
+
             if (AppState.darkMode) {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
             }
-            
+
             // Dispatch event for charts to update
             window.dispatchEvent(new Event('darkModeChanged'));
         }
@@ -478,14 +526,14 @@
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            
+
             const colors = {
                 info: 'bg-blue-500',
                 success: 'bg-green-500',
                 warning: 'bg-yellow-500',
                 error: 'bg-red-500'
             };
-            
+
             toast.className = `${colors[type] || colors.info} text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-3 animate-slide-in-right`;
             toast.innerHTML = `
                 <i class="fas fa-info-circle"></i>
@@ -494,9 +542,9 @@
                     <i class="fas fa-times"></i>
                 </button>
             `;
-            
+
             container.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.remove();
             }, 5000);

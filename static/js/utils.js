@@ -778,7 +778,12 @@ async function apiRequest(url, options = {}) {
  */
 async function fetchEntries(params = {}) {
     const searchParams = new URLSearchParams(params);
-    return await apiRequest(`/api/entries?${searchParams}`, { method: 'GET' });
+    const query = searchParams.toString();
+    const data = await apiRequest(query ? `/api/smartlp/entries?${query}` : '/api/smartlp/entries', { method: 'GET' });
+    return {
+        results: data.entries || [],
+        total_entries: data.total ?? 0
+    };
 }
 
 /**
@@ -788,8 +793,8 @@ async function fetchEntries(params = {}) {
  * @returns {Promise<Object>} - The updated entry data
  */
 async function updateEntry(entryId, data) {
-    return await apiRequest(`/api/entries/${entryId}`, {
-        method: 'PUT',
+    return await apiRequest(`/api/smartlp/entries/${entryId}`, {
+        method: 'PATCH',
         body: JSON.stringify(data)
     });
 }
@@ -800,7 +805,10 @@ async function updateEntry(entryId, data) {
  * @returns {Promise<Object>} - The deletion response
  */
 async function deleteEntry(entryId) {
-    return await apiRequest(`/api/entries/${entryId}`, { method: 'DELETE' });
+    return await apiRequest('/api/smartlp/entries/delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: [entryId] })
+    });
 }
 
 /**

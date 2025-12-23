@@ -18,6 +18,7 @@ from flask import Flask, render_template, request, jsonify, redirect
 from services.smartlp import smartlp_service
 from services.settings import settings_service
 from services.llm import llm_service
+from services.rag import rag_service
 from services.regex_engine import regex_engine_service
 from utils.logging import app_logger
 
@@ -43,11 +44,10 @@ def register_smartlp_routes(app: Flask) -> None:
     def smartlp_report():
         """SmartLP report page."""
         return render_template("smartlp_report.html", page_title="SmartSOC Log Parser Report")
-    
-    # SmartLP API Endpoints
-    @app.route("/api/entries", methods=["GET"])
-    def get_entries():
-        """Get log entries with pagination and filters."""
+
+    @app.route("/api/smartlp/entries", methods=["GET"])
+    def get_smartlp_entries():
+        """Alias for frontend dashboard requests."""
         search_id = request.args.get('search_id', '', type=str)
         search_log = request.args.get('search_log', '', type=str)
         search_regex = request.args.get('search_regex', '', type=str)
@@ -72,10 +72,9 @@ def register_smartlp_routes(app: Flask) -> None:
             per_page=per_page, 
             search_filters=search_filters if search_filters else None
         )
-            
-        return jsonify({"results": paginated_results, "total_entries": total_entries}), 200
-
-    @app.route("/api/entries/<entry_id>", methods=["PUT"])
+        return jsonify({"entries": paginated_results, "total": total_entries}), 200
+    
+    @app.route("/api/smartlp/entries/<entry_id>", methods=["PUT", "PATCH"])
     def update_entry(entry_id):
         """Update an existing log entry."""
         try:
@@ -100,18 +99,31 @@ def register_smartlp_routes(app: Flask) -> None:
         except Exception as e:
             return jsonify({"message": f"Failed to update entry: {str(e)}"}), 500
 
-    @app.route("/api/entries/<entry_id>", methods=["DELETE"])
-    def delete_entry(entry_id):
-        """Delete a log entry."""
+    @app.route("/api/smartlp/entries/delete", methods=["POST"])
+    def delete_entries_bulk():
+        """Delete multiple log entries (frontend bulk action)."""
         try:
-            success = smartlp_service.delete(entry_id)
-            if success:
-                return jsonify({"logger": "Entry deleted."}), 200
-            else:
-                return jsonify({"logger": "Entry not found."}), 404
-                
+            payload = request.get_json() or {}
+            ids = payload.get('ids', [])
+            if not ids:
+                return jsonify({"success": False, "message": "No entry IDs provided"}), 400
+
+            deleted = 0
+            for entry_id in ids:
+                try:
+                    if smartlp_service.delete(entry_id):
+                        deleted += 1
+                except Exception:
+                    continue
+
+            return jsonify({
+                "success": True,
+                "deleted": deleted,
+                "requested": len(ids)
+            }), 200
         except Exception as e:
-            return jsonify({"logger": f"Failed to delete entry: {str(e)}"}), 500
+            app_logger.log_message("log", f"Bulk delete failed: {str(e)}", "ERROR")
+            return jsonify({"success": False, "message": str(e)}), 500
 
     @app.route("/api/entries/oldest", methods=["GET"])
     def get_oldest_unmatched_entry():
@@ -226,7 +238,6 @@ def register_smartlp_routes(app: Flask) -> None:
     def get_ingestion_status():
         """Get ingestion status information."""
         try:
-            from services.settings import settings_service
             settings = settings_service.get_global_settings()
 
             # Get ingestion status information (backend uses snake_case)
@@ -288,8 +299,6 @@ def register_smartlp_routes(app: Flask) -> None:
             # Generate the configuration using the service
             config_content = smartlp_service.create_rule_config(entry_ids)
             
-            # Determine filename based on active SIEM
-            from services.settings import settings_service
             settings = settings_service.get_global_settings()
             active_siem = settings.get('active_siem', 'elastic')
             

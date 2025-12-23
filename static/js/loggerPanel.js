@@ -9,7 +9,8 @@ class LoggerPanel {
         this.content = document.getElementById('loggerMessages');
         this.autoScroll = true;
         this.messages = [];
-        
+        this.socket = null;
+
         this.init();
     }
 
@@ -44,6 +45,50 @@ class LoggerPanel {
                 this.updatePauseButton();
             }
         });
+
+        // Hydrate and subscribe to backend socket logs
+        this.hydrateFromSession();
+        this.setupSocket();
+    }
+
+    setupSocket() {
+        if (this.socket) return;
+        // Reuse global socket if available; otherwise create a lightweight connection
+        this.socket = window.socket || (typeof io !== 'undefined' ? io() : null);
+        if (!this.socket) return;
+
+        this.socket.on('log', (data) => {
+            const message = data?.message || '';
+            const type = this.detectType(message);
+            this.log(message, type, { persist: true });
+        });
+
+        this.socket.on('notification', (data) => {
+            const message = data?.message || '';
+            this.log(message, 'info', { persist: false });
+        });
+    }
+
+    hydrateFromSession() {
+        try {
+            const saved = sessionStorage.getItem('loggerPanelMessages');
+            if (!saved) return;
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return;
+            parsed.forEach(entry => this.renderMessage(entry, { skipPersist: true }));
+            this.messages = parsed;
+            this.scrollToBottom();
+        } catch (err) {
+            console.warn('Failed to restore logger panel history', err);
+        }
+    }
+
+    detectType(message) {
+        const upper = (message || '').toUpperCase();
+        if (upper.includes('ERROR')) return 'error';
+        if (upper.includes('WARN')) return 'warning';
+        if (upper.includes('SUCCESS')) return 'success';
+        return 'info';
     }
 
     toggle() {
@@ -87,46 +132,50 @@ class LoggerPanel {
         }
     }
 
-    log(message, type = 'info') {
+    log(message, type = 'info', { persist = true } = {}) {
         const timestamp = new Date().toLocaleTimeString();
-        const logEntry = {
-            timestamp,
-            message,
-            type
-        };
-        
+        const logEntry = { timestamp, message, type };
+
         this.messages.push(logEntry);
         this.renderMessage(logEntry);
-        
-        if (this.autoScroll) {
-            this.scrollToBottom();
-        }
+
+        if (persist) this.persist();
+        if (this.autoScroll) this.scrollToBottom();
     }
 
-    renderMessage(entry) {
+    renderMessage(entry, { skipPersist = false } = {}) {
         const messageEl = document.createElement('div');
         messageEl.className = 'flex items-start space-x-2 text-xs';
-        
+
         const typeIcons = {
             info: '<i class="fas fa-info-circle text-blue-500"></i>',
             success: '<i class="fas fa-check-circle text-green-500"></i>',
             warning: '<i class="fas fa-exclamation-triangle text-yellow-500"></i>',
             error: '<i class="fas fa-times-circle text-red-500"></i>'
         };
-        
+
         messageEl.innerHTML = `
             <span class="text-gray-500 dark:text-gray-400">[${entry.timestamp}]</span>
             ${typeIcons[entry.type] || typeIcons.info}
             <span class="flex-1">${entry.message}</span>
         `;
-        
+
         this.content.appendChild(messageEl);
+        if (!skipPersist) this.persist();
     }
 
     clear() {
         this.messages = [];
         this.content.innerHTML = '';
         this.log('Logger cleared', 'info');
+    }
+
+    persist() {
+        try {
+            sessionStorage.setItem('loggerPanelMessages', JSON.stringify(this.messages.slice(-200)));
+        } catch (err) {
+            console.warn('Failed to persist logger panel history', err);
+        }
     }
 
     scrollToBottom() {

@@ -156,7 +156,7 @@ smartlp/
 │   ├── smartlp.html (main layout - refactored)
 │   └── sections/
 │       ├── dashboard_content.html (refactored)
-│       ├── parser_content.html (refactored as playground)
+│       ├── playground_content.html (refactored)
 │       ├── report_content.html (refactored)
 │       └── settings_content.html (refactored)
 ├── static/
@@ -170,7 +170,6 @@ smartlp/
 │       ├── chatbot.js (new ES6 module)
 │       ├── configHub.js (new ES6 module)
 │       └── loggerPanel.js (new ES6 module)
-└── test_ui.py (test server for UI validation)
 ```
 
 ## Technical Improvements
