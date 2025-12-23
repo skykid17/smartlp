@@ -15,10 +15,11 @@ import json
 import logging
 import sys
 import re
+import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Any
 
 import numpy as np
 from pymongo import MongoClient
@@ -27,9 +28,8 @@ from pymongo.errors import BulkWriteError, OperationFailure, ServerSelectionTime
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_core.retrievers import BaseRetriever
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer
@@ -506,14 +506,13 @@ class RAG:
 
         return chain
 
-
-    # --- Public query API ---
+    # --- Main RAG query method ---
     def query_rag(
         self,
         user_prompt: str,
         system_prompt: Optional[str] = None,
-        model_override=None, 
-        url_override=None, 
+        model_override=None,
+        url_override=None,
         api_key_override=None,
         top_k: int = 5,
         semantic_candidates: int = 50,
@@ -521,55 +520,72 @@ class RAG:
         rrf_k: int = 60,
         allowed_text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
         filter_category: Optional[str] = None,
-    ) -> Tuple[str, List[Dict]]:
+    ) -> Dict[str, Any]:
 
-        # ---- 1. Build retrieval query ----
-        retrieval_query = (
-            f"{system_prompt}\n\n{user_prompt}".strip()
-            if system_prompt
-            else user_prompt.strip()
-        )
+        start = time.time()
 
-        coll = self._ensure_collection()
-        retriever = self._MongoHybridRetriever(
-            collection=coll,
-            embedding_fn=lambda texts: self.generate_embeddings(texts, show_progress=False),
-            embedding_dim=self.embedding_dim,
-            vector_index=self.vector_index,
-            text_index=self.text_index,
-            top_k=top_k,
-            semantic_candidates=semantic_candidates,
-            keyword_candidates=keyword_candidates,
-            rrf_k=rrf_k,
-            allowed_text_paths=list(allowed_text_paths),
-            filter_category=filter_category,
-        )
-        retriever.parent = self
+        try:
+            # ---- 1. Build retrieval query ----
+            retrieval_query = (
+                f"{system_prompt}\n\n{user_prompt}".strip()
+                if system_prompt
+                else user_prompt.strip()
+            )
 
-        # ---- 2. Retrieve context ----
-        docs = retriever.invoke(retrieval_query)
+            coll = self._ensure_collection()
+            retriever = self._MongoHybridRetriever(
+                collection=coll,
+                embedding_fn=lambda texts: self.generate_embeddings(texts, show_progress=False),
+                embedding_dim=self.embedding_dim,
+                vector_index=self.vector_index,
+                text_index=self.text_index,
+                top_k=top_k,
+                semantic_candidates=semantic_candidates,
+                keyword_candidates=keyword_candidates,
+                rrf_k=rrf_k,
+                allowed_text_paths=list(allowed_text_paths),
+                filter_category=filter_category,
+            )
+            retriever.parent = self
 
-        # ---- 3. Build generation inputs ----
-        generation_input = {
-            "system_prompt": system_prompt or "",
-            "question": user_prompt,
-        }
+            # ---- 2. Retrieve context ----
+            docs = retriever.invoke(retrieval_query)
 
-        # ---- 4. Ask chain ----
-        chain = self._build_chain(retriever, model_override, url_override, api_key_override)
-        answer = chain.invoke(generation_input)
+            # ---- 3. Build generation inputs ----
+            generation_input = {
+                "system_prompt": system_prompt or "",
+                "question": user_prompt,
+            }
 
-        retrieval_context = [
-            {"content": d.page_content, "metadata": d.metadata}
-            for d in docs
-        ]
+            # ---- 4. Ask chain ----
+            chain = self._build_chain(
+                retriever, model_override, url_override, api_key_override
+            )
+            answer = chain.invoke(generation_input)
 
-        return answer, retrieval_context
+            retrieval_context = [
+                {"content": d.page_content, "metadata": d.metadata}
+                for d in docs
+            ]
 
+            return {
+                "success": True,
+                "content": answer,
+                "context": retrieval_context,
+                "latency": round(time.time() - start, 3),
+                "error": None,
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "content": "",
+                "context": [],
+                "latency": round(time.time() - start, 3),
+                "error": str(e),
+            }
 
 # --- Index helpers (reused) ---
-
-
 def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: int) -> None:
     definition = {
         "mappings": {
@@ -672,6 +688,6 @@ rag_service = RAG()
 
 # test query rag
 # question = "Which package/add on do I install to parse windows_xml logs into elastic? Return only the name of the package/add on."
-# answer, ctx = rag_service.query_rag(question, system_prompt="You are a SOC assistant.", top_k=5)
-# print("Answer:", answer)
+# result = rag_service.query_rag(question, system_prompt="You are a SOC assistant.", top_k=5)
+# print("Answer:", result["content"])
 
