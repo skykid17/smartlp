@@ -851,7 +851,7 @@ class SmartLPService(CRUDService):
             self.log_info(f"Active SIEM: {active_siem}")
             
             if active_siem == "splunk":
-                return self.create_splunk_config(entry_ids)
+                return self.create_config_splunk(entry_ids)
             elif active_siem == "elastic":
                 return self.create_elastic_config(entry_ids)
             else:
@@ -862,140 +862,128 @@ class SmartLPService(CRUDService):
             self.log_error(f"Error creating SmartLP config: {str(e)}", e)
             return f"# Error creating configuration: {str(e)}"
     
-    def create_elastic_config(self, entry_ids: List[str]) -> str:
-        """Create Elasticsearch Logstash configuration for SmartLP entries.
-        
-        Args:
-            entry_ids: List of entry IDs
-            
-        Returns:
-            Logstash pipeline configuration string
-        """
+    from typing import List
+
+    def create_config_elastic(self, entry_ids: List[str]) -> str:
+        """Create Elasticsearch Logstash configuration for SmartLP entries."""
         try:
             self.log_info(f"Creating Elastic config for {len(entry_ids)} entries")
             
-            # Get entries from database
-            entries = []
-            for entry_id in entry_ids:
-                entry = self.db.query(
-                    self.collection_name,
-                    {"id": entry_id},
-                    projection={"_id": 0},
-                    limit=1
-                )
-                if entry:
-                    entries.append(entry)
-                else:
-                    self.log_warning(f"Entry not found: {entry_id}")
-            
-            if not entries:
+            # Fetch selected entries
+            selected_entries = self.db.query(
+                collection_name="logs",
+                filter_dict={"_id": {"$in": entry_ids}},
+            )
+
+            # Fetch deployed entries
+            deployed_entries = self.db.query(
+                collection_name="logs",
+                filter_dict={"status": "Deployed"},
+            )
+
+            # Merge + dedupe (by _id)
+            # Convert to list immediately so we can index it [0] and [1:]
+            all_entries = list({
+                str(e["_id"]): e
+                for e in (selected_entries + deployed_entries)
+            }.values())
+
+            if not all_entries:
                 self.log_warning("No valid entries found for config generation")
                 return "# No valid entries found"
-            
+
             # Build Logstash pipeline
             pipeline = []
             
-            # Input section
+            # 1. Input section
             pipeline.append(r'''input {
-  tcp {
-    port => 1700
-    codec => multiline {
-      pattern => "^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s(.*?)\s[A-Z]+|^<Event xmlns|^\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\d\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d+\s\w+\s\w+:\d+"
-      negate => true
-      what => "previous"
+    tcp {
+        port => 1700
+        codec => multiline {
+        pattern => "^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s(.*?)\s[A-Z]+|^<Event xmlns|^\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\d\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d+\s\w+\s\w+:\d+"
+        negate => true
+        what => "previous"
+        }
     }
-  }
-}''')
+    }''')
             
-            # Filter section
+            # 2. Filter section
             pipeline.append("\nfilter {")
             
             # Add first grok pattern
-            first_entry = entries[0]
+            first_entry = all_entries[0]
             regex_config = self._format_regex_for_logstash(first_entry.get('regex', ''))
             source_type = first_entry.get('source_type', 'unknown')
             
-            pipeline.append(f'''\n  grok {{
-    match => {{
-      message => {regex_config}
-    }}
-    add_field => {{"source_type" => "{source_type}"}}
-  }}''')
+            pipeline.append(f'''
+    grok {{
+        match => {{ "message" => {regex_config} }}
+        add_field => {{ "source_type" => "{source_type}" }}
+    }}''')
             
             # Add additional grok patterns for subsequent entries
-            for entry in entries[1:]:
+            for entry in all_entries[1:]:
                 regex_config = self._format_regex_for_logstash(entry.get('regex', ''))
                 source_type = entry.get('source_type', 'unknown')
                 
-                pipeline.append(f'''\n  if "_grokparsefailure" in [tags] {{
-    grok {{
-      match => {{
-        message => {regex_config}
-      }}
-      add_field => {{"source_type" => "{source_type}"}}
-      remove_tag => ["_grokparsefailure"]
-    }}
-  }}''')
+                pipeline.append(f'''
+    if "_grokparsefailure" in [tags] {{
+        grok {{
+        match => {{ "message" => {regex_config} }}
+        add_field => {{ "source_type" => "{source_type}" }}
+        remove_tag => ["_grokparsefailure"]
+        }}
+    }}''')
             
-            pipeline.append("}")
+            pipeline.append("\n}")
             
-            # Output section
-            pipeline.append("\noutput {")
-            pipeline.append("  stdout { codec => rubydebug }")
-            
-            # Add elasticsearch outputs for each entry
-            for entry in entries:
-                source_type = entry.get('source_type', 'unknown')
-                index = entry.get('index', 'unparsed')
-                
-                elastic_host = os.getenv('ELASTIC_HOST', 'localhost:9200')
-                elastic_user = os.getenv('ELASTIC_USER', 'elastic')
-                elastic_password = os.getenv('ELASTIC_PASSWORD', 'password')
-                
-                pipeline.append(f'''\n  if [source_type] == "{source_type}" {{
-    elasticsearch {{
-      hosts => ["{elastic_host}"]
-      ssl_enabled => true
-      ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-      user => "{elastic_user}"
-      password => "{elastic_password}"
-      data_stream => true
-      data_stream_type => "logs"
-      data_stream_dataset => "{index}"
-      data_stream_namespace => "default"
-    }}
-  }}''')
-            
-            # Default output for unparsed logs
-            elastic_host = os.getenv('ELASTIC_HOST', 'localhost:9200')
-            elastic_user = os.getenv('ELASTIC_USER', 'elastic')
-            elastic_password = os.getenv('ELASTIC_PASSWORD', 'password')
-            
-            pipeline.append(f'''\n  else {{
-    elasticsearch {{
-      hosts => ["{elastic_host}"]
-      ssl_enabled => true
-      ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-      user => "{elastic_user}"
-      password => "{elastic_password}"
-      data_stream => true
-      data_stream_type => "logs"
-      data_stream_dataset => "unparsed"
-      data_stream_namespace => "default"
-    }}
-  }}''')
-            
-            pipeline.append("}")
+            # 3. Output section
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get("host")
+            elastic_user = elastic_settings.get("user")
+            elastic_password = elastic_settings.get("password")
+
+            # 2. Build the dynamic output section
+            pipeline.append(f'''
+            output {{
+            stdout {{ codec => rubydebug }}
+
+            if "_grokparsefailure" not in [tags] {{
+                elasticsearch {{
+                hosts => ["{elastic_host}"]
+                ssl_enabled => true
+                ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+                user => "{elastic_user}"
+                password => "{elastic_password}"
+                data_stream => true
+                data_stream_type => "logs"
+                data_stream_dataset => "parsed"
+                data_stream_namespace => "default"
+                }}
+            }} else {{
+                elasticsearch {{
+                hosts => ["{elastic_host}"]
+                ssl_enabled => true
+                ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+                user => "{elastic_user}"
+                password => "{elastic_password}"
+                data_stream => true
+                data_stream_type => "logs"
+                data_stream_dataset => "unparsed"
+                data_stream_namespace => "default"
+                }}
+            }}
+            }}''')
             
             config = "".join(pipeline)
-            self.log_info(f"Generated Elastic config with {len(entries)} entries")
+            self.log_info(f"Generated Elastic config with {len(all_entries)} entries")
             return config
-            
+
         except Exception as e:
-            self.log_error(f"Error creating Elastic config: {str(e)}", e)
-            return f"# Error creating Elastic configuration: {str(e)}"
+            self.log_error(f"Error generating Elastic config: {str(e)}")
+            return f"# Error: {str(e)}"
     
-    def create_splunk_config(self, entry_ids: List[str]) -> str:
+    def create_config_splunk(self, entry_ids: List[str]) -> str:
         """Create Splunk configuration for SmartLP entries.
         
         Args:
@@ -1123,89 +1111,7 @@ class SmartLPService(CRUDService):
 
         return regex
 
-
-    def create_config_elastic(self, entry_ids: list[str]) -> dict:
-        """
-        Create an Elasticsearch ingest pipeline that:
-        - Applies multiple grok patterns (flow control)
-        - Assigns source_type per match
-        - Routes to correct data_stream.dataset
-        """
-
-        # Fetch selected entries
-        selected_entries = self.db.query(
-            collection_name="logs",
-            filter_dict={"_id": {"$in": entry_ids}},
-        )
-
-        # Fetch deployed entries
-        deployed_entries = self.db.query(
-            collection_name="logs",
-            filter_dict={"status": "Deployed"},
-        )
-
-        # Merge + dedupe (by _id)
-        all_entries = {
-            str(e["_id"]): e
-            for e in (selected_entries + deployed_entries)
-        }.values()
-
-        processors = []
-
-        # Build grok processors (ordered)
-        for entry in all_entries:
-            normalized = self._normalize_regex_for_ingest(entry["regex"])
-            grok_processor = {
-                "grok": {
-                    "field": "message",
-                    "patterns": [normalized],
-                    "ignore_failure": True
-                }
-            }
-
-            set_source_type = {
-                "set": {
-                    "if": "ctx._grokparsefailure == null",
-                    "field": "source_type",
-                    "value": entry["source_type"]
-                }
-            }
-
-            set_dataset = {
-                "set": {
-                    "if": "ctx._grokparsefailure == null",
-                    "field": "data_stream.dataset",
-                    "value": entry.get("dataset", "parsed")
-                }
-            }
-
-            processors.extend([
-                grok_processor,
-                set_source_type,
-                set_dataset,
-                {"remove": {"field": "_grokparsefailure", "ignore_missing": True}}
-            ])
-
-        # Final fallback → unparsed
-        processors.append(
-            {
-                "set": {
-                    "if": "ctx.source_type == null",
-                    "field": "data_stream.dataset",
-                    "value": "unparsed"
-                }
-            }
-        )
-
-        # 6Build pipeline
-        pipeline = {
-            "description": "SmartLP dynamic ingest pipeline",
-            "processors": processors
-        }
-
-        return pipeline
-
-    def deploy_config_elastic(self, pipeline_id: str, pipeline_body: dict) -> tuple[bool, str]:
+    def deploy_config_elastic(self, pipeline_body: dict) -> tuple[bool, str]:
         """
         Deploy an ingest pipeline to Elasticsearch
         """
@@ -1221,11 +1127,11 @@ class SmartLPService(CRUDService):
             )
 
             es.ingest.put_pipeline(
-                id=pipeline_id,
+                id="smartlp",
                 body=pipeline_body
             )
 
-            return True, f"Ingest pipeline '{pipeline_id}' deployed successfully"
+            return True, f"Smartlp pipeline deployed successfully"
 
         except Exception as e:
             return False, f"Failed to deploy ingest pipeline: {e}"
@@ -1247,93 +1153,6 @@ class SmartLPService(CRUDService):
             self.log_warning("Elasticsearch configuration incomplete; check SIEM settings and environment variables")
 
         return resolved
-
-    def deploy_config_to_elasticsearch(
-        self,
-        entry_ids: List[str],
-        pipeline_id: Optional[str] = None
-    ) -> Tuple[bool, str]:
-        """Deploy SmartLP configuration to Elasticsearch as a Logstash pipeline."""
-
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return False, "Elasticsearch library not available. Please install elasticsearch package."
-
-            self.log_info(
-                f"Starting Elasticsearch configuration deployment for {len(entry_ids)} entries"
-            )
-
-            # --- Load settings ---
-            elastic_settings = self._get_elasticsearch_settings()
-            elastic_host = elastic_settings.get("host")
-            elastic_user = elastic_settings.get("user")
-            elastic_api_token = elastic_settings.get("api_key")
-            elastic_cert_path = elastic_settings.get("cert_path")
-            default_pipeline_id = elastic_settings.get("pipeline_id")
-
-            if not elastic_host:
-                return False, "ELASTIC_HOST environment variable not set"
-            if not elastic_api_token:
-                return False, "ELASTIC_API_TOKEN environment variable not set"
-
-            target_pipeline_id = pipeline_id or default_pipeline_id
-
-            # --- Generate pipeline ---
-            pipeline_config = self.create_elastic_config(entry_ids)
-            if not pipeline_config or pipeline_config.startswith("# No valid entries"):
-                return False, "No valid configuration generated."
-
-            pipeline_data = {
-                "description": f"SmartSOC SmartLP pipeline - {len(entry_ids)} entries",
-                "last_modified": datetime.utcnow().isoformat(timespec="milliseconds") + "Z",
-                "pipeline_metadata": {
-                    "type": "logstash_pipeline",
-                    "version": 1,
-                },
-                "username": elastic_user or "smartsoc",
-                "pipeline": pipeline_config,
-                "pipeline_settings": {
-                    "pipeline.workers": 1,
-                    "pipeline.batch.size": 125,
-                    "pipeline.batch.delay": 50,
-                    "queue.type": "memory",
-                },
-            }
-
-            # --- Elasticsearch client ---
-            es_config = {
-                "hosts": [elastic_host],
-                "headers": {"Authorization": f"ApiKey {elastic_api_token}"},
-            }
-
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_config["ca_certs"] = elastic_cert_path
-                es_config["verify_certs"] = True
-            else:
-                self.log_warning(
-                    "ELASTIC_CERT_PATH not set or certificate not found. Using insecure connection."
-                )
-                es_config["verify_certs"] = False
-
-            es = Elasticsearch(**es_config)
-
-            # --- Deploy ---
-            self.log_info(f"Deploying pipeline '{target_pipeline_id}' to Elasticsearch")
-            es.logstash.put_pipeline(
-                id=target_pipeline_id,
-                body=pipeline_data,
-            )
-
-            # If no exception was raised → success
-            success_msg = f"Pipeline '{target_pipeline_id}' deployed successfully"
-            self.log_info(success_msg)
-            return True, success_msg
-
-        except Exception as e:
-            error_msg = f"Failed to deploy pipeline to Elasticsearch: {e}"
-            self.log_error(error_msg, e)
-            return False, error_msg
-
         
     def list_elasticsearch_pipelines(self) -> Tuple[Optional[Dict], Optional[str]]:
         """List all Logstash pipelines in Elasticsearch.
