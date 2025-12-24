@@ -8,9 +8,7 @@ This module provides REST API endpoints for:
 - Background ingestion control
 """
 
-import os
-import uuid
-import re
+import pcre2
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect
 
@@ -84,7 +82,7 @@ def register_smartlp_routes(app: Flask) -> None:
             log = request.json.get("log")
             regex = request.json.get("regex")
             if log and regex:
-                status = "Matched" if re.fullmatch(regex, log) else "Unmatched"
+                status = "Matched" if pcre2.fullmatch(regex, log) else "Unmatched"
                 to_update["status"] = status
                 
             # Update timestamp
@@ -356,10 +354,9 @@ def register_smartlp_routes(app: Flask) -> None:
             app_logger.log_message("log", f"Error checking deployable status: {str(e)}", "ERROR")
             return jsonify({"message": f"Failed to check deployable status: {str(e)}"}), 500
     
-    # Elasticsearch Deployment Endpoints
-    @app.route('/api/smartlp/deploy/elasticsearch', methods=['POST'])
-    def deploy_to_elasticsearch():
-        """Deploy SmartLP entries to Elasticsearch as Logstash pipeline."""
+    @app.route('/api/smartlp/deploy_config', methods=['POST'])
+    def deploy_config():
+        """Deploy SmartLP entries to the active SIEM."""
         try:
             data = request.get_json()
             if not data or 'ids' not in data:
@@ -369,21 +366,29 @@ def register_smartlp_routes(app: Flask) -> None:
             if not entry_ids:
                 return jsonify({"error": "At least one entry ID is required"}), 400
             
-            pipeline_id = data.get('pipeline_id')  # Optional custom pipeline ID
+            pipeline_id = data.get('pipeline_id', None)  # Optional for Elasticsearch
+
+            # Get active SIEM
+            active_siem = settings_service.get_active_siem()
+            if not active_siem:
+                return jsonify({"error": "No active SIEM configured"}), 400
             
-            # Deploy to Elasticsearch
-            success, message = smartlp_service.deploy_to_elasticsearch(entry_ids, pipeline_id)
+            # Deploy to SIEM
+            if active_siem == 'splunk':
+                success, message = smartlp_service.deploy_config_to_splunk(entry_ids)
+            else: # elastic
+                success, message = smartlp_service.deploy_config_to_elasticsearch(entry_ids, pipeline_id)
             
             if success:
-                app_logger.log_message("log", f"Elasticsearch deployment successful: {message}", "INFO")
+                app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
                 return jsonify({
                     "success": True,
                     "message": message,
-                    "pipeline_id": pipeline_id or os.getenv('ELASTIC_PIPELINE_ID', 'smartsoc-smartlp-pipeline'),
+                    "siem": active_siem,
                     "entries_deployed": len(entry_ids)
                 }), 200
             else:
-                app_logger.log_message("log", f"Elasticsearch deployment failed: {message}", "ERROR")
+                app_logger.log_message("log", f"SIEM deployment failed: {message}", "ERROR")
                 return jsonify({
                     "success": False,
                     "error": message

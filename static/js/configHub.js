@@ -197,7 +197,7 @@ class ConfigHub {
         try {
             window.showToast('Deploying configuration...', 'info');
 
-            const response = await fetch('/api/deploy', {
+            const response = await fetch('/api/smartlp/deploy_config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

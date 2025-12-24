@@ -84,9 +84,9 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
 
 def validate_email(email: str) -> bool:
     """Validate email format."""
-    import re
+    import pcre2
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return bool(re.match(pattern, email))
+    return bool(pcre2.match(pattern, email))
 
 
 def truncate_text(text: str, max_length: int = 100, suffix: str = "...") -> str:

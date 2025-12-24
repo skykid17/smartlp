@@ -1,31 +1,40 @@
-
-#!/usr/bin/env python3
+import socket
 import time
-import requests
-from datetime import datetime
 
-ES_URL = "http://192.168.31.62:9200"
-DATASTREAM = "logs-unparsed-default"
-SLEEP_SECONDS = 5    # send every 5 seconds
+# Configuration
+LOGSTASH_HOST = '192.168.31.62'
+LOGSTASH_PORT = 1700
 
-def send_log(log_line):
-    doc = {
-        "@timestamp": datetime.utcnow().isoformat(),
-        "message": log_line
-    }
-    r = requests.post(f"{ES_URL}/{DATASTREAM}/_doc", json=doc)
-    print(r.status_code, r.text)
+# The raw log string
+raw_log_message = "2025-12-06T14:52:33Z host-7fa3 kernel[1324]: Unauthorized access attempt detected from 192.168.70.51 on port 445 (rule_id=WIN-SMB-401, severity=medium)"
 
-def tail_file(filename):
-    with open(filename, "r") as f:
-        f.seek(0, 2)  # go to end of file
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(SLEEP_SECONDS)
-                continue
-            send_log(line.strip())
-            print(f"Sent log: {line.strip()}")
+def send_log():
+    try:
+        # Create a TCP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5) 
+        
+        # Connect to Logstash
+        sock.connect((LOGSTASH_HOST, LOGSTASH_PORT))
+        
+        # Send raw bytes. 
+        # We add a newline '\n' just in case you ever switch to 'codec => line',
+        # but the critical part for 'codec => plain' is closing the socket below.
+        payload = raw_log_message + '\n'
+        sock.sendall(payload.encode('utf-8'))
+        
+        print(f"Log sent to {LOGSTASH_HOST}:{LOGSTASH_PORT}")
+        
+    except ConnectionRefusedError:
+        print(f"Connection refused: Is Logstash running on {LOGSTASH_HOST}?")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        # CLOSE the socket. This tells Logstash "The event is finished."
+        sock.close()
 
 if __name__ == "__main__":
-    tail_file("demo/logfile.log")  # change this to your log file
+    print("Starting plain text log sender...")
+    while True:
+        send_log()
+        time.sleep(60)

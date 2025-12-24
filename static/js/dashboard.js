@@ -13,6 +13,8 @@ class Dashboard {
         this.totalEntries = 0;
         this.selectedEntries = new Set();
         this.entries = [];
+        this.statusSocket = null;
+        this.statusPollInterval = null;
 
         this.init();
     }
@@ -389,29 +391,88 @@ class Dashboard {
     }
 
     updateStatusPill() {
-        // Connect to WebSocket for status updates
-        if (typeof io !== 'undefined') {
-            const socket = io();
+        const pill = document.getElementById('statusPill');
+        if (!pill) return;
 
-            socket.on('status_update', (data) => {
-                const pill = document.getElementById('statusPill');
-                if (!pill) return;
+        const fetchAndUpdate = () => this.fetchStatusAndUpdate();
 
-                const statusMap = {
-                    'polling': { color: 'bg-blue-100 dark:bg-blue-900', text: 'Polling', dot: 'bg-blue-500', pulse: true },
-                    'syncing': { color: 'bg-green-100 dark:bg-green-900', text: 'Syncing', dot: 'bg-green-500', pulse: true },
-                    'idle': { color: 'bg-gray-100 dark:bg-gray-700', text: 'Idle', dot: 'bg-gray-400', pulse: false }
-                };
+        fetchAndUpdate();
+        if (this.statusPollInterval) {
+            clearInterval(this.statusPollInterval);
+        }
+        this.statusPollInterval = setInterval(fetchAndUpdate, 15000);
 
-                const status = statusMap[data.status] || statusMap.idle;
-
-                pill.className = `px-4 py-2 rounded-full ${status.color} flex items-center space-x-2`;
-                pill.innerHTML = `
-                    <span class="w-2 h-2 rounded-full ${status.dot} ${status.pulse ? 'pulse-soft' : ''}"></span>
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">${status.text}</span>
-                `;
+        if (typeof io !== 'undefined' && !this.statusSocket) {
+            this.statusSocket = io();
+            this.statusSocket.on('status_update', (data) => {
+                const statusKey = data?.status || 'idle';
+                this.applyStatusToPill(statusKey, data);
             });
         }
+    }
+
+    async fetchStatusAndUpdate() {
+        try {
+            const response = await fetch('/api/smartlp/ingestion/status');
+            if (!response.ok) throw new Error('Failed to fetch ingestion status');
+
+            const payload = await response.json();
+            const statusKey = this.getStatusKeyFromPayload(payload);
+            this.applyStatusToPill(statusKey, payload);
+        } catch (error) {
+            console.error('Error fetching ingestion status:', error);
+        }
+    }
+
+    getStatusKeyFromPayload(payload) {
+        if (!payload) return 'idle';
+
+        const normalizedEnabled = this.normalizeBoolean(
+            payload.ingestion_enabled ?? payload.ingest_on ?? payload.ingestOn
+        );
+
+        return normalizedEnabled ? 'polling' : 'idle';
+    }
+
+    applyStatusToPill(statusKey = 'idle', payload = {}) {
+        const pill = document.getElementById('statusPill');
+        if (!pill) return;
+
+        const statusMap = {
+            polling: { color: 'bg-blue-100 dark:bg-blue-900', text: 'Polling', dot: 'bg-blue-500', pulse: true },
+            syncing: { color: 'bg-green-100 dark:bg-green-900', text: 'Syncing', dot: 'bg-green-500', pulse: true },
+            idle: { color: 'bg-gray-100 dark:bg-gray-700', text: 'Idle', dot: 'bg-gray-400', pulse: false }
+        };
+
+        const status = statusMap[statusKey] || statusMap.idle;
+        const siemLabel = this.formatSiemLabel(payload?.active_siem);
+        const displayText = statusKey === 'polling' && siemLabel
+            ? `${status.text} ${siemLabel}`
+            : status.text;
+
+        pill.className = `px-4 py-2 rounded-full ${status.color} flex items-center space-x-2`;
+        pill.innerHTML = `
+            <span class="w-2 h-2 rounded-full ${status.dot} ${status.pulse ? 'pulse-soft' : ''}"></span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">${displayText}</span>
+        `;
+    }
+
+    formatSiemLabel(value) {
+        if (!value) return '';
+        return value
+            .split(/[_-]/)
+            .filter(Boolean)
+            .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+            .join(' ');
+    }
+
+    normalizeBoolean(value) {
+        if (value === undefined || value === null) return false;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+            return value.toLowerCase() === 'true';
+        }
+        return Boolean(value);
     }
 
     escapeHtml(text) {

@@ -11,7 +11,7 @@ This service handles:
 import threading
 import time
 import os
-import re
+import pcre2
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
@@ -93,11 +93,9 @@ class SmartLPService(CRUDService):
             # Get settings for ingestion configuration
             from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            self.log_info("[INGESTION] Checking ingestion settings...")
 
             # Backend uses snake_case keys for settings
             if not settings.get('ingest_on', False):
-                self.log_info("[INGESTION] Log ingestion is disabled in settings")
                 return
 
             # Get ingestion parameters (snake_case)
@@ -556,11 +554,9 @@ class SmartLPService(CRUDService):
         Returns:
             Masked log entry
         """
-        import re
-        
         # Mask IP addresses
         ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-        masked = re.sub(ip_pattern, '1.1.1.1', log)
+        masked = pcre2.sub(ip_pattern, '1.1.1.1', log)
         
         # Mask timestamps (common patterns)
         timestamp_patterns = [
@@ -570,7 +566,7 @@ class SmartLPService(CRUDService):
         ]
         
         for pattern in timestamp_patterns:
-            masked = re.sub(pattern, 'TIMESTAMP', masked)
+            masked = pcre2.sub(pattern, 'TIMESTAMP', masked)
         
         return masked
 
@@ -812,10 +808,8 @@ class SmartLPService(CRUDService):
         Returns:
             Processed regex with unique capture group names
         """
-        import re
-        
         # Pattern to match named capture groups like (?P<name> or (?<name>
-        pattern = re.compile(r'(\(\?P?<)(\w+)(>)')
+        pattern = pcre2.compile(r'(\(\?(?:P?<|<))(\w+)(>)')
         seen = {}
         offset = 0
 
@@ -1116,52 +1110,185 @@ class SmartLPService(CRUDService):
             return f"'{regex}'"
         else:
             return f'"{regex}"'
-    
-    def deploy_to_elasticsearch(self, entry_ids: List[str], pipeline_id: Optional[str] = None) -> Tuple[bool, str]:
-        """Deploy SmartLP configuration to Elasticsearch as a Logstash pipeline.
-        
-        Args:
-            entry_ids: List of entry IDs to deploy
-            pipeline_id: Custom pipeline ID (uses environment default if None)
-            
-        Returns:
-            Tuple of (success, message)
+
+    def _normalize_regex_for_ingest(self, regex: str) -> str:
         """
+        Convert Logstash/PCRE-style regex into Elasticsearch ingest-compatible regex.
+        """
+        if not regex:
+            return regex
+
+        # Convert (?P<name>...) → (?<name>...)
+        regex = pcre2.sub(r"\(\?P<([^>]+)>", r"(?<\1>", regex)
+
+        return regex
+
+
+    def create_config_elastic(self, entry_ids: list[str]) -> dict:
+        """
+        Create an Elasticsearch ingest pipeline that:
+        - Applies multiple grok patterns (flow control)
+        - Assigns source_type per match
+        - Routes to correct data_stream.dataset
+        """
+
+        # Fetch selected entries
+        selected_entries = self.db.query(
+            collection_name="logs",
+            filter_dict={"_id": {"$in": entry_ids}},
+        )
+
+        # Fetch deployed entries
+        deployed_entries = self.db.query(
+            collection_name="logs",
+            filter_dict={"status": "Deployed"},
+        )
+
+        # Merge + dedupe (by _id)
+        all_entries = {
+            str(e["_id"]): e
+            for e in (selected_entries + deployed_entries)
+        }.values()
+
+        processors = []
+
+        # Build grok processors (ordered)
+        for entry in all_entries:
+            normalized = self._normalize_regex_for_ingest(entry["regex"])
+            grok_processor = {
+                "grok": {
+                    "field": "message",
+                    "patterns": [normalized],
+                    "ignore_failure": True
+                }
+            }
+
+            set_source_type = {
+                "set": {
+                    "if": "ctx._grokparsefailure == null",
+                    "field": "source_type",
+                    "value": entry["source_type"]
+                }
+            }
+
+            set_dataset = {
+                "set": {
+                    "if": "ctx._grokparsefailure == null",
+                    "field": "data_stream.dataset",
+                    "value": entry.get("dataset", "parsed")
+                }
+            }
+
+            processors.extend([
+                grok_processor,
+                set_source_type,
+                set_dataset,
+                {"remove": {"field": "_grokparsefailure", "ignore_missing": True}}
+            ])
+
+        # Final fallback → unparsed
+        processors.append(
+            {
+                "set": {
+                    "if": "ctx.source_type == null",
+                    "field": "data_stream.dataset",
+                    "value": "unparsed"
+                }
+            }
+        )
+
+        # 6Build pipeline
+        pipeline = {
+            "description": "SmartLP dynamic ingest pipeline",
+            "processors": processors
+        }
+
+        return pipeline
+
+    def deploy_config_elastic(self, pipeline_id: str, pipeline_body: dict) -> tuple[bool, str]:
+        """
+        Deploy an ingest pipeline to Elasticsearch
+        """
+
+        try:
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get("host")
+            elastic_api_key = elastic_settings.get("api_key")
+            es = Elasticsearch(
+                hosts=[elastic_host],
+                headers={"Authorization": f"ApiKey {elastic_api_key}"},
+                verify_certs=False
+            )
+
+            es.ingest.put_pipeline(
+                id=pipeline_id,
+                body=pipeline_body
+            )
+
+            return True, f"Ingest pipeline '{pipeline_id}' deployed successfully"
+
+        except Exception as e:
+            return False, f"Failed to deploy ingest pipeline: {e}"
+
+    def _get_elasticsearch_settings(self) -> Dict[str, Optional[str]]:
+        """Return Elasticsearch connectivity details from settings or env."""
+        siem_configs = settings_service.get_siem_settings() or []
+        elastic_settings = next((cfg for cfg in siem_configs if cfg.get('id') == 'elastic'), {})
+
+        resolved = {
+            'host': elastic_settings.get('host') or os.getenv('ELASTIC_HOST'),
+            'user': elastic_settings.get('user') or os.getenv('ELASTIC_USER'),
+            'api_key': elastic_settings.get('api_key') or os.getenv('ELASTIC_API_TOKEN'),
+            'cert_path': elastic_settings.get('cert_path') or os.getenv('ELASTIC_CERT_PATH'),
+            'pipeline_id': elastic_settings.get('pipeline_id') or os.getenv('ELASTIC_PIPELINE_ID') or 'smartlp-pipeline'
+        }
+
+        if not resolved['host'] or not resolved['api_key']:
+            self.log_warning("Elasticsearch configuration incomplete; check SIEM settings and environment variables")
+
+        return resolved
+
+    def deploy_config_to_elasticsearch(
+        self,
+        entry_ids: List[str],
+        pipeline_id: Optional[str] = None
+    ) -> Tuple[bool, str]:
+        """Deploy SmartLP configuration to Elasticsearch as a Logstash pipeline."""
+
         try:
             if not ELASTICSEARCH_AVAILABLE:
                 return False, "Elasticsearch library not available. Please install elasticsearch package."
-            
-            self.log_info(f"Starting Elasticsearch deployment for {len(entry_ids)} entries")
-            
-            # Get Elasticsearch configuration from environment
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_user = os.getenv('ELASTIC_USER')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
-            default_pipeline_id = os.getenv('ELASTIC_PIPELINE_ID', 'smartsoc-smartlp-pipeline')
-            
-            # Validate required configuration
+
+            self.log_info(
+                f"Starting Elasticsearch configuration deployment for {len(entry_ids)} entries"
+            )
+
+            # --- Load settings ---
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get("host")
+            elastic_user = elastic_settings.get("user")
+            elastic_api_token = elastic_settings.get("api_key")
+            elastic_cert_path = elastic_settings.get("cert_path")
+            default_pipeline_id = elastic_settings.get("pipeline_id")
+
             if not elastic_host:
                 return False, "ELASTIC_HOST environment variable not set"
             if not elastic_api_token:
                 return False, "ELASTIC_API_TOKEN environment variable not set"
-            
-            # Use provided pipeline ID or default
+
             target_pipeline_id = pipeline_id or default_pipeline_id
-            
-            # Generate the Logstash pipeline configuration
+
+            # --- Generate pipeline ---
             pipeline_config = self.create_elastic_config(entry_ids)
-            
             if not pipeline_config or pipeline_config.startswith("# No valid entries"):
-                return False, "No valid configuration generated. Check that entries exist and have required fields."
-            
-            # Create pipeline data structure
+                return False, "No valid configuration generated."
+
             pipeline_data = {
                 "description": f"SmartSOC SmartLP pipeline - {len(entry_ids)} entries",
-                "last_modified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
+                "last_modified": datetime.utcnow().isoformat(timespec="milliseconds") + "Z",
                 "pipeline_metadata": {
                     "type": "logstash_pipeline",
-                    "version": 1
+                    "version": 1,
                 },
                 "username": elastic_user or "smartsoc",
                 "pipeline": pipeline_config,
@@ -1170,48 +1297,44 @@ class SmartLPService(CRUDService):
                     "pipeline.batch.size": 125,
                     "pipeline.batch.delay": 50,
                     "queue.type": "memory",
-                    "queue.max_bytes": "1gb",
-                    "queue.checkpoint.writes": 1024
-                }
+                },
             }
-            
-            # Create Elasticsearch client
-            es_client_config = {
+
+            # --- Elasticsearch client ---
+            es_config = {
                 "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
+                "headers": {"Authorization": f"ApiKey {elastic_api_token}"},
             }
-            
-            # Add SSL configuration if certificate path is provided
+
             if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
+                es_config["ca_certs"] = elastic_cert_path
+                es_config["verify_certs"] = True
             else:
-                self.log_warning("ELASTIC_CERT_PATH not set or certificate not found. Using insecure connection.")
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Deploy the pipeline
+                self.log_warning(
+                    "ELASTIC_CERT_PATH not set or certificate not found. Using insecure connection."
+                )
+                es_config["verify_certs"] = False
+
+            es = Elasticsearch(**es_config)
+
+            # --- Deploy ---
             self.log_info(f"Deploying pipeline '{target_pipeline_id}' to Elasticsearch")
-            response = service_elastic.logstash.put_pipeline(id=target_pipeline_id, body=pipeline_data)
-            
-            # Check response (Elasticsearch returns None for successful operations)
-            if response is None or (isinstance(response, dict) and response.get('acknowledged', False)):
-                success_msg = f"Pipeline '{target_pipeline_id}' deployed successfully to Elasticsearch"
-                self.log_info(success_msg)
-                return True, success_msg
-            else:
-                error_msg = f"Unexpected response from Elasticsearch: {response}"
-                self.log_error(error_msg)
-                return False, error_msg
-                
+            es.logstash.put_pipeline(
+                id=target_pipeline_id,
+                body=pipeline_data,
+            )
+
+            # If no exception was raised → success
+            success_msg = f"Pipeline '{target_pipeline_id}' deployed successfully"
+            self.log_info(success_msg)
+            return True, success_msg
+
         except Exception as e:
-            error_msg = f"Failed to deploy to Elasticsearch: {str(e)}"
+            error_msg = f"Failed to deploy pipeline to Elasticsearch: {e}"
             self.log_error(error_msg, e)
             return False, error_msg
-    
+
+        
     def list_elasticsearch_pipelines(self) -> Tuple[Optional[Dict], Optional[str]]:
         """List all Logstash pipelines in Elasticsearch.
         
@@ -1223,9 +1346,10 @@ class SmartLPService(CRUDService):
                 return None, "Elasticsearch library not available"
             
             # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get('host')
+            elastic_api_token = elastic_settings.get('api_key')
+            elastic_cert_path = elastic_settings.get('cert_path')
             
             if not elastic_host or not elastic_api_token:
                 return None, "Elasticsearch configuration not available"
@@ -1274,9 +1398,10 @@ class SmartLPService(CRUDService):
                 return False, "Elasticsearch library not available"
             
             # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get('host')
+            elastic_api_token = elastic_settings.get('api_key')
+            elastic_cert_path = elastic_settings.get('cert_path')
             
             if not elastic_host or not elastic_api_token:
                 return False, "Elasticsearch configuration not available"
@@ -1329,9 +1454,10 @@ class SmartLPService(CRUDService):
                 return None, "Elasticsearch library not available"
             
             # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
+            elastic_settings = self._get_elasticsearch_settings()
+            elastic_host = elastic_settings.get('host')
+            elastic_api_token = elastic_settings.get('api_key')
+            elastic_cert_path = elastic_settings.get('cert_path')
             
             if not elastic_host or not elastic_api_token:
                 return None, "Elasticsearch configuration not available"
@@ -1365,7 +1491,14 @@ class SmartLPService(CRUDService):
             error_msg = f"Failed to get pipeline '{pipeline_id}': {str(e)}"
             self.log_error(error_msg, e)
             return None, error_msg
-
+    
+    def deploy_config_to_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
+        """Deploy SmartLP configuration to Splunk by writing to props.conf and transforms.conf.
+        
+        Args:
+            entry_ids: List of entry IDs to deploy
+        """
+        pass
 
 # Create service instance
 smartlp_service = SmartLPService()

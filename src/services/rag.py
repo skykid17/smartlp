@@ -14,7 +14,7 @@ import hashlib
 import json
 import logging
 import sys
-import re
+import pcre2
 import time
 from collections import defaultdict
 from datetime import datetime
@@ -326,7 +326,7 @@ class RAG:
         semantic_top = semantic_sorted[:semantic_k]
 
         # Keyword scoring — token overlap
-        tokens = set(re.findall(r"\w+", query.lower()))
+        tokens = set(pcre2.findall(r"\w+", query.lower()))
         for doc in all_docs:
             text = (doc.get("content") or "").lower()
             # simple presence count

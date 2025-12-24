@@ -1,4 +1,4 @@
-import re as re_engine
+import pcre2
 
 
 class RegexEngineService:
@@ -32,7 +32,7 @@ class RegexEngineService:
 
         # Compile
         try:
-            prog = re_engine.compile(pattern)
+            prog = pcre2.compile(pattern)
         except Exception as e:
             result["status"] = "Unmatched"
             result["error"] = f"CompileError: {e}"
@@ -138,8 +138,8 @@ class RegexEngineService:
 
             # Try compiling
             try:
-                re_engine.compile(candidate)
-            except re_engine.error:
+                pcre2.compile(candidate)
+            except pcre2.error:
                 continue  # skip invalid patterns
 
             # Run unified matcher

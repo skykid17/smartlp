@@ -381,6 +381,8 @@ class Playground {
                 this.dom.captureGroupDisplay.textContent = groupMatches
                     .map(([k, v]) => `${k}: ${v?.value ?? ''}`)
                     .join('\n');
+
+                this.dom.captureGroupDisplay.textContent = groupText;
             }
 
             this.highlightLog(log, fullMatchObj, groupMatches);

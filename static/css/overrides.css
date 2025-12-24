@@ -25,6 +25,15 @@
     @apply bg-gray-400 dark:bg-gray-500;
 }
 
+#captureGroupDisplay,
+.capture-group-container {
+    white-space: pre-wrap;
+    word-break: break-all;
+    /* Optional: prevents long strings from breaking layout */
+    display: block;
+    /* Ensures it behaves like a container */
+}
+
 /* Pulse animation for status indicators */
 @keyframes pulse-soft {
 

@@ -97,8 +97,7 @@ class ApplicationFactory:
             from api.main_routes import register_main_routes
             from api.smartlp_routes import register_smartlp_routes
             from api.settings_routes import register_settings_routes
-            from api.deployment_routes import register_deployment_routes
-            
+
             # Register all route modules
             register_main_routes(app)
             print("Main routes registered")
@@ -106,8 +105,6 @@ class ApplicationFactory:
             print("SmartLP routes registered")
             register_settings_routes(app)
             print("Settings routes registered")
-            register_deployment_routes(app)
-            print("Deployment routes registered")
             
             print("All application routes registered")
         except Exception as e:
