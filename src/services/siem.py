@@ -10,7 +10,7 @@ from elasticsearch import Elasticsearch
 import splunklib.client as splunk_client
 import splunklib.results as splunk_results
 
-from config.settings import config
+from settings.settings import settings
 from .base import BaseService
 
 
@@ -82,7 +82,7 @@ class SplunkService(BaseSIEMService):
     def __init__(self):
         """Initialize Splunk service."""
         super().__init__("splunk")
-        self.config = config.splunk
+        self.settings = settings.splunk
     
     def connect(self) -> bool:
         """Connect to Splunk.
@@ -92,10 +92,10 @@ class SplunkService(BaseSIEMService):
         """
         try:
             self._connection = splunk_client.connect(
-                host=self.config.host,
-                port=self.config.port,
-                username=self.config.username,
-                password=self.config.password
+                host=self.settings.host,
+                port=self.settings.port,
+                username=self.settings.username,
+                password=self.settings.password
             )
             self.logger.info("Successfully connected to Splunk")
             return True
@@ -185,7 +185,7 @@ class ElasticsearchService(BaseSIEMService):
     def __init__(self):
         """Initialize Elasticsearch service."""
         super().__init__("elasticsearch")
-        self.config = config.elastic
+        self.settings = settings.elastic
         self.ssl_verified = False  # Track whether SSL verification is being used
     
     def connect(self) -> bool:
@@ -197,10 +197,10 @@ class ElasticsearchService(BaseSIEMService):
         try:
             # First try with certificate verification
             self._connection = Elasticsearch(
-                self.config.host,
-                ca_certs=self.config.cert_path,
+                self.settings.host,
+                ca_certs=self.settings.cert_path,
                 verify_certs=True,
-                basic_auth=(self.config.username, self.config.password)
+                basic_auth=(self.settings.username, self.settings.password)
             )
             
             # Test connection
@@ -218,9 +218,9 @@ class ElasticsearchService(BaseSIEMService):
         try:
             self.logger.info("Attempting connection without certificate verification")
             self._connection = Elasticsearch(
-                self.config.host,
+                self.settings.host,
                 verify_certs=False,
-                basic_auth=(self.config.username, self.config.password)
+                basic_auth=(self.settings.username, self.settings.password)
             )
             
             # Test connection

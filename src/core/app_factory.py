@@ -9,7 +9,7 @@ import threading
 from typing import Optional
 from flask import Flask
 
-from config.settings import config
+from settings.settings import settings
 from core.socketio_manager import socketio_manager
 from utils.logging import app_logger
 
@@ -63,8 +63,8 @@ class ApplicationFactory:
             app: Flask application instance
         """
         # Set secret key if available
-        if config.app.secret_key:
-            app.config['SECRET_KEY'] = config.app.secret_key
+        if settings.app.secret_key:
+            app.config['SECRET_KEY'] = settings.app.secret_key
         
         # Additional Flask configuration
         app.config['JSON_SORT_KEYS'] = False
@@ -167,14 +167,14 @@ class ApplicationFactory:
         
         Args:
             app: Flask application instance
-            host: Host to bind to (uses config default if None)
-            port: Port to bind to (uses config default if None)
-            debug: Debug mode (uses config default if None)
+            host: Host to bind to (uses settings default if None)
+            port: Port to bind to (uses settings default if None)
+            debug: Debug mode (uses settings default if None)
         """
-        # Use config defaults if not specified
-        run_host = host or config.app.host
-        run_port = port or config.app.port
-        run_debug = debug if debug is not None else config.app.debug
+        # Use settings defaults if not specified
+        run_host = host or settings.app.host
+        run_port = port or settings.app.port
+        run_debug = debug if debug is not None else settings.app.debug
         
         print(f'Starting SmartSOC server on {run_host}:{run_port}')
         

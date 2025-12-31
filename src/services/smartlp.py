@@ -108,17 +108,17 @@ class SmartLPService(CRUDService):
             
             # Get SIEM-specific search configuration
             siem_settings = settings_service.get_siem_settings()
-            siem_config = next((s for s in siem_settings if s['id'] == active_siem), None)
+            siem_settings = next((s for s in siem_settings if s['id'] == active_siem), None)
             
-            if not siem_config:
+            if not siem_settings:
                 self.log_error(f"[INGESTION] No configuration found for SIEM: {active_siem}")
                 return
 
             logs, error = self.ingest_from_siem(
                 active_siem,
-                siem_config.get('search_index', ''),
-                siem_config.get('search_query', ''),
-                int(siem_config.get('search_entry_count', 10) or 10)
+                siem_settings.get('search_index', ''),
+                siem_settings.get('search_query', ''),
+                int(siem_settings.get('search_entry_count', 10) or 10)
             )
             
             if error:
@@ -197,7 +197,7 @@ class SmartLPService(CRUDService):
             if search_filters:
                 if search_filters.get('search_id'):
                     search_id = search_filters['search_id']
-                    # Check if search_id contains commas (multiple IDs for config panel)
+                    # Check if search_id contains commas (multiple IDs for settings panel)
                     if ',' in search_id:
                         # Split comma-separated IDs and use exact matching
                         ids = [id.strip() for id in search_id.split(',') if id.strip()]

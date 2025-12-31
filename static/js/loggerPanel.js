@@ -154,14 +154,32 @@ class LoggerPanel {
             error: '<i class="fas fa-times-circle text-red-500"></i>'
         };
 
+        const cleanedMessage = this.stripLeadingTimestamp(entry.message);
+
         messageEl.innerHTML = `
             <span class="text-gray-500 dark:text-gray-400">[${entry.timestamp}]</span>
             ${typeIcons[entry.type] || typeIcons.info}
-            <span class="flex-1">${entry.message}</span>
+            <span class="flex-1">${cleanedMessage}</span>
         `;
 
         this.content.appendChild(messageEl);
         if (!skipPersist) this.persist();
+    }
+
+    stripLeadingTimestamp(message = '') {
+        if (typeof message !== 'string') return '';
+        const patterns = [
+            /^\d{1,2}\s[A-Za-z]{3}\s\d{2}:\d{2}:\d{2}:\s*/,
+            /^\[?\d{2}:\d{2}:\d{2}]?\s*/
+        ];
+
+        for (const pattern of patterns) {
+            if (pattern.test(message)) {
+                return message.replace(pattern, '').trimStart();
+            }
+        }
+
+        return message;
     }
 
     clear() {

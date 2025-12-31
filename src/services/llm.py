@@ -60,16 +60,16 @@ class LLMService(BaseService):
             return None
 
         except Exception as e:
-            self.log_error(f"Error getting active LLM config: {str(e)}", e)
+            self.log_error(f"Error getting active LLM settings: {str(e)}", e)
             return None
     
     def _build_llm_client(self, model_override=None, url_override=None, api_key_override=None):
         """Build a ChatOpenAI client from DB settings or frontend overrides."""
-        config = self._get_active_llm_config()
+        settings = self._get_active_llm_config()
         global_settings = settings_service.get_global_settings()
         active_llm = global_settings.get('active_llm', '') if isinstance(global_settings, dict) else None
 
-        if not config:
+        if not settings:
             return None, {
                 "success": False,
                 "content": None,
@@ -79,10 +79,10 @@ class LLMService(BaseService):
             }
 
         try:
-            model = model_override or active_llm or config.get("model")[0]
-            url = url_override or config.get("url")
-            api_key = api_key_override or config.get("api_key", "test")
-            temperature = config.get("temperature", 0.1)
+            model = model_override or active_llm or settings.get("model")[0]
+            url = url_override or settings.get("url")
+            api_key = api_key_override or settings.get("api_key", "test")
+            temperature = settings.get("temperature", 0.1)
 
             llm = ChatOpenAI(
                 model=model,

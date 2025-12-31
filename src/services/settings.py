@@ -25,8 +25,8 @@ class SettingsService(BaseService):
         """
         try:
             settings = self.db.query(
-                'config',
-                {"category": "global_config"},
+                'settings',
+                {"category": "global_settings"},
                 {"_id": 0, "amendments": 0},
                 limit=1
             )
@@ -48,8 +48,8 @@ class SettingsService(BaseService):
         """
         try:
             siems = list(self.db.query(
-                'config',
-                {"category": "siem_config"},
+                'settings',
+                {"category": "siem_settings"},
                 projection={"_id": 0}
             ))
             
@@ -66,8 +66,8 @@ class SettingsService(BaseService):
         """
         try:
             llms = list(self.db.query(
-                'config',
-                {"category": "llm_config"},
+                'settings',
+                {"category": "llm_settings"},
                 projection={"_id": 0}
             ))
             
@@ -77,10 +77,10 @@ class SettingsService(BaseService):
             return []
 
     def get_prompts_settings(self, key) -> Any:
-        """Return the value of a specific prompt field from config (id='prompts')."""
+        """Return the value of a specific prompt field from settings (id='prompts')."""
         try:
             doc = self.db.query(
-                'config',
+                'settings',
                 {"id": "prompts"},
                 projection={"_id": 0, key: 1},
                 limit=1
@@ -213,7 +213,7 @@ class SettingsService(BaseService):
                 global_settings_to_update['updated_at'] = datetime.now().isoformat()
                 
                 result = self.db.update_one(
-                    'config',
+                    'settings',
                     {"id": "global"},
                     {"$set": global_settings_to_update}
                 )
@@ -247,8 +247,8 @@ class SettingsService(BaseService):
                     siem_updates['updated_at'] = datetime.now().isoformat()
                     
                     result = self.db.update_one(
-                        'config',
-                        {"category": "siem_config", "id": siem_id},
+                        'settings',
+                        {"category": "siem_settings", "id": siem_id},
                         {"$set": siem_updates}
                     )
                     
@@ -292,8 +292,8 @@ class SettingsService(BaseService):
                     llm_updates['updated_at'] = datetime.now().isoformat()
                     
                     result = self.db.update_one(
-                        'config',
-                        {"category": "llm_config", "id": llm_id},
+                        'settings',
+                        {"category": "llm_settings", "id": llm_id},
                         {"$set": llm_updates}
                     )
                     
@@ -309,7 +309,7 @@ class SettingsService(BaseService):
                     
                     # Check if this is a new endpoint
                     if not current_endpoint:
-                        # Create new endpoint document in 'config' collection
+                        # Create new endpoint document in 'settings' collection
                         new_endpoint = {
                             'id': endpoint_id,
                             'name': endpoint_data.get('name', endpoint_id),
@@ -317,10 +317,10 @@ class SettingsService(BaseService):
                             'models': endpoint_data.get('models', []),
                             'created_at': datetime.now().isoformat(),
                             'updated_at': datetime.now().isoformat(),
-                            'category': 'llm_config'
+                            'category': 'llm_settings'
                         }
 
-                        result = self.db.insert_one('config', new_endpoint)
+                        result = self.db.insert_one('settings', new_endpoint)
                         if result:
                             changes.append(f"Added new LLM endpoint: {new_endpoint['name']}")
                             self.log_info(f"New LLM endpoint created: {endpoint_id}")
@@ -340,8 +340,8 @@ class SettingsService(BaseService):
                         if endpoint_updates:
                             endpoint_updates['updated_at'] = datetime.now().isoformat()
                             result = self.db.update_one(
-                                'config',
-                                {"category": "llm_config", "id": endpoint_id},
+                                'settings',
+                                {"category": "llm_settings", "id": endpoint_id},
                                 {"$set": endpoint_updates}
                             )
 
@@ -387,8 +387,8 @@ class SettingsService(BaseService):
                 return False
             
             result = self.db.update_one(
-                'config',
-                {"category": "global_config", "id": "global"},
+                'settings',
+                {"category": "global_settings", "id": "global"},
                 {"$set": {
                     "active_siem": siem_type,
                     "updated_at": datetime.now().isoformat()

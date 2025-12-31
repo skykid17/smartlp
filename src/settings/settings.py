@@ -83,7 +83,7 @@ class ConfigManager:
                 db_name="soc_rag_db",
                 knowledge_collection="knowledge_base",
                 logs_collection="logs",
-                config_collection="config",
+                config_collection="settings",
             )
         return self._database_config
     
@@ -92,12 +92,12 @@ class ConfigManager:
         """Get Splunk configuration."""
         if self._splunk_config is None:
             db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
-            config_collection = db.get_collection("config")
+            config_collection = db.get_collection("settings")
             self._splunk_config = SplunkConfig(
-                host=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['host'],
-                port=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['port'],
-                username=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['user'],
-                password=config_collection.find_one({'category': 'siem_config', 'id': 'splunk'})['password'],
+                host=config_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['host'],
+                port=config_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['port'],
+                username=config_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['user'],
+                password=config_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['password'],
             )
         return self._splunk_config
     
@@ -106,12 +106,12 @@ class ConfigManager:
         """Get Elasticsearch configuration."""
         if self._elastic_config is None:
             db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
-            config_collection = db.get_collection("config")
+            config_collection = db.get_collection("settings")
             self._elastic_config = ElasticConfig(
-                host=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['host'],
-                username=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['user'],
-                password=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['password'],
-                cert_path=config_collection.find_one({'category': 'siem_config', 'id': 'elastic'})['cert_path'],
+                host=config_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['host'],
+                username=config_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['user'],
+                password=config_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['password'],
+                cert_path=config_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['cert_path'],
             )
         return self._elastic_config
     
@@ -160,7 +160,7 @@ class ConfigManager:
     
     def get_env_dict(self) -> Dict[str, Any]:
         """Get all configuration as a dictionary for debugging."""
-        # Assemble config data from the `config` collection so the frontend
+        # Assemble settings data from the `settings` collection so the frontend
         # receives the runtime configuration (global, llm endpoints, and siem configs).
         from pymongo import MongoClient
         import json
@@ -189,14 +189,14 @@ class ConfigManager:
             client = MongoClient(mongo_url)
             cfg = client.get_database(db_name).get_collection(self.database.config_collection)
 
-            # Global config (single doc with category 'global_config')
-            global_doc = cfg.find_one({'category': 'global_config'}) or {}
+            # Global settings (single doc with category 'global_settings')
+            global_doc = cfg.find_one({'category': 'global_settings'}) or {}
             # convert values to JSON-safe types (mask sensitive fields)
             gd = json.loads(json.dumps(global_doc, default=str))
             result['global'] = gd
 
             # LLM endpoints
-            llm_docs = list(cfg.find({'category': 'llm_config'}))
+            llm_docs = list(cfg.find({'category': 'llm_settings'}))
             for d in llm_docs:
                 doc = json.loads(json.dumps(d, default=str))
                 # mask api_key if present
@@ -205,7 +205,7 @@ class ConfigManager:
                 result['llms'].append(doc)
 
             # SIEM configs
-            siem_docs = list(cfg.find({'category': 'siem_config'}))
+            siem_docs = list(cfg.find({'category': 'siem_settings'}))
             for d in siem_docs:
                 doc = json.loads(json.dumps(d, default=str))
                 if 'password' in doc and doc['password']:
@@ -222,4 +222,4 @@ class ConfigManager:
 
 
 # Global configuration instance
-config = ConfigManager()
+settings = ConfigManager()

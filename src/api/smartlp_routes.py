@@ -306,7 +306,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 filename = f"smartlp_logstash_{len(entry_ids)}_entries.conf"
             
             return jsonify({
-                "config": config_content,
+                "settings": config_content,
                 "filename": filename,
                 "siem": active_siem
             })
