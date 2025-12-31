@@ -8,6 +8,7 @@ class ConfigHub {
         this.panel = document.getElementById('configHub');
         this.content = document.getElementById('configHubContent');
         this.selectedEntries = [];
+        this.lastGeneratedConfig = null;
 
         this.init();
     }
@@ -156,10 +157,12 @@ class ConfigHub {
             });
 
             const data = await response.json();
-            if (response.ok && data.config) {
-                this.showConfigModal(data.config);
+            const configText = data?.config ?? data?.settings;
+            if (response.ok && configText) {
+                this.lastGeneratedConfig = configText;
+                this.showConfigModal(configText);
             } else {
-                window.showToast(data.error || 'Failed to generate configuration', 'error');
+                window.showToast(data?.error || 'Failed to generate configuration', 'error');
             }
         } catch (error) {
             console.error('Config generation error:', error);
@@ -194,7 +197,17 @@ class ConfigHub {
     }
 
     async deployConfig() {
+        console.log('Deploying config for entries:', this.selectedEntries);
         try {
+            if (!this.selectedEntries.length) {
+                window.showToast('No entries selected', 'warning');
+                return;
+            }
+            if (!this.lastGeneratedConfig) {
+                window.showToast('Generate configuration first', 'warning');
+                return;
+            }
+
             window.showToast('Deploying configuration...', 'info');
 
             const response = await fetch('/api/smartlp/deploy_config', {
@@ -204,17 +217,17 @@ class ConfigHub {
                 },
                 body: JSON.stringify({
                     ids: this.selectedEntries.map(e => e.id),
-                    type: 'smartlp'
+                    config: this.lastGeneratedConfig
                 })
             });
 
             const data = await response.json();
             if (response.ok) {
-                window.showToast(data.logger || 'Configuration deployed successfully', 'success');
+                window.showToast(data.message || 'Configuration deployed successfully', 'success');
                 this.clearSelection();
                 this.close();
             } else {
-                window.showToast(data.logger || data.error || 'Deployment failed', 'error');
+                window.showToast(data.error || 'Deployment failed', 'error');
             }
         } catch (error) {
             console.error('Deployment error:', error);

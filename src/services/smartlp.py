@@ -270,7 +270,6 @@ class SmartLPService(CRUDService):
                 self.collection_name,
                 {"status": RuleStatus.UNMATCHED.value}
             )
-            self.log_info(f"Found {count} unmatched entries in database")
             return count
         except Exception as e:
             self.log_error(f"Failed to count unmatched entries: {str(e)}", e)
@@ -853,7 +852,7 @@ class SmartLPService(CRUDService):
             if active_siem == "splunk":
                 return self.create_config_splunk(entry_ids)
             elif active_siem == "elastic":
-                return self.create_elastic_config(entry_ids)
+                return self.create_config_elastic(entry_ids)
             else:
                 self.log_error(f"Unsupported SIEM type: {active_siem}")
                 return "# Unsupported SIEM type"
@@ -872,7 +871,8 @@ class SmartLPService(CRUDService):
             # Fetch selected entries
             selected_entries = self.db.query(
                 collection_name="logs",
-                filter_dict={"_id": {"$in": entry_ids}},
+                # `entry_ids` are SmartLP's user-facing IDs (field `id`), not Mongo `_id`.
+                filter_dict={"id": {"$in": entry_ids}},
             )
 
             # Fetch deployed entries
@@ -884,7 +884,7 @@ class SmartLPService(CRUDService):
             # Merge + dedupe (by _id)
             # Convert to list immediately so we can index it [0] and [1:]
             all_entries = list({
-                str(e["_id"]): e
+                str(e.get("id") or e.get("_id")): e
                 for e in (selected_entries + deployed_entries)
             }.values())
 
@@ -938,42 +938,42 @@ class SmartLPService(CRUDService):
             pipeline.append("\n}")
             
             # 3. Output section
-            elastic_settings = self._get_elasticsearch_settings()
+            elastic_settings = self._get_elastic_settings()
             elastic_host = elastic_settings.get("host")
             elastic_user = elastic_settings.get("user")
             elastic_password = elastic_settings.get("password")
 
             # 2. Build the dynamic output section
             pipeline.append(f'''
-            output {{
-            stdout {{ codec => rubydebug }}
+output {{
+    stdout {{ codec => rubydebug }}
 
-            if "_grokparsefailure" not in [tags] {{
-                elasticsearch {{
-                hosts => ["{elastic_host}"]
-                ssl_enabled => true
-                ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-                user => "{elastic_user}"
-                password => "{elastic_password}"
-                data_stream => true
-                data_stream_type => "logs"
-                data_stream_dataset => "parsed"
-                data_stream_namespace => "default"
-                }}
-            }} else {{
-                elasticsearch {{
-                hosts => ["{elastic_host}"]
-                ssl_enabled => true
-                ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-                user => "{elastic_user}"
-                password => "{elastic_password}"
-                data_stream => true
-                data_stream_type => "logs"
-                data_stream_dataset => "unparsed"
-                data_stream_namespace => "default"
-                }}
-            }}
-            }}''')
+    if "_grokparsefailure" not in [tags] {{
+        elasticsearch {{
+        hosts => ["{elastic_host}"]
+        ssl_enabled => true
+        ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+        user => "{elastic_user}"
+        password => "{elastic_password}"
+        data_stream => true
+        data_stream_type => "logs"
+        data_stream_dataset => "parsed"
+        data_stream_namespace => "default"
+        }}
+    }} else {{
+        elasticsearch {{
+        hosts => ["{elastic_host}"]
+        ssl_enabled => true
+        ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+        user => "{elastic_user}"
+        password => "{elastic_password}"
+        data_stream => true
+        data_stream_type => "logs"
+        data_stream_dataset => "unparsed"
+        data_stream_namespace => "default"
+        }}
+    }}
+}}''')
             
             config = "".join(pipeline)
             self.log_info(f"Generated Elastic config with {len(all_entries)} entries")
@@ -1110,33 +1110,68 @@ class SmartLPService(CRUDService):
         regex = pcre2.sub(r"\(\?P<([^>]+)>", r"(?<\1>", regex)
 
         return regex
-
-    def deploy_config_elastic(self, pipeline_body: dict) -> tuple[bool, str]:
-        """
-        Deploy an ingest pipeline to Elasticsearch
-        """
+    
+    def deploy_config_elastic(self, pipeline_config: str) -> tuple[bool, str]:
+        """Deploy a Logstash pipeline to Elasticsearch (Centralized Pipeline Management)."""
 
         try:
-            elastic_settings = self._get_elasticsearch_settings()
+            elastic_settings = self._get_elastic_settings()
             elastic_host = elastic_settings.get("host")
             elastic_api_key = elastic_settings.get("api_key")
+            elastic_user = elastic_settings.get("user") or "smartlp"
+            pipeline_id = elastic_settings.get("pipeline_id") or "smartlp"
+
+            if not elastic_host:
+                return False, "Elasticsearch host not configured"
+            if not elastic_api_key:
+                return False, "Elasticsearch API key not configured"
+            if not pipeline_config or pipeline_config.startswith("#"):
+                return False, "Invalid or empty Logstash pipeline config"
+
+            pipeline_body = {
+                "description": "SmartLP generated Logstash pipeline",
+                "last_modified": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + "Z",
+                "pipeline_metadata": {
+                    "type": "logstash_pipeline",
+                    "version": 1
+                },
+                "username": elastic_user,
+                "pipeline": pipeline_config,
+                "pipeline_settings": {
+                    "pipeline.workers": 1,
+                    "pipeline.batch.size": 125,
+                    "pipeline.batch.delay": 50,
+                    "queue.type": "memory"
+                }
+            }
+
             es = Elasticsearch(
                 hosts=[elastic_host],
                 headers={"Authorization": f"ApiKey {elastic_api_key}"},
                 verify_certs=False
             )
 
-            es.ingest.put_pipeline(
-                id="smartlp",
+            response = es.logstash.put_pipeline(
+                id=pipeline_id,
                 body=pipeline_body
             )
 
-            return True, f"Smartlp pipeline deployed successfully"
+            # CPM returns None on success
+            if response is None:
+                return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
+            
+            # Some ES versions may return an ack dict
+            if isinstance(response, dict) and response.get("acknowledged") is True:
+                return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
+            
+            # Safety Net
+            return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
 
         except Exception as e:
-            return False, f"Failed to deploy ingest pipeline: {e}"
+            self.log_error("Elasticsearch deployment failed", e)
+            return False, f"Failed to deploy Logstash pipeline: {e}"
 
-    def _get_elasticsearch_settings(self) -> Dict[str, Optional[str]]:
+    def _get_elastic_settings(self) -> Dict[str, Optional[str]]:
         """Return Elasticsearch connectivity details from settings or env."""
         siem_configs = settings_service.get_siem_settings() or []
         elastic_settings = next((cfg for cfg in siem_configs if cfg.get('id') == 'elastic'), {})
@@ -1144,174 +1179,18 @@ class SmartLPService(CRUDService):
         resolved = {
             'host': elastic_settings.get('host') or os.getenv('ELASTIC_HOST'),
             'user': elastic_settings.get('user') or os.getenv('ELASTIC_USER'),
+            'password': elastic_settings.get('password') or os.getenv('ELASTIC_PASSWORD'),
             'api_key': elastic_settings.get('api_key') or os.getenv('ELASTIC_API_TOKEN'),
             'cert_path': elastic_settings.get('cert_path') or os.getenv('ELASTIC_CERT_PATH'),
-            'pipeline_id': elastic_settings.get('pipeline_id') or os.getenv('ELASTIC_PIPELINE_ID') or 'smartlp-pipeline'
+            'pipeline_id': elastic_settings.get('pipeline_id') or os.getenv('ELASTIC_PIPELINE_ID') or 'smartlp'
         }
 
         if not resolved['host'] or not resolved['api_key']:
             self.log_warning("Elasticsearch configuration incomplete; check SIEM settings and environment variables")
 
         return resolved
-        
-    def list_elasticsearch_pipelines(self) -> Tuple[Optional[Dict], Optional[str]]:
-        """List all Logstash pipelines in Elasticsearch.
-        
-        Returns:
-            Tuple of (pipelines_dict, error_message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return None, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_settings = self._get_elasticsearch_settings()
-            elastic_host = elastic_settings.get('host')
-            elastic_api_token = elastic_settings.get('api_key')
-            elastic_cert_path = elastic_settings.get('cert_path')
-            
-            if not elastic_host or not elastic_api_token:
-                return None, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Get all pipelines
-            response = service_elastic.logstash.get_pipeline()
-            
-            if response:
-                self.log_info(f"Retrieved {len(response)} pipelines from Elasticsearch")
-                return response, None
-            else:
-                return {}, None
-                
-        except Exception as e:
-            error_msg = f"Failed to list Elasticsearch pipelines: {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
     
-    def delete_elasticsearch_pipeline(self, pipeline_id: str) -> Tuple[bool, str]:
-        """Delete a Logstash pipeline from Elasticsearch.
-        
-        Args:
-            pipeline_id: ID of the pipeline to delete
-            
-        Returns:
-            Tuple of (success, message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return False, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_settings = self._get_elasticsearch_settings()
-            elastic_host = elastic_settings.get('host')
-            elastic_api_token = elastic_settings.get('api_key')
-            elastic_cert_path = elastic_settings.get('cert_path')
-            
-            if not elastic_host or not elastic_api_token:
-                return False, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Delete the pipeline
-            self.log_info(f"Deleting pipeline '{pipeline_id}' from Elasticsearch")
-            response = service_elastic.logstash.delete_pipeline(id=pipeline_id)
-            
-            if response is None or (isinstance(response, dict) and response.get('acknowledged', False)):
-                success_msg = f"Pipeline '{pipeline_id}' deleted successfully from Elasticsearch"
-                self.log_info(success_msg)
-                return True, success_msg
-            else:
-                error_msg = f"Failed to delete pipeline '{pipeline_id}': {response}"
-                self.log_error(error_msg)
-                return False, error_msg
-                
-        except Exception as e:
-            error_msg = f"Failed to delete pipeline '{pipeline_id}': {str(e)}"
-            self.log_error(error_msg, e)
-            return False, error_msg
-    
-    def get_elasticsearch_pipeline(self, pipeline_id: str) -> Tuple[Optional[Dict], Optional[str]]:
-        """Get details of a specific Logstash pipeline from Elasticsearch.
-        
-        Args:
-            pipeline_id: ID of the pipeline to retrieve
-            
-        Returns:
-            Tuple of (pipeline_dict, error_message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return None, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_settings = self._get_elasticsearch_settings()
-            elastic_host = elastic_settings.get('host')
-            elastic_api_token = elastic_settings.get('api_key')
-            elastic_cert_path = elastic_settings.get('cert_path')
-            
-            if not elastic_host or not elastic_api_token:
-                return None, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Get the specific pipeline
-            response = service_elastic.logstash.get_pipeline(id=pipeline_id)
-            
-            if response and pipeline_id in response:
-                self.log_info(f"Retrieved pipeline '{pipeline_id}' from Elasticsearch")
-                return response[pipeline_id], None
-            else:
-                return None, f"Pipeline '{pipeline_id}' not found"
-                
-        except Exception as e:
-            error_msg = f"Failed to get pipeline '{pipeline_id}': {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
-    
-    def deploy_config_to_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
+    def deploy_config_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
         """Deploy SmartLP configuration to Splunk by writing to props.conf and transforms.conf.
         
         Args:

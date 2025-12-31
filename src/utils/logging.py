@@ -3,7 +3,7 @@ Logging utilities for SmartSOC application.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -31,44 +31,23 @@ class SmartSOCLogger:
             self.logger.setLevel(logging.INFO)
     
     def log_message(self, channel: str, message: str, level: str = "INFO") -> None:
-        """Log message with SocketIO emission.
-        
-        Args:
-            channel: SocketIO channel ('log' or 'notification')
-            message: Message to log
-            level: Log level
-        """
-        timestamp = datetime.now().strftime("%d %b %H:%M:%S")
-        
-        if channel == 'log':
-            formatted_message = f'{timestamp}: {message}'
-            self.logger.info(message)
+        ts = datetime.now(timezone.utc).isoformat()
+
+        # 1. Backend logging (for terminal / files / journald)
+        self.logger.log(getattr(logging, level.upper(), logging.INFO), message)
+
+        # 2. UI event stream (structured, no formatting)
+        if channel in ("log", "notification"):
             try:
                 from core.socketio_manager import socketio_manager
-                if socketio_manager.socketio is not None:
-                    socketio_manager.socketio.emit(channel, {'message': formatted_message})
+                if socketio_manager.socketio:
+                    socketio_manager.socketio.emit(channel, {
+                        "timestamp": ts,
+                        "message": message,
+                        "level": level
+                    })
             except (ImportError, AttributeError):
-                pass  # SocketIO not available yet
-        elif channel == 'notification':
-            self.logger.info(f"NOTIFICATION: {message}")
-            try:
-                from core.socketio_manager import socketio_manager
-                if socketio_manager.socketio is not None:
-                    socketio_manager.socketio.emit(channel, {'message': message})
-            except (ImportError, AttributeError):
-                pass  # SocketIO not available yet
-        else:
-            self.logger.log(getattr(logging, level.upper(), logging.INFO), message)
-
-
+                pass
+        
 # Global logger instance
 app_logger = SmartSOCLogger()
-
-def log_message(channel: str, message: str) -> None:
-    """Backward compatibility function for logging.
-    
-    Args:
-        channel: SocketIO channel ('log' or 'notification')
-        message: Message to log
-    """
-    app_logger.log_message(channel, message)

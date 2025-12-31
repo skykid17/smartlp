@@ -10,6 +10,9 @@ class LoggerPanel {
         this.autoScroll = true;
         this.messages = [];
         this.socket = null;
+        this._socketRetryTimer = null;
+        this._socketRetryAttempts = 0;
+        this._maxSocketRetryAttempts = 50; // ~10s at 200ms
 
         this.init();
     }
@@ -51,21 +54,58 @@ class LoggerPanel {
         this.setupSocket();
     }
 
+    scheduleSocketRetry() {
+        if (this._socketRetryTimer) return;
+        if (this._socketRetryAttempts >= this._maxSocketRetryAttempts) return;
+
+        this._socketRetryTimer = setInterval(() => {
+            this._socketRetryAttempts += 1;
+            this._socketRetryTimer = null;
+            this.setupSocket();
+        }, 200);
+    }
+
     setupSocket() {
         if (this.socket) return;
-        // Reuse global socket if available; otherwise create a lightweight connection
-        this.socket = window.socket || (typeof io !== 'undefined' ? io() : null);
-        if (!this.socket) return;
+
+        // Reuse global socket if available; otherwise create a lightweight connection.
+        // Note: this file is loaded as an ES module (type="module"), so Socket.IO's `io`
+        // is typically available as `window.io` / `globalThis.io`, not as an identifier.
+        const g = (typeof globalThis !== 'undefined') ? globalThis : window;
+        const existingSocket = g.socket || (g.window && g.window.socket);
+        const ioFactory = g.io || (g.window && g.window.io);
+
+        this.socket = existingSocket || (typeof ioFactory === 'function' ? ioFactory() : null);
+
+        if (!this.socket) {
+            this.scheduleSocketRetry();
+            return;
+        }
+
+        if (this._socketRetryTimer) {
+            clearInterval(this._socketRetryTimer);
+            this._socketRetryTimer = null;
+        }
 
         this.socket.on('log', (data) => {
             const message = data?.message || '';
+            const timestamp = data?.timestamp
+                ? new Date(data.timestamp).toLocaleTimeString()
+                : new Date().toLocaleTimeString();
+
             const type = this.detectType(message);
-            this.log(message, type, { persist: true });
+            this.log({ message, timestamp, type }, { persist: true });
         });
 
         this.socket.on('notification', (data) => {
             const message = data?.message || '';
-            this.log(message, 'info', { persist: false });
+            this.log({
+                message,
+                timestamp: data?.timestamp
+                    ? new Date(data.timestamp).toLocaleTimeString()
+                    : new Date().toLocaleTimeString(),
+                type: 'info'
+            }, { persist: false });
         });
     }
 
@@ -132,12 +172,9 @@ class LoggerPanel {
         }
     }
 
-    log(message, type = 'info', { persist = true } = {}) {
-        const timestamp = new Date().toLocaleTimeString();
-        const logEntry = { timestamp, message, type };
-
-        this.messages.push(logEntry);
-        this.renderMessage(logEntry);
+    log(entry, { persist = true } = {}) {
+        this.messages.push(entry);
+        this.renderMessage(entry);
 
         if (persist) this.persist();
         if (this.autoScroll) this.scrollToBottom();
@@ -154,38 +191,24 @@ class LoggerPanel {
             error: '<i class="fas fa-times-circle text-red-500"></i>'
         };
 
-        const cleanedMessage = this.stripLeadingTimestamp(entry.message);
-
         messageEl.innerHTML = `
             <span class="text-gray-500 dark:text-gray-400">[${entry.timestamp}]</span>
             ${typeIcons[entry.type] || typeIcons.info}
-            <span class="flex-1">${cleanedMessage}</span>
+            <span class="flex-1">${entry.message}</span>
         `;
 
         this.content.appendChild(messageEl);
         if (!skipPersist) this.persist();
     }
 
-    stripLeadingTimestamp(message = '') {
-        if (typeof message !== 'string') return '';
-        const patterns = [
-            /^\d{1,2}\s[A-Za-z]{3}\s\d{2}:\d{2}:\d{2}:\s*/,
-            /^\[?\d{2}:\d{2}:\d{2}]?\s*/
-        ];
-
-        for (const pattern of patterns) {
-            if (pattern.test(message)) {
-                return message.replace(pattern, '').trimStart();
-            }
-        }
-
-        return message;
-    }
-
     clear() {
         this.messages = [];
         this.content.innerHTML = '';
-        this.log('Logger cleared', 'info');
+        this.log({
+            message: 'Logger cleared',
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'info'
+        });
     }
 
     persist() {

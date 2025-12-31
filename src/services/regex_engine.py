@@ -139,7 +139,7 @@ class RegexEngineService:
             # Try compiling
             try:
                 pcre2.compile(candidate)
-            except pcre2.error:
+            except Exception:
                 continue  # skip invalid patterns
 
             # Run unified matcher

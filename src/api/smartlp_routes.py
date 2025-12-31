@@ -306,7 +306,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 filename = f"smartlp_logstash_{len(entry_ids)}_entries.conf"
             
             return jsonify({
-                "settings": config_content,
+                "config": config_content,
                 "filename": filename,
                 "siem": active_siem
             })
@@ -365,19 +365,20 @@ def register_smartlp_routes(app: Flask) -> None:
             entry_ids = data.get('ids', [])
             if not entry_ids:
                 return jsonify({"error": "At least one entry ID is required"}), 400
-            
-            pipeline_id = data.get('pipeline_id', None)  # Optional for Elasticsearch
 
             # Get active SIEM
             active_siem = settings_service.get_active_siem()
             if not active_siem:
                 return jsonify({"error": "No active SIEM configured"}), 400
-            
+            config = data.get('config', None)
             # Deploy to SIEM
             if active_siem == 'splunk':
-                success, message = smartlp_service.deploy_config_to_splunk(entry_ids)
+                success, message = smartlp_service.deploy_config_splunk(entry_ids)
             else: # elastic
-                success, message = smartlp_service.deploy_config_to_elasticsearch(entry_ids, pipeline_id)
+                
+                if not config:
+                    return jsonify({"error": "Configuration is required for Elasticsearch deployment"}), 400
+                success, message = smartlp_service.deploy_config_elastic(config)
             
             if success:
                 app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
@@ -396,90 +397,6 @@ def register_smartlp_routes(app: Flask) -> None:
                 
         except Exception as e:
             error_msg = f"Deployment error: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch', methods=['GET'])
-    def list_elasticsearch_pipelines():
-        """List all Elasticsearch Logstash pipelines."""
-        try:
-            pipelines, error = smartlp_service.list_elasticsearch_pipelines()
-            
-            if error:
-                return jsonify({"error": error}), 500
-            
-            # Format pipeline data for frontend
-            pipeline_list = []
-            if pipelines:
-                for pipeline_id, pipeline_data in pipelines.items():
-                    pipeline_info = {
-                        "id": pipeline_id,
-                        "description": pipeline_data.get("description", ""),
-                        "last_modified": pipeline_data.get("last_modified", ""),
-                        "username": pipeline_data.get("username", ""),
-                        "settings": pipeline_data.get("pipeline_settings", {}),
-                        "metadata": pipeline_data.get("pipeline_metadata", {})
-                    }
-                    pipeline_list.append(pipeline_info)
-            
-            return jsonify({
-                "pipelines": pipeline_list,
-                "total_count": len(pipeline_list)
-            }), 200
-            
-        except Exception as e:
-            error_msg = f"Error listing pipelines: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch/<pipeline_id>', methods=['GET'])
-    def get_elasticsearch_pipeline(pipeline_id):
-        """Get details of a specific Elasticsearch Logstash pipeline."""
-        try:
-            pipeline_data, error = smartlp_service.get_elasticsearch_pipeline(pipeline_id)
-            
-            if error:
-                return jsonify({"error": error}), 404 if "not found" in error.lower() else 500
-            
-            return jsonify({
-                "pipeline": {
-                    "id": pipeline_id,
-                    "description": pipeline_data.get("description", ""),
-                    "last_modified": pipeline_data.get("last_modified", ""),
-                    "username": pipeline_data.get("username", ""),
-                    "pipeline_config": pipeline_data.get("pipeline", ""),
-                    "settings": pipeline_data.get("pipeline_settings", {}),
-                    "metadata": pipeline_data.get("pipeline_metadata", {})
-                }
-            }), 200
-            
-        except Exception as e:
-            error_msg = f"Error getting pipeline: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch/<pipeline_id>', methods=['DELETE'])
-    def delete_elasticsearch_pipeline(pipeline_id):
-        """Delete a specific Elasticsearch Logstash pipeline."""
-        try:
-            success, message = smartlp_service.delete_elasticsearch_pipeline(pipeline_id)
-            
-            if success:
-                app_logger.log_message("log", f"Pipeline deletion successful: {message}", "INFO")
-                return jsonify({
-                    "success": True,
-                    "message": message,
-                    "pipeline_id": pipeline_id
-                }), 200
-            else:
-                app_logger.log_message("log", f"Pipeline deletion failed: {message}", "ERROR")
-                return jsonify({
-                    "success": False,
-                    "error": message
-                }), 500
-                
-        except Exception as e:
-            error_msg = f"Error deleting pipeline: {str(e)}"
             app_logger.log_message("log", error_msg, "ERROR")
             return jsonify({"error": error_msg}), 500
         

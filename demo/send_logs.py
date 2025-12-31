@@ -17,9 +17,6 @@ def send_log():
         # Connect to Logstash
         sock.connect((LOGSTASH_HOST, LOGSTASH_PORT))
         
-        # Send raw bytes. 
-        # We add a newline '\n' just in case you ever switch to 'codec => line',
-        # but the critical part for 'codec => plain' is closing the socket below.
         payload = raw_log_message + '\n'
         sock.sendall(payload.encode('utf-8'))
         
