@@ -75,7 +75,7 @@ class SmartLPService(CRUDService):
         while not self._stop_ingestion.is_set():
             # Load settings every cycle
             settings = settings_service.get_global_settings()
-            interval = int(settings.get("ingest_frequency", 30))
+            interval = int(settings.get("ingest_frequency", 30)) * 60 
 
             try:
                 self.perform_ingestion()

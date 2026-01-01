@@ -267,7 +267,10 @@ class Playground {
             const data = await response.json();
             if (this.dom.regexDisplay) this.dom.regexDisplay.value = data.regex;
             this.setLogger(data.logger || 'Regex updated');
-            this.showAlert(task === 'fix' ? 'Regex improved successfully' : 'Regex generated successfully', 'success');
+            const successMessage = task === 'fix' ? 'Regex improved successfully' : 'Regex generated successfully';
+            if (typeof window.showToast === 'function') {
+                window.showToast(successMessage, 'success');
+            }
             this.findMatch();
         } catch (error) {
             console.error(`Error during ${task}:`, error);
@@ -281,6 +284,8 @@ class Playground {
     showAlert(message, type = 'success') {
         const alertEl = document.createElement('div');
         alertEl.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        // Ensure fixed positioning even if Bootstrap CSS isn't loaded.
+        alertEl.style.position = 'fixed';
         alertEl.style.top = '20px';
         alertEl.style.right = '20px';
         alertEl.style.zIndex = '9999';
@@ -289,13 +294,20 @@ class Playground {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         document.body.appendChild(alertEl);
-        const bsAlert = new bootstrap.Alert(alertEl);
-        setTimeout(() => {
-            if (alertEl) {
-                bsAlert.close();
-                alertEl.addEventListener('closed.bs.alert', () => alertEl.remove());
-            }
-        }, 3000);
+
+        const bootstrapAlert = window.bootstrap?.Alert;
+        if (bootstrapAlert) {
+            const bsAlert = new bootstrapAlert(alertEl);
+            setTimeout(() => {
+                if (alertEl) {
+                    bsAlert.close();
+                    alertEl.addEventListener('closed.bs.alert', () => alertEl.remove());
+                }
+            }, 3000);
+        } else {
+            // Fallback cleanup if Bootstrap JS isn't available.
+            setTimeout(() => alertEl.remove(), 3000);
+        }
     }
 
     async saveToDB() {
@@ -378,7 +390,7 @@ class Playground {
                 this.dom.matchDisplay.textContent = fullMatchObj ? fullMatchObj.value : '';
             }
             if (this.dom.captureGroupDisplay) {
-                this.dom.captureGroupDisplay.textContent = groupMatches
+                const groupText = groupMatches
                     .map(([k, v]) => `${k}: ${v?.value ?? ''}`)
                     .join('\n');
 
