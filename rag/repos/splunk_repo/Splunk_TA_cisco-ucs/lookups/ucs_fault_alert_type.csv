@@ -1,7 +1,0 @@
-severity,type
-low,event
-informational,event
-high,alert
-medium,alert
-critical,alarm
-unknown,unknown

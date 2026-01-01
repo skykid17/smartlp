@@ -9,7 +9,7 @@ import threading
 from typing import Optional
 from flask import Flask
 
-from config.settings import config
+from settings.settings import settings
 from core.socketio_manager import socketio_manager
 from utils.logging import app_logger
 
@@ -63,8 +63,8 @@ class ApplicationFactory:
             app: Flask application instance
         """
         # Set secret key if available
-        if config.app.secret_key:
-            app.config['SECRET_KEY'] = config.app.secret_key
+        if settings.app.secret_key:
+            app.config['SECRET_KEY'] = settings.app.secret_key
         
         # Additional Flask configuration
         app.config['JSON_SORT_KEYS'] = False
@@ -97,8 +97,7 @@ class ApplicationFactory:
             from api.main_routes import register_main_routes
             from api.smartlp_routes import register_smartlp_routes
             from api.settings_routes import register_settings_routes
-            from api.deployment_routes import register_deployment_routes
-            
+
             # Register all route modules
             register_main_routes(app)
             print("Main routes registered")
@@ -106,8 +105,6 @@ class ApplicationFactory:
             print("SmartLP routes registered")
             register_settings_routes(app)
             print("Settings routes registered")
-            register_deployment_routes(app)
-            print("Deployment routes registered")
             
             print("All application routes registered")
         except Exception as e:
@@ -137,8 +134,6 @@ class ApplicationFactory:
                     daemon=True
                 )
                 thread.start()
-                
-                app_logger.log_message('log', 'Background log ingestion started')
     
     @staticmethod
     def _setup_signal_handlers() -> None:
@@ -172,14 +167,14 @@ class ApplicationFactory:
         
         Args:
             app: Flask application instance
-            host: Host to bind to (uses config default if None)
-            port: Port to bind to (uses config default if None)
-            debug: Debug mode (uses config default if None)
+            host: Host to bind to (uses settings default if None)
+            port: Port to bind to (uses settings default if None)
+            debug: Debug mode (uses settings default if None)
         """
-        # Use config defaults if not specified
-        run_host = host or config.app.host
-        run_port = port or config.app.port
-        run_debug = debug if debug is not None else config.app.debug
+        # Use settings defaults if not specified
+        run_host = host or settings.app.host
+        run_port = port or settings.app.port
+        run_debug = debug if debug is not None else settings.app.debug
         
         print(f'Starting SmartSOC server on {run_host}:{run_port}')
         

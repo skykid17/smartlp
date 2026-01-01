@@ -8,7 +8,7 @@ import json
 import os
 
 from .base import BaseService
-from config.settings import config
+from settings.settings import settings
 
 
 class DeploymentService(BaseService):
@@ -17,7 +17,7 @@ class DeploymentService(BaseService):
     def __init__(self):
         """Initialize deployment service."""
         super().__init__("deployment")
-        self.ansible_config = config.ansible
+        self.ansible_config = settings.ansible
     
     def deploy_rules(self, rule_ids: List[str], deployment_type: str, siem_type: str) -> Tuple[bool, str]:
         """Deploy rules using Ansible.

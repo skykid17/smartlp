@@ -1,3 +1,0 @@
-uri,username,password,workerProcesses
-https://example.com:8089/,admin,example_password,1
-http://example-two.com:8090/,fakeUser,fake_password,5

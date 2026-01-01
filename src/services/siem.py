@@ -10,7 +10,7 @@ from elasticsearch import Elasticsearch
 import splunklib.client as splunk_client
 import splunklib.results as splunk_results
 
-from config.settings import config
+from settings.settings import settings
 from .base import BaseService
 
 
@@ -51,7 +51,7 @@ class BaseSIEMService(ABC):
         pass
     
     @abstractmethod
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute search query.
         
         Args:
@@ -82,7 +82,7 @@ class SplunkService(BaseSIEMService):
     def __init__(self):
         """Initialize Splunk service."""
         super().__init__("splunk")
-        self.config = config.splunk
+        self.settings = settings.splunk
     
     def connect(self) -> bool:
         """Connect to Splunk.
@@ -92,10 +92,10 @@ class SplunkService(BaseSIEMService):
         """
         try:
             self._connection = splunk_client.connect(
-                host=self.config.host,
-                port=self.config.port,
-                username=self.config.username,
-                password=self.config.password
+                host=self.settings.host,
+                port=self.settings.port,
+                username=self.settings.username,
+                password=self.settings.password
             )
             self.logger.info("Successfully connected to Splunk")
             return True
@@ -121,7 +121,7 @@ class SplunkService(BaseSIEMService):
             self.logger.error(f"Splunk connection test failed: {e}")
             return False
     
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute Splunk search.
         
         Args:
@@ -185,7 +185,7 @@ class ElasticsearchService(BaseSIEMService):
     def __init__(self):
         """Initialize Elasticsearch service."""
         super().__init__("elasticsearch")
-        self.config = config.elastic
+        self.settings = settings.elastic
         self.ssl_verified = False  # Track whether SSL verification is being used
     
     def connect(self) -> bool:
@@ -197,10 +197,10 @@ class ElasticsearchService(BaseSIEMService):
         try:
             # First try with certificate verification
             self._connection = Elasticsearch(
-                self.config.host,
-                ca_certs=self.config.cert_path,
+                self.settings.host,
+                ca_certs=self.settings.cert_path,
                 verify_certs=True,
-                basic_auth=(self.config.username, self.config.password)
+                basic_auth=(self.settings.username, self.settings.password)
             )
             
             # Test connection
@@ -218,9 +218,9 @@ class ElasticsearchService(BaseSIEMService):
         try:
             self.logger.info("Attempting connection without certificate verification")
             self._connection = Elasticsearch(
-                self.config.host,
+                self.settings.host,
                 verify_certs=False,
-                basic_auth=(self.config.username, self.config.password)
+                basic_auth=(self.settings.username, self.settings.password)
             )
             
             # Test connection
@@ -253,7 +253,7 @@ class ElasticsearchService(BaseSIEMService):
             self.logger.error(f"Elasticsearch connection test failed: {e}")
             return False
     
-    def search(self, query: str, index: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
         """Execute Elasticsearch search.
         
         Args:
@@ -289,6 +289,7 @@ class ElasticsearchService(BaseSIEMService):
             query_dict["size"] = max_results
             
             # Execute search
+            self.logger.debug(f"Executing ES search: index={index} body={query_dict}")
             response = self._connection.search(
                 index=index,
                 body=query_dict
@@ -296,8 +297,11 @@ class ElasticsearchService(BaseSIEMService):
             
             # Extract results
             results = []
-            if 'hits' in response and 'hits' in response['hits']:
-                for hit in response['hits']['hits']:
+            # Defensive handling of response structure
+            try:
+                hits_container = response.get('hits', {})
+                hit_items = hits_container.get('hits', []) if isinstance(hits_container, dict) else []
+                for hit in hit_items:
                     result = hit.get('_source', {})
                     result.update({
                         '_index': hit.get('_index'),
@@ -305,7 +309,13 @@ class ElasticsearchService(BaseSIEMService):
                         '_score': hit.get('_score')
                     })
                     results.append(result)
-            
+            except Exception as e:
+                self.logger.error(f"Failed to parse ES response hits: {e}")
+
+            # If no results, log raw response for debugging
+            if not results:
+                self.logger.debug(f"Elasticsearch empty result. Raw response: {response}")
+
             self.logger.info(f"Elasticsearch search returned {len(results)} results")
             return results, None
             

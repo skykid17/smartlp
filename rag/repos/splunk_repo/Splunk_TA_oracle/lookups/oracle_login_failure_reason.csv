@@ -1,3 +1,0 @@
-RETURN_CODE,REASON
-28009,connection as SYS should be as SYSDBA or SYSOPER
-1017,invalid username/password; logon denied

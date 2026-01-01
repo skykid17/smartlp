@@ -1,6 +1,6 @@
 import os
 import csv
-import re
+import pcre2
 
 def extract_elastic_logtypes():
     # Return a list of sub-directories in the Elastic packages directory
@@ -60,7 +60,7 @@ def extract_splunk_sourcetypes():
                         content = file.read()
                         # Look for URLs (http:// or https://)
                         url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
-                        match = re.search(url_pattern, content)
+                        match = pcre2.search(url_pattern, content)
                         if match:
                             documentation_url =  match.group(0)
                         else:
@@ -79,7 +79,7 @@ def extract_splunk_sourcetypes():
                     # Find all stanza headers [sourcetype_name]
                     # Match square brackets with content inside, excluding comments
                     pattern = r'^\s*\[([^\]]+)\]\s*$'
-                    matches = re.findall(pattern, content, re.MULTILINE)
+                    matches = pcre2.findall(pattern, content, pcre2.MULTILINE)
 
                     for match in matches:
                         # Clean up the sourcetype name

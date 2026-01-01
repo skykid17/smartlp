@@ -8,14 +8,16 @@ This module provides REST API endpoints for:
 - Background ingestion control
 """
 
-import os
-import uuid
-import re
+import pcre2
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect
 
 # Import services
 from services.smartlp import smartlp_service
+from services.settings import settings_service
+from services.llm import llm_service
+from services.rag import rag_service
+from services.regex_engine import regex_engine_service
 from utils.logging import app_logger
 
 
@@ -36,20 +38,14 @@ def register_smartlp_routes(app: Flask) -> None:
         """SmartLP parser page - redirect to unified dashboard with parser section."""
         return redirect("/#parser")
     
-    @app.route("/smartlp/prefix")
-    def smartlp_prefix():
-        """SmartLP prefix page - redirect to unified dashboard with prefix section."""
-        return redirect("/#prefix")
-    
     @app.route("/smartlp/report")
     def smartlp_report():
         """SmartLP report page."""
         return render_template("smartlp_report.html", page_title="SmartSOC Log Parser Report")
-    
-    # SmartLP API Endpoints
-    @app.route("/api/entries", methods=["GET"])
-    def get_entries():
-        """Get log entries with pagination and filters."""
+
+    @app.route("/api/smartlp/entries", methods=["GET"])
+    def get_smartlp_entries():
+        """Alias for frontend dashboard requests."""
         search_id = request.args.get('search_id', '', type=str)
         search_log = request.args.get('search_log', '', type=str)
         search_regex = request.args.get('search_regex', '', type=str)
@@ -74,40 +70,9 @@ def register_smartlp_routes(app: Flask) -> None:
             per_page=per_page, 
             search_filters=search_filters if search_filters else None
         )
-            
-        return jsonify({"results": paginated_results, "total_entries": total_entries}), 200
-
-    @app.route("/api/entries", methods=["POST"])
-    def create_entry():
-        """Create a new log entry."""
-        log = request.json.get("log")
-        regex = request.json.get("regex")
-        
-        if not log:
-            return jsonify({"message": "Log not defined"}), 400
-        if not regex:
-            return jsonify({"message": "Regex not defined"}), 400
-        
-        try:
-            # Determine status by testing regex match
-            status = "Matched" if re.fullmatch(regex, log) else "Unmatched"
-            
-            # Create new entry
-            entry_data = {
-                "id": str(uuid.uuid4()),
-                "log": log,
-                "regex": regex,
-                "status": status,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            
-            entry_id = smartlp_service.create(entry_data)
-            return jsonify({"message": f"New entry {entry_id} added to database", "id": entry_id}), 201
-            
-        except Exception as e:
-            return jsonify({"message": f"Failed to create entry: {str(e)}"}), 500
-        
-    @app.route("/api/entries/<entry_id>", methods=["PUT"])
+        return jsonify({"entries": paginated_results, "total": total_entries}), 200
+    
+    @app.route("/api/smartlp/entries/<entry_id>", methods=["PUT", "PATCH"])
     def update_entry(entry_id):
         """Update an existing log entry."""
         try:
@@ -117,7 +82,7 @@ def register_smartlp_routes(app: Flask) -> None:
             log = request.json.get("log")
             regex = request.json.get("regex")
             if log and regex:
-                status = "Matched" if re.fullmatch(regex, log) else "Unmatched"
+                status = "Matched" if pcre2.fullmatch(regex, log) else "Unmatched"
                 to_update["status"] = status
                 
             # Update timestamp
@@ -132,18 +97,31 @@ def register_smartlp_routes(app: Flask) -> None:
         except Exception as e:
             return jsonify({"message": f"Failed to update entry: {str(e)}"}), 500
 
-    @app.route("/api/entries/<entry_id>", methods=["DELETE"])
-    def delete_entry(entry_id):
-        """Delete a log entry."""
+    @app.route("/api/smartlp/entries/delete", methods=["POST"])
+    def delete_entries_bulk():
+        """Delete multiple log entries (frontend bulk action)."""
         try:
-            success = smartlp_service.delete(entry_id)
-            if success:
-                return jsonify({"logger": "Entry deleted."}), 200
-            else:
-                return jsonify({"logger": "Entry not found."}), 404
-                
+            payload = request.get_json() or {}
+            ids = payload.get('ids', [])
+            if not ids:
+                return jsonify({"success": False, "message": "No entry IDs provided"}), 400
+
+            deleted = 0
+            for entry_id in ids:
+                try:
+                    if smartlp_service.delete(entry_id):
+                        deleted += 1
+                except Exception:
+                    continue
+
+            return jsonify({
+                "success": True,
+                "deleted": deleted,
+                "requested": len(ids)
+            }), 200
         except Exception as e:
-            return jsonify({"logger": f"Failed to delete entry: {str(e)}"}), 500
+            app_logger.log_message("log", f"Bulk delete failed: {str(e)}", "ERROR")
+            return jsonify({"success": False, "message": str(e)}), 500
 
     @app.route("/api/entries/oldest", methods=["GET"])
     def get_oldest_unmatched_entry():
@@ -181,6 +159,33 @@ def register_smartlp_routes(app: Flask) -> None:
                 "error_at": datetime.utcnow().isoformat()
             }), 500
 
+    @app.route('/api/find_match', methods=['POST'])
+    def find_match():
+        payload = request.get_json() or {}
+        log_text = payload.get("log", "")
+        pattern = payload.get("regex", "")
+
+        if not pattern:
+            return jsonify({
+                "status": "Error",
+                "error": "No regex provided",
+                "full": None,
+                "groups": []
+            }), 200
+
+        result = regex_engine_service.run_regex_match(log_text, pattern)
+        return jsonify(result), 200
+    
+    @app.route('/api/reduce_regex', methods=['POST'])
+    def reduce_regex():
+        data = request.get_json()
+        log_text = data.get("log", "")
+        regex = data.get("regex", "")
+
+        results = regex_engine_service.run_reduce_regex(log_text, regex)
+        return jsonify(results), 200
+
+
     @app.route("/api/entries/stats", methods=["GET"])
     def get_entry_statistics():
         """Get SmartLP entry statistics.
@@ -217,86 +222,6 @@ def register_smartlp_routes(app: Flask) -> None:
             app_logger.log_message("log", f"Error getting entry statistics: {str(e)}", "ERROR")
             return jsonify({"message": f"Failed to get statistics: {str(e)}"}), 500
 
-    # Prefix API Endpoints
-    @app.route("/api/prefix", methods=["GET"])
-    def get_prefixes():
-        """Get all prefix entries."""
-        try:
-            prefixes = smartlp_service.get_prefixes()
-            total_count = smartlp_service.get_prefix_count()
-            
-            return jsonify({
-                "prefix": prefixes,
-                "total_count": total_count,
-                "retrieved_at": datetime.utcnow().isoformat()
-            }), 200
-            
-        except Exception as e:
-            app_logger.log_message("log", f"Error retrieving prefixes: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to retrieve prefixes: {str(e)}"}), 500
-
-    @app.route("/api/prefix", methods=["POST"])
-    def add_prefix():
-        """Add a new prefix entry."""
-        try:
-            data = request.get_json()
-            if not data or not data.get('regex'):
-                return jsonify({"message": "Regex is required"}), 400
-            
-            regex = data.get('regex')
-            description = data.get('description')
-            
-            prefix_id = smartlp_service.add_prefix(regex, description)
-            
-            if prefix_id:
-                return jsonify({
-                    "message": "Prefix added successfully",
-                    "id": prefix_id
-                }), 201
-            else:
-                return jsonify({"message": "Failed to add prefix"}), 500
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error adding prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to add prefix: {str(e)}"}), 500
-
-    @app.route("/api/prefix/<prefix_id>", methods=["DELETE"])
-    def delete_prefix(prefix_id):
-        """Delete a prefix entry."""
-        try:
-            success = smartlp_service.delete_prefix(prefix_id)
-            
-            if success:
-                return jsonify({"message": "Prefix deleted successfully"}), 200
-            else:
-                return jsonify({"message": "Prefix not found"}), 404
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error deleting prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to delete prefix: {str(e)}"}), 500
-
-    @app.route("/api/prefix/<prefix_id>", methods=["PUT"])
-    def update_prefix(prefix_id):
-        """Update a prefix entry."""
-        try:
-            data = request.get_json()
-            if not data or not data.get('regex'):
-                return jsonify({"message": "Regex is required"}), 400
-            
-            regex = data.get('regex')
-            description = data.get('description')
-            
-            success = smartlp_service.update_prefix(prefix_id, regex, description)
-            
-            if success:
-                return jsonify({"message": "Prefix updated successfully"}), 200
-            else:
-                return jsonify({"message": "Prefix not found"}), 404
-                
-        except Exception as e:
-            app_logger.log_message("log", f"Error updating prefix: {str(e)}", "ERROR")
-            return jsonify({"message": f"Failed to update prefix: {str(e)}"}), 500
-
     @app.route("/api/report/smartlp", methods=["GET"])
     def get_report_smartlp():
         """Get SmartLP report data."""
@@ -311,14 +236,13 @@ def register_smartlp_routes(app: Flask) -> None:
     def get_ingestion_status():
         """Get ingestion status information."""
         try:
-            from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            
-            # Get ingestion status information
+
+            # Get ingestion status information (backend uses snake_case)
             is_running = smartlp_service._ingestion_running
-            is_enabled = settings.get('ingestOn', False)
-            active_siem = settings.get('activeSiem', 'elastic')
-            frequency = settings.get('ingestFrequency', 30)
+            is_enabled = settings.get('ingest_on', False)
+            active_siem = settings.get('active_siem', 'elastic')
+            frequency = settings.get('ingest_frequency', 30)
             
             # Get recent log counts
             unmatched_count = smartlp_service.get_unmatched_entries_count()
@@ -373,10 +297,8 @@ def register_smartlp_routes(app: Flask) -> None:
             # Generate the configuration using the service
             config_content = smartlp_service.create_rule_config(entry_ids)
             
-            # Determine filename based on active SIEM
-            from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            active_siem = settings.get('activeSiem', 'elastic')
+            active_siem = settings.get('active_siem', 'elastic')
             
             if active_siem == 'splunk':
                 filename = f"smartlp_splunk_{len(entry_ids)}_entries.conf"
@@ -432,10 +354,9 @@ def register_smartlp_routes(app: Flask) -> None:
             app_logger.log_message("log", f"Error checking deployable status: {str(e)}", "ERROR")
             return jsonify({"message": f"Failed to check deployable status: {str(e)}"}), 500
     
-    # Elasticsearch Deployment Endpoints
-    @app.route('/api/smartlp/deploy/elasticsearch', methods=['POST'])
-    def deploy_to_elasticsearch():
-        """Deploy SmartLP entries to Elasticsearch as Logstash pipeline."""
+    @app.route('/api/smartlp/deploy_config', methods=['POST'])
+    def deploy_config():
+        """Deploy SmartLP entries to the active SIEM."""
         try:
             data = request.get_json()
             if not data or 'ids' not in data:
@@ -444,22 +365,31 @@ def register_smartlp_routes(app: Flask) -> None:
             entry_ids = data.get('ids', [])
             if not entry_ids:
                 return jsonify({"error": "At least one entry ID is required"}), 400
-            
-            pipeline_id = data.get('pipeline_id')  # Optional custom pipeline ID
-            
-            # Deploy to Elasticsearch
-            success, message = smartlp_service.deploy_to_elasticsearch(entry_ids, pipeline_id)
+
+            # Get active SIEM
+            active_siem = settings_service.get_active_siem()
+            if not active_siem:
+                return jsonify({"error": "No active SIEM configured"}), 400
+            config = data.get('config', None)
+            # Deploy to SIEM
+            if active_siem == 'splunk':
+                success, message = smartlp_service.deploy_config_splunk(entry_ids)
+            else: # elastic
+                
+                if not config:
+                    return jsonify({"error": "Configuration is required for Elasticsearch deployment"}), 400
+                success, message = smartlp_service.deploy_config_elastic(config)
             
             if success:
-                app_logger.log_message("log", f"Elasticsearch deployment successful: {message}", "INFO")
+                app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
                 return jsonify({
                     "success": True,
                     "message": message,
-                    "pipeline_id": pipeline_id or os.getenv('ELASTIC_PIPELINE_ID', 'smartsoc-smartlp-pipeline'),
+                    "siem": active_siem,
                     "entries_deployed": len(entry_ids)
                 }), 200
             else:
-                app_logger.log_message("log", f"Elasticsearch deployment failed: {message}", "ERROR")
+                app_logger.log_message("log", f"SIEM deployment failed: {message}", "ERROR")
                 return jsonify({
                     "success": False,
                     "error": message
@@ -469,87 +399,25 @@ def register_smartlp_routes(app: Flask) -> None:
             error_msg = f"Deployment error: {str(e)}"
             app_logger.log_message("log", error_msg, "ERROR")
             return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch', methods=['GET'])
-    def list_elasticsearch_pipelines():
-        """List all Elasticsearch Logstash pipelines."""
-        try:
-            pipelines, error = smartlp_service.list_elasticsearch_pipelines()
+        
+    @app.route("/api/query", methods=['POST'])
+    def query():
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Test the LLM model
+        match data['task']:
             
-            if error:
-                return jsonify({"error": error}), 500
+            case "generate":
+                log = data.get('log', '')
+                result = smartlp_service.generate_regex(log, 10)
+            case "fix":
+                log = data.get('log', '')
+                regex = data.get('regex', '')
+                result = smartlp_service.fix_regex(log, regex)
+            case _:
+                user_prompt = data.get('prompt', '')
+                result = rag_service.query_rag(user_prompt)
             
-            # Format pipeline data for frontend
-            pipeline_list = []
-            if pipelines:
-                for pipeline_id, pipeline_data in pipelines.items():
-                    pipeline_info = {
-                        "id": pipeline_id,
-                        "description": pipeline_data.get("description", ""),
-                        "last_modified": pipeline_data.get("last_modified", ""),
-                        "username": pipeline_data.get("username", ""),
-                        "settings": pipeline_data.get("pipeline_settings", {}),
-                        "metadata": pipeline_data.get("pipeline_metadata", {})
-                    }
-                    pipeline_list.append(pipeline_info)
-            
-            return jsonify({
-                "pipelines": pipeline_list,
-                "total_count": len(pipeline_list)
-            }), 200
-            
-        except Exception as e:
-            error_msg = f"Error listing pipelines: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch/<pipeline_id>', methods=['GET'])
-    def get_elasticsearch_pipeline(pipeline_id):
-        """Get details of a specific Elasticsearch Logstash pipeline."""
-        try:
-            pipeline_data, error = smartlp_service.get_elasticsearch_pipeline(pipeline_id)
-            
-            if error:
-                return jsonify({"error": error}), 404 if "not found" in error.lower() else 500
-            
-            return jsonify({
-                "pipeline": {
-                    "id": pipeline_id,
-                    "description": pipeline_data.get("description", ""),
-                    "last_modified": pipeline_data.get("last_modified", ""),
-                    "username": pipeline_data.get("username", ""),
-                    "pipeline_config": pipeline_data.get("pipeline", ""),
-                    "settings": pipeline_data.get("pipeline_settings", {}),
-                    "metadata": pipeline_data.get("pipeline_metadata", {})
-                }
-            }), 200
-            
-        except Exception as e:
-            error_msg = f"Error getting pipeline: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
-    
-    @app.route('/api/smartlp/pipelines/elasticsearch/<pipeline_id>', methods=['DELETE'])
-    def delete_elasticsearch_pipeline(pipeline_id):
-        """Delete a specific Elasticsearch Logstash pipeline."""
-        try:
-            success, message = smartlp_service.delete_elasticsearch_pipeline(pipeline_id)
-            
-            if success:
-                app_logger.log_message("log", f"Pipeline deletion successful: {message}", "INFO")
-                return jsonify({
-                    "success": True,
-                    "message": message,
-                    "pipeline_id": pipeline_id
-                }), 200
-            else:
-                app_logger.log_message("log", f"Pipeline deletion failed: {message}", "ERROR")
-                return jsonify({
-                    "success": False,
-                    "error": message
-                }), 500
-                
-        except Exception as e:
-            error_msg = f"Error deleting pipeline: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
-            return jsonify({"error": error_msg}), 500
+        return jsonify(result)

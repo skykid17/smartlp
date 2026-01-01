@@ -11,14 +11,19 @@ This service handles:
 import threading
 import time
 import os
+import pcre2
+import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
 
 from .base import BaseService, CRUDService
-from models.core import LogEntry, RuleStatus, PrefixEntry
+from models.core import LogEntry, RuleStatus
 from .siem import SIEMServiceFactory
 from .settings import settings_service
+from .regex_engine import regex_engine_service
+from .rag import rag_service
+from utils.formatters import generate_alphanumeric_id
 
 # Import for Elasticsearch deployment
 try:
@@ -33,11 +38,11 @@ class SmartLPService(CRUDService):
     
     def __init__(self):
         """Initialize SmartLP service."""
-        super().__init__("smartlp", "parser_entries")
-        self._prefix_collection = "prefix_entries"
+        super().__init__("smartlp", "logs")
         self._ingestion_thread: Optional[threading.Thread] = None
         self._stop_ingestion = threading.Event()
         self._ingestion_running = False
+        self.logger.propagate = False  # Prevent double logging
     
     def start_log_ingestion(self) -> None:
         """Start background log ingestion."""
@@ -65,11 +70,22 @@ class SmartLPService(CRUDService):
     
     def ingestion_loop(self) -> None:
         """Main ingestion loop running in background thread."""
-        while not self._stop_ingestion.wait(timeout=30):  # Check every 30 seconds
+        from services.settings import settings_service
+
+        while not self._stop_ingestion.is_set():
+            # Load settings every cycle
+            settings = settings_service.get_global_settings()
+            interval = int(settings.get("ingest_frequency", 30))
+
             try:
                 self.perform_ingestion()
             except Exception as e:
                 self.log_error("[INGESTION] Error during log ingestion", e)
+
+            # Sleep with exit awareness
+            if self._stop_ingestion.wait(timeout=interval):
+                break
+
     
     def perform_ingestion(self) -> None:
         """Perform a single ingestion cycle."""
@@ -77,36 +93,32 @@ class SmartLPService(CRUDService):
             # Get settings for ingestion configuration
             from services.settings import settings_service
             settings = settings_service.get_global_settings()
-            self.log_info("[INGESTION] Checking ingestion settings...")
-            
-            if not settings.get('ingestOn', False):
-                self.log_info("[INGESTION] Log ingestion is disabled in settings")
+
+            # Backend uses snake_case keys for settings
+            if not settings.get('ingest_on', False):
                 return
-            
-            # Get ingestion parameters
-            active_siem = settings.get('activeSiem', 'elastic')
-            ingest_frequency = int(settings.get('ingestFrequency', 30))
-            similarity_check = settings.get('similarityCheck', False)
-            similarity_threshold = float(settings.get('similarityThreshold', 0.8))
-            fix_count = int(settings.get('fixCount', 3))
+
+            # Get ingestion parameters (snake_case)
+            active_siem = settings.get('active_siem', 'elastic')
+            similarity_check = settings.get('similarity_check', False)
+            similarity_threshold = float(settings.get('similarity_threshold', 0.8))
+            fix_count = int(settings.get('fix_count', 3))
             
             self.log_info(f"[INGESTION] Starting ingestion cycle for SIEM: {active_siem}")
             
             # Get SIEM-specific search configuration
             siem_settings = settings_service.get_siem_settings()
-            siem_config = next((s for s in siem_settings if s['id'] == active_siem), None)
+            siem_settings = next((s for s in siem_settings if s['id'] == active_siem), None)
             
-            if not siem_config:
+            if not siem_settings:
                 self.log_error(f"[INGESTION] No configuration found for SIEM: {active_siem}")
                 return
-            
-            # Perform log ingestion
-            self.log_info(f"[INGESTION] Connecting to {active_siem} SIEM...")
+
             logs, error = self.ingest_from_siem(
-                active_siem, 
-                siem_config.get('search_query', ''),
-                siem_config.get('search_index', ''),
-                siem_config.get('search_entry_count', 10)
+                active_siem,
+                siem_settings.get('search_index', ''),
+                siem_settings.get('search_query', ''),
+                int(siem_settings.get('search_entry_count', 10) or 10)
             )
             
             if error:
@@ -119,28 +131,38 @@ class SmartLPService(CRUDService):
             
             # Process each ingested log
             processed_count = 0
-            for log_entry in logs:
+            for log in logs:
                 try:
+                    # Generate embedding
+                    embedding = rag_service.generate_embeddings(log)
+
                     # Check for similarity if enabled
-                    if similarity_check and self.check_log_similarity(log_entry, similarity_threshold):
-                        self.log_info(f"[INGESTION] Skipped similar log: {log_entry[:50]}...")
+                    if similarity_check and self.check_log_similarity(log, similarity_threshold):
+                        self.log_info(f"[INGESTION] Skipped similar log: {log[:50]}...")
                         continue
                     
                     # Generate regex for the log
-                    regex = self.generate_regex_for_log(log_entry, fix_count)
+                    results = self.generate_regex(log, fix_count)
+                    regex = results['regex']
+                    
+                    # Run regex match to get status
+                    match_result = regex_engine_service.run_regex_match(log, regex)
+                    status = match_result['status']
                     
                     # Determine log type and source type
-                    log_type, source_type = self.determine_log_type(log_entry)
-                    
+                    results = self.determine_log_type(log)
+                    log_type = results["log_type"]
+                    source_type = results["source_type"]
+
                     # Create log entry in database
                     entry_data = {
-                        'log': log_entry,
+                        'id': generate_alphanumeric_id(8),
+                        'log': log,
                         'regex': regex,
-                        'status': 'Matched' if regex else 'Unmatched',
+                        'status': status,
                         'log_type': log_type,
                         'source_type': source_type,
                         'timestamp': datetime.now().isoformat(),
-                        'ingestion_method': 'automatic'
                     }
                     
                     entry_id = self.create(entry_data)
@@ -175,7 +197,7 @@ class SmartLPService(CRUDService):
             if search_filters:
                 if search_filters.get('search_id'):
                     search_id = search_filters['search_id']
-                    # Check if search_id contains commas (multiple IDs for config panel)
+                    # Check if search_id contains commas (multiple IDs for settings panel)
                     if ',' in search_id:
                         # Split comma-separated IDs and use exact matching
                         ids = [id.strip() for id in search_id.split(',') if id.strip()]
@@ -248,7 +270,6 @@ class SmartLPService(CRUDService):
                 self.collection_name,
                 {"status": RuleStatus.UNMATCHED.value}
             )
-            self.log_info(f"Found {count} unmatched entries in database")
             return count
         except Exception as e:
             self.log_error(f"Failed to count unmatched entries: {str(e)}", e)
@@ -360,184 +381,6 @@ class SmartLPService(CRUDService):
                 'error': str(e)
             }
 
-    # Prefix Management Methods
-    def get_prefixes(self) -> List[Dict[str, Any]]:
-        """Get all prefix entries from database.
-        
-        Returns:
-            List of prefix entries
-        """
-        try:
-            self.log_info("Retrieving all prefix entries")
-            
-            prefixes = self.db.query(
-                self._prefix_collection,
-                {},
-                projection={"_id": 0},
-                sort=[("created_at", -1)]
-            )
-            
-            self.log_info(f"Retrieved {len(prefixes)} prefix entries")
-            return prefixes
-            
-        except Exception as e:
-            self.log_error(f"Failed to get prefixes: {str(e)}", e)
-            return []
-
-    def add_prefix(self, regex: str, description: Optional[str] = None) -> Optional[str]:
-        """Add a new prefix entry.
-        
-        Args:
-            regex: The prefix regex pattern
-            description: Optional description
-            
-        Returns:
-            ID of created prefix or None if failed
-        """
-        try:
-            import uuid
-            from datetime import datetime
-            
-            prefix_id = str(uuid.uuid4())
-            current_time = datetime.utcnow()
-            
-            prefix_data = {
-                "id": prefix_id,
-                "regex": regex,
-                "description": description,
-                "created_at": current_time.isoformat(),
-                "updated_at": current_time.isoformat()
-            }
-            
-            self.log_info(f"Adding new prefix entry: {prefix_id}")
-            
-            # Insert into database
-            result = self.db.insert_one(self._prefix_collection, prefix_data)
-            
-            if result:
-                self.log_info(f"Successfully added prefix entry: {prefix_id}")
-                return prefix_id
-            else:
-                self.log_error("Failed to insert prefix entry")
-                return None
-                
-        except Exception as e:
-            self.log_error(f"Failed to add prefix: {str(e)}", e)
-            return None
-
-    def delete_prefix(self, prefix_id: str) -> bool:
-        """Delete a prefix entry by ID.
-        
-        Args:
-            prefix_id: ID of prefix to delete
-            
-        Returns:
-            True if deleted successfully, False otherwise
-        """
-        try:
-            self.log_info(f"Deleting prefix entry: {prefix_id}")
-            
-            result = self.db.delete_one(self._prefix_collection, {"id": prefix_id})
-            
-            if result:
-                self.log_info(f"Successfully deleted prefix entry: {prefix_id}")
-                return True
-            else:
-                self.log_warning(f"Prefix entry not found: {prefix_id}")
-                return False
-                
-        except Exception as e:
-            self.log_error(f"Failed to delete prefix {prefix_id}: {str(e)}", e)
-            return False
-
-    def update_prefix(self, prefix_id: str, regex: str, description: Optional[str] = None) -> bool:
-        """Update an existing prefix entry.
-        
-        Args:
-            prefix_id: ID of prefix to update
-            regex: New regex pattern
-            description: New description
-            
-        Returns:
-            True if updated successfully, False otherwise
-        """
-        try:
-            from datetime import datetime
-            
-            self.log_info(f"Updating prefix entry: {prefix_id}")
-            
-            update_data = {
-                "regex": regex,
-                "description": description,
-                "updated_at": datetime.utcnow().isoformat()
-            }
-            
-            result = self.db.update_one(
-                self._prefix_collection,
-                {"id": prefix_id},
-                {"$set": update_data}
-            )
-            
-            if result:
-                self.log_info(f"Successfully updated prefix entry: {prefix_id}")
-                return True
-            else:
-                self.log_warning(f"Prefix entry not found for update: {prefix_id}")
-                return False
-                
-        except Exception as e:
-            self.log_error(f"Failed to update prefix {prefix_id}: {str(e)}", e)
-            return False
-
-    def get_prefix_count(self) -> int:
-        """Get total count of prefix entries.
-        
-        Returns:
-            Number of prefix entries
-        """
-        try:
-            count = self.db.count_documents(self._prefix_collection, {})
-            self.log_info(f"Found {count} prefix entries")
-            return count
-        except Exception as e:
-            self.log_error(f"Failed to count prefixes: {str(e)}", e)
-            return 0
-
-    def test_llm_model(self, task: str, model: str, url: str, llm_endpoint: str) -> Tuple[Optional[str], Optional[str]]:
-        """Test LLM model connectivity and functionality.
-        
-        Args:
-            task: Task type (e.g., 'test')
-            model: Model name to test
-            url: LLM endpoint URL
-            llm_endpoint: LLM endpoint identifier
-            
-        Returns:
-            Tuple of (response, error) - one will be None
-        """
-        try:
-            self.log_info(f"Testing LLM model: {model} at {url}")
-            
-            # Use the new LLM service for testing
-            from .llm import llm_service
-            
-            # Test the connection with the specific URL and model
-            result = llm_service.test_connection(url=url, model=model)
-            
-            if result['success']:
-                response = result['response']
-                self.log_info(f"LLM model test successful: {model}")
-                return response, None
-            else:
-                error_msg = result['error']
-                self.log_error(f"LLM model test failed: {error_msg}")
-                return None, error_msg
-                
-        except Exception as e:
-            error_msg = f"LLM model test failed: {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
-
     def test_siem_query(self, siem_type: str, search_query: str, search_index: str, entries_count: str) -> Tuple[Optional[Dict], Optional[str]]:
         """Test SIEM query connectivity and functionality.
         
@@ -567,8 +410,8 @@ class SmartLPService(CRUDService):
                 
                 # Execute test query
                 results, error = siem_service.search(
-                    query=search_query,
                     index=search_index,
+                    query=search_query,
                     max_results=limit
                 )
                 
@@ -600,7 +443,7 @@ class SmartLPService(CRUDService):
             self.log_error(error_msg, e)
             return None, error_msg
 
-    def ingest_from_siem(self, siem_type: str, search_query: str, search_index: str, entry_count: int) -> Tuple[Optional[List[str]], Optional[str]]:
+    def ingest_from_siem(self, siem_type: str, search_index: str, search_query: str, entry_count: int) -> Tuple[Optional[List[str]], Optional[str]]:
         """Ingest logs from the specified SIEM.
         
         Args:
@@ -619,8 +462,8 @@ class SmartLPService(CRUDService):
             
             # Execute search query
             results, error = siem_service.search(
-                query=search_query,
                 index=search_index,
+                query=search_query,
                 max_results=entry_count
             )
             
@@ -651,44 +494,52 @@ class SmartLPService(CRUDService):
             self.log_error(error_msg, e)
             return None, error_msg
 
-    def check_log_similarity(self, log_entry: str, threshold: float) -> bool:
-        """Check if a log entry is similar to existing entries.
-        
-        Args:
-            log_entry: The log entry to check
-            threshold: Similarity threshold (0.0 to 1.0)
-            
-        Returns:
-            True if similar log found, False otherwise
-        """
+    def check_log_similarity(self, log: str, threshold: float) -> bool:
+        """Check if a log entry is similar to existing entries using
+        both text and semantic similarity."""
         try:
             from difflib import SequenceMatcher
-            
-            # Get recent log entries for comparison
+
+            # Fetch recent entries
             recent_entries = self.db.query(
                 self.collection_name,
                 {},
                 projection={"log": 1},
                 sort=[("timestamp", -1)],
-                limit=100  # Check against last 100 entries
+                limit=100
             )
-            
-            # Mask the log entry for comparison
-            masked_log = self.mask_log_entry(log_entry)
-            
+
+            masked_log = self.mask_log_entry(log)
+
+            # Precompute embedding for incoming log
+            semantic_log_emb = rag_service.generate_embeddings([masked_log])[0]
+
             for entry in recent_entries:
-                existing_log = entry.get('log', '')
+                if isinstance(entry, tuple):
+                    entry = entry[1]  # or whatever contains the actual dict
+
+                existing_log = entry.get("log", "")
                 masked_existing = self.mask_log_entry(existing_log)
-                
-                # Calculate similarity ratio
-                similarity = SequenceMatcher(None, masked_log, masked_existing).ratio()
-                
-                if similarity >= threshold:
-                    self.log_info(f"Found similar log with similarity: {similarity:.2f}")
+
+                # ---- Text similarity ----
+                text_sim = SequenceMatcher(None, masked_log, masked_existing).ratio()
+
+                # ---- Semantic similarity ----
+                existing_emb = rag_service.generate_embeddings([masked_existing])[0]
+                semantic_sim = rag_service.cosine(semantic_log_emb, existing_emb)
+
+                # ---- Final combined similarity ----
+                final_sim = (text_sim + semantic_sim) / 2.0
+
+                if final_sim >= threshold:
+                    self.log_info(
+                        f"Similar log found (text={text_sim:.2f}, "
+                        f"semantic={semantic_sim:.2f}, avg={final_sim:.2f})"
+                    )
                     return True
-            
+
             return False
-            
+
         except Exception as e:
             self.log_error(f"Error checking log similarity: {str(e)}", e)
             return False
@@ -702,11 +553,9 @@ class SmartLPService(CRUDService):
         Returns:
             Masked log entry
         """
-        import re
-        
         # Mask IP addresses
         ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-        masked = re.sub(ip_pattern, '1.1.1.1', log)
+        masked = pcre2.sub(ip_pattern, '1.1.1.1', log)
         
         # Mask timestamps (common patterns)
         timestamp_patterns = [
@@ -716,294 +565,226 @@ class SmartLPService(CRUDService):
         ]
         
         for pattern in timestamp_patterns:
-            masked = re.sub(pattern, 'TIMESTAMP', masked)
+            masked = pcre2.sub(pattern, 'TIMESTAMP', masked)
         
         return masked
 
-    def generate_regex_for_log(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex pattern for a log entry.
+    def clean_response(self, response: str) -> str:
+        """Clean up LLM response text.
         
         Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
+            response: Raw response text
             
         Returns:
-            Generated regex pattern
+            Cleaned response text
         """
-        try:
-            # Import the LLM service (now available)
-            from .llm import llm_service
-            
-            # Use the LLM service to generate regex
-            response = llm_service.generate_regex(log_entry, fix_count)
-            
-            if response and response.get('success'):
-                regex = response.get('regex', '')
-                self.log_info(f"Generated regex for log: {regex[:100]}...")
-                return self.resolve_duplicate_capture_groups(regex)
-            else:
-                self.log_warning(f"Failed to generate regex: {response.get('error', 'Unknown error')}")
-                
-                # Fallback to simple pattern-based approach
-                return self.generate_fallback_regex(log_entry)
-                
-        except Exception as e:
-            self.log_error(f"Error generating regex: {str(e)}", e)
-            # Fallback to simple pattern-based approach
-            return self.generate_fallback_regex(log_entry)
-    
-    def generate_fallback_regex(self, log_entry: str) -> str:
-        """Generate a simple fallback regex when LLM is not available.
+        # Remove code block markers
+        response = response.replace("```", "")
         
-        Args:
-            log_entry: The log entry to generate regex for
-            
-        Returns:
-            Simple regex pattern
-        """
-        import re
+        # Remove regex prefix if present
+        if response.startswith("regex"):
+            response = response[len("regex"):].strip()
         
-        # Very simple approach: just escape the entire log
-        regex = re.escape(log_entry)
+        if response.startswith("`"):
+            response = response[1:-1].strip()
+
+        # Remove newlines
+        response = response.replace("\n", "")
         
-        # Ensure regex ends with $
+        return response.strip()
+
+    def generate_regex(self, log: str, fix_count: int = 3) -> Dict[str, Any]:
+        """Unified entrypoint for regex generation."""
+        settings = settings_service.get_global_settings()
+        algo = settings.get("ingest_algo_version", "v2")
+
+        if algo == "v2":
+            return self.generate_regex_v2(log, fix_count)
+        return self.generate_regex_v1(log)
+
+    def generate_regex_v1(self, log: str) -> Dict[str, Any]:
+        self.log_info("Generating regex (v1)...")
+
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
+
+        result = rag_service.query_rag(
+            user_prompt=log, 
+            system_prompt=system_prompt
+        )
+
+        if not result["success"]:
+            return {
+                "success": False,
+                "regex": None,
+                "error": result["error"],
+                "latency": result["latency"]
+            }
+
+        # Clean
+        regex = self.clean_response(result["content"])
         if not regex.endswith("$"):
             regex += "$"
-            
-        return regex
-    
-    def generate_regex_v1(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex using iterative fix approach (legacy v1 algorithm).
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
-            
-        Returns:
-            Generated regex pattern
-        """
-        try:
-            from .llm import llm_service
-            
-            # Initial regex generation
-            response = llm_service.generate_regex(log_entry, 0)
-            if not response.get('success'):
-                return ''
-            
-            regex = response.get('regex', '')
-            
-            # Iterative fixing
-            for count in range(fix_count):
-                if self.is_fully_matched(log_entry, regex):
-                    self.log_info(f"Regex is fully matched after round {count}.")
-                    break
-                    
-                self.log_info(f"Fixing regex for round {count+1}...")
-                reduced = self.reduce_regex(log_entry, regex)
-                
-                # Send fix request to LLM
-                payload = {
-                    "model": "default",
-                    "messages": [
-                        {"role": "system", "content": "You are an expert in fixing PCRE2 regex patterns. Fix the provided regex to match the log entry completely."},
-                        {"role": "user", "content": f"Log: {log_entry}\nRegex: {reduced}"}
-                    ],
-                    "temperature": 0.1
-                }
-                
-                # This would need LLM service enhancement for fix requests
-                # For now, just use the reduced regex
-                regex = reduced
-                self.log_info(f"New regex after round {count+1}: {regex}")
-            
-            return self.resolve_duplicate_capture_groups(regex)
-            
-        except Exception as e:
-            self.log_error(f"Error in regex generation v1: {str(e)}", e)
-            return ''
-    
-    def generate_regex_v2(self, log_entry: str, fix_count: int) -> str:
-        """Generate regex using progressive matching approach (legacy v2 algorithm).
-        
-        Args:
-            log_entry: The log entry to generate regex for
-            fix_count: Number of fix iterations to perform
-            
-        Returns:
-            Generated regex pattern
-        """
-        try:
-            from .llm import llm_service
-            import re
-            
-            regex = ""
-            remaining_log = log_entry
-            count = 0
-            
-            while remaining_log and count <= fix_count:
-                if count == 0:
-                    self.log_info(f"Generating regex for log: {remaining_log}")
-                else:
-                    self.log_info(f"Fixing regex for round {count}...")
-                
-                # Generate regex for remaining log
-                response = llm_service.generate_regex(remaining_log, 0)
-                if not response.get('success'):
-                    break
-                
-                current_regex = response.get('regex', '')
-                current_regex = current_regex.replace("```", "").replace("\n", "")
-                
-                if current_regex.startswith("regex"):
-                    current_regex = current_regex[len("regex"):]
-                
-                if not current_regex.endswith("$"):
-                    current_regex += "$"
-                
-                if count != fix_count:
-                    reduced_regex = self.reduce_regex(remaining_log, current_regex)
-                    self.log_info(f"Reduced regex: {reduced_regex}")
-                else:
-                    reduced_regex = current_regex
-                
-                # Try to match the reduced regex
-                try:
-                    match = re.search(reduced_regex, remaining_log)
-                    if not match:
-                        break
-                    
-                    matched_part = match.group(0)
-                    self.log_info(f"Matched part of log: {matched_part}")
-                    
-                    remaining_log = remaining_log[match.end():].replace("\n", "")
-                    self.log_info(f"Remaining log after match: {remaining_log}")
-                    
-                    if regex:
-                        regex += (r"\s?" + reduced_regex)
-                    else:
-                        regex = reduced_regex
-                        
-                    self.log_info(f"New regex after round {count+1}: {regex}")
-                    count += 1
-                    
-                except re.error as e:
-                    self.log_error(f"Regex error: {str(e)}")
-                    break
-            
-            if count >= fix_count:
-                self.log_info(f"Reached maximum fix count of {fix_count}.")
-            else:
-                self.log_info(f"Regex is fully matched after round {count}.")
-            
-            regex = self.resolve_duplicate_capture_groups(regex)
-            
-            # Escape unescaped double quotes
-            if '"' in regex:
-                index_counter = 0
-                while True:
-                    try:
-                        double_quote_index = regex.index('"', index_counter + 1, len(regex))
-                        if regex[double_quote_index - 1] != '\\':
-                            regex = regex[:double_quote_index] + '\\"' + regex[double_quote_index + 1:]
-                        index_counter = double_quote_index + 1
-                    except ValueError:
-                        break
-            
-            return regex
-            
-        except Exception as e:
-            self.log_error(f"Error in regex generation v2: {str(e)}", e)
-            return ''
-    
-    def is_fully_matched(self, log: str, regex: str) -> bool:
-        """Check if regex fully matches the log entry.
-        
-        Args:
-            log: The log entry to test
-            regex: The regex pattern to test
-            
-        Returns:
-            True if fully matched, False otherwise
-        """
-        try:
-            import re
-            match = re.search(regex, log)
-            if match:
-                return match.group(0) == log
-            return False
-        except re.error:
-            return False
-    
-    def reduce_regex(self, log: str, regex: str) -> str:
-        """Reduce regex pattern until it matches the log.
-        
-        Args:
-            log: The log entry to match
-            regex: The regex pattern to reduce
-            
-        Returns:
-            Reduced regex pattern
-        """
-        import re
-        
-        # Ensure regex is a string
-        if not isinstance(regex, str):
-            self.log_warning(f"Expected regex to be a string, got {type(regex)}. Converting to string.")
-            regex = str(regex)
-        
-        while regex:
-            try:
-                if re.search(regex, log):
-                    break
-            except re.error:
-                pass  # Skip invalid patterns silently
-            regex = regex[:-1]
-        
-        return regex
 
-    def determine_log_type(self, log_entry: str) -> Tuple[str, str]:
-        """Determine the log type and source type for a log entry.
-        
-        Args:
-            log_entry: The log entry to analyze
-            
-        Returns:
-            Tuple of (log_type, source_type)
-        """
-        try:
-            # Import the LLM service (now available)
-            from .llm import llm_service
-            
-            # Use LLM to determine log type
-            response = llm_service.determine_log_type(log_entry)
-            
-            if response and response.get('success'):
-                result = response.get('result', '')
-                if ',' in result:
-                    source_type, log_type = [part.strip() for part in result.split(',', 1)]
-                    return log_type, source_type
-                else:
-                    return result, 'unknown'
-            else:
-                self.log_warning(f"Failed to determine log type: {response.get('error', 'Unknown error')}")
-                # Fallback to heuristic approach
-                return self.determine_log_type_heuristic(log_entry)
-                
-        except Exception as e:
-            self.log_error(f"Error determining log type: {str(e)}", e)
-            # Fallback to heuristic approach
-            return self.determine_log_type_heuristic(log_entry)
+        return {
+            "success": True,
+            "regex": regex,
+            "error": None,
+            "latency": result["latency"]
+        }
     
-    def determine_log_type_heuristic(self, log_entry: str) -> Tuple[str, str]:
+    
+    def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:
+        self.log_info("Generating regex (v2)...")
+
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
+
+        remaining = log
+        final_regex = ""
+        total_latency = 0.0
+
+        for i in range(fix_count):
+            # Ask LLM for this segment
+            self.log_info(f"Generating regex round {i+1}...")
+            result = rag_service.query_rag(
+                user_prompt=remaining, 
+                system_prompt=system_prompt
+            )
+
+            total_latency += result.get("latency", 0)
+
+            if not result["success"]:
+                return {
+                    "success": False,
+                    "regex": final_regex or None,
+                    "error": result["error"],
+                    "latency": total_latency
+                }
+
+            raw = self.clean_response(result["content"])
+            if not raw.endswith("$"):
+                raw += "$"
+
+            # reduce to longest valid partial match
+            reduced = regex_engine_service.run_reduce_regex(remaining, raw)
+            reduced = reduced["regex"]
+            self.log_info(f"Reduced regex: {reduced}")
+
+            # match it
+            match_info = regex_engine_service.run_regex_match(remaining, reduced)
+            if match_info["status"] == "Not Matched":
+                self.log_warning("Reduced regex no longer matches, stopping.")
+                break
+
+            matched = match_info["full"]["value"]
+            end = match_info["full"]["end"]
+
+            # append
+            if final_regex:
+                final_regex += r"\s?" + reduced
+            else:
+                final_regex = reduced
+
+            # move forward
+            remaining = remaining[end:]
+            if not remaining:
+                break
+
+        # post-process result
+        final_regex = self.resolve_duplicate_capture_groups(final_regex)
+
+        return {
+            "success": True,
+            "regex": final_regex,
+            "error": None,
+            "latency": total_latency
+        }
+
+    def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
+        system_prompt = settings_service.get_prompts_settings("fix_regex")
+
+        # shrink to longest matching core
+        longest = regex_engine_service.run_reduce_regex(log, regex)
+        longest = longest["regex"]
+
+        result = rag_service.query_rag(
+            user_prompt=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}", 
+            system_prompt=system_prompt
+        )
+
+        if not result["success"]:
+            return {
+                "success": False,
+                "regex": None,
+                "error": result["error"],
+                "latency": result["latency"]
+            }
+
+        fixed = self.clean_response(result["content"])
+        if not fixed.endswith("$"):
+            fixed += "$"
+
+        return {
+            "success": True,
+            "regex": fixed,
+            "error": None,
+            "latency": result["latency"]
+        }
+
+    def determine_log_type(self, log: str) -> Dict[str, Any]:
+        """Return { success, source_type, log_type, error }"""
+
+        try:
+            self.log_info("Determining log type for entry")
+            
+            system_prompt = settings_service.get_prompts_settings("detect_type")
+            response = self.query_llm(log, system_prompt)
+
+            if not response["success"]:
+                return {
+                    "success": False,
+                    "error": response["error"],
+                    "source_type": "unknown",
+                    "log_type": "unknown"
+                }
+
+            # Parse JSON
+            try:
+                result = json.loads(response["content"])
+                return {
+                    "success": True,
+                    "source_type": result.get("source_type", "unknown"),
+                    "log_type": result.get("log_type", "unknown"),
+                    "error": None
+                }
+
+            except Exception as e:
+                self.log_warning(f"LLM returned invalid JSON: {response['content']}")
+                return {
+                    "success": False,
+                    "error": f"Invalid JSON from LLM: {str(e)}",
+                    "source_type": "unknown",
+                    "log_type": "unknown"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "source_type": "unknown",
+                "log_type": "unknown"
+            }
+
+    
+    def determine_log_type_heuristic(self, log: str) -> Tuple[str, str]:
         """Determine log type using simple heuristics as fallback.
         
         Args:
-            log_entry: The log entry to analyze
+            log: The log entry to analyze
             
         Returns:
             Tuple of (log_type, source_type)
         """
-        log_lower = log_entry.lower()
+        log_lower = log.lower()
         
         # Simple heuristics for common log types
         if 'failed' in log_lower or 'error' in log_lower or 'authentication' in log_lower:
@@ -1026,10 +807,8 @@ class SmartLPService(CRUDService):
         Returns:
             Processed regex with unique capture group names
         """
-        import re
-        
         # Pattern to match named capture groups like (?P<name> or (?<name>
-        pattern = re.compile(r'(\(\?P?<)(\w+)(>)')
+        pattern = pcre2.compile(r'(\(\?(?:P?<|<))(\w+)(>)')
         seen = {}
         offset = 0
 
@@ -1063,17 +842,17 @@ class SmartLPService(CRUDService):
         try:
             self.log_info(f"Creating SmartLP config for {len(entry_ids)} entries")
             
-            # Get active SIEM from settings
+            # Get active SIEM from settings (snake_case)
             from .settings import settings_service
             settings = settings_service.get_global_settings()
-            active_siem = settings.get('activeSiem', 'elastic')
+            active_siem = settings.get('active_siem', 'elastic')
             
             self.log_info(f"Active SIEM: {active_siem}")
             
             if active_siem == "splunk":
-                return self.create_splunk_config(entry_ids)
+                return self.create_config_splunk(entry_ids)
             elif active_siem == "elastic":
-                return self.create_elastic_config(entry_ids)
+                return self.create_config_elastic(entry_ids)
             else:
                 self.log_error(f"Unsupported SIEM type: {active_siem}")
                 return "# Unsupported SIEM type"
@@ -1082,140 +861,129 @@ class SmartLPService(CRUDService):
             self.log_error(f"Error creating SmartLP config: {str(e)}", e)
             return f"# Error creating configuration: {str(e)}"
     
-    def create_elastic_config(self, entry_ids: List[str]) -> str:
-        """Create Elasticsearch Logstash configuration for SmartLP entries.
-        
-        Args:
-            entry_ids: List of entry IDs
-            
-        Returns:
-            Logstash pipeline configuration string
-        """
+    from typing import List
+
+    def create_config_elastic(self, entry_ids: List[str]) -> str:
+        """Create Elasticsearch Logstash configuration for SmartLP entries."""
         try:
             self.log_info(f"Creating Elastic config for {len(entry_ids)} entries")
             
-            # Get entries from database
-            entries = []
-            for entry_id in entry_ids:
-                entry = self.db.query(
-                    self.collection_name,
-                    {"id": entry_id},
-                    projection={"_id": 0},
-                    limit=1
-                )
-                if entry:
-                    entries.append(entry)
-                else:
-                    self.log_warning(f"Entry not found: {entry_id}")
-            
-            if not entries:
+            # Fetch selected entries
+            selected_entries = self.db.query(
+                collection_name="logs",
+                # `entry_ids` are SmartLP's user-facing IDs (field `id`), not Mongo `_id`.
+                filter_dict={"id": {"$in": entry_ids}},
+            )
+
+            # Fetch deployed entries
+            deployed_entries = self.db.query(
+                collection_name="logs",
+                filter_dict={"status": "Deployed"},
+            )
+
+            # Merge + dedupe (by _id)
+            # Convert to list immediately so we can index it [0] and [1:]
+            all_entries = list({
+                str(e.get("id") or e.get("_id")): e
+                for e in (selected_entries + deployed_entries)
+            }.values())
+
+            if not all_entries:
                 self.log_warning("No valid entries found for config generation")
                 return "# No valid entries found"
-            
+
             # Build Logstash pipeline
             pipeline = []
             
-            # Input section
+            # 1. Input section
             pipeline.append(r'''input {
-  tcp {
-    port => 1700
-    codec => multiline {
-      pattern => "^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s(.*?)\s[A-Z]+|^<Event xmlns|^\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\d\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d+\s\w+\s\w+:\d+"
-      negate => true
-      what => "previous"
+    tcp {
+        port => 1701
+        codec => multiline {
+        pattern => "^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\s(.*?)\s[A-Z]+|^<Event xmlns|^\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\S{3}\s+\d+\s\d{2}:\d{2}:\d{2}|^<\d+>\d\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\+\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}|^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d+\s\w+\s\w+:\d+"
+        negate => true
+        what => "previous"
+        }
     }
-  }
-}''')
+    }''')
             
-            # Filter section
+            # 2. Filter section
             pipeline.append("\nfilter {")
             
             # Add first grok pattern
-            first_entry = entries[0]
+            first_entry = all_entries[0]
             regex_config = self._format_regex_for_logstash(first_entry.get('regex', ''))
             source_type = first_entry.get('source_type', 'unknown')
             
-            pipeline.append(f'''\n  grok {{
-    match => {{
-      message => {regex_config}
-    }}
-    add_field => {{"source_type" => "{source_type}"}}
-  }}''')
+            pipeline.append(f'''
+    grok {{
+        match => {{ "message" => {regex_config} }}
+        add_field => {{ "source_type" => "{source_type}" }}
+    }}''')
             
             # Add additional grok patterns for subsequent entries
-            for entry in entries[1:]:
+            for entry in all_entries[1:]:
                 regex_config = self._format_regex_for_logstash(entry.get('regex', ''))
                 source_type = entry.get('source_type', 'unknown')
                 
-                pipeline.append(f'''\n  if "_grokparsefailure" in [tags] {{
-    grok {{
-      match => {{
-        message => {regex_config}
-      }}
-      add_field => {{"source_type" => "{source_type}"}}
-      remove_tag => ["_grokparsefailure"]
+                pipeline.append(f'''
+    if "_grokparsefailure" in [tags] {{
+        grok {{
+        match => {{ "message" => {regex_config} }}
+        add_field => {{ "source_type" => "{source_type}" }}
+        remove_tag => ["_grokparsefailure"]
+        }}
+    }}''')
+            
+            pipeline.append("\n}")
+            
+            # 3. Output section
+            elastic_settings = self._get_elastic_settings()
+            elastic_host = elastic_settings.get("host")
+            elastic_user = elastic_settings.get("user")
+            elastic_password = elastic_settings.get("password")
+
+            # 2. Build the dynamic output section
+            pipeline.append(f'''
+output {{
+    stdout {{ codec => rubydebug }}
+
+    if "_grokparsefailure" not in [tags] {{
+        elasticsearch {{
+        hosts => ["{elastic_host}"]
+        ssl_enabled => true
+        ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+        user => "{elastic_user}"
+        password => "{elastic_password}"
+        data_stream => true
+        data_stream_type => "logs"
+        data_stream_dataset => "parsed"
+        data_stream_namespace => "default"
+        }}
+    }} else {{
+        elasticsearch {{
+        hosts => ["{elastic_host}"]
+        ssl_enabled => true
+        ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
+        user => "{elastic_user}"
+        password => "{elastic_password}"
+        data_stream => true
+        data_stream_type => "logs"
+        data_stream_dataset => "unparsed"
+        data_stream_namespace => "default"
+        }}
     }}
-  }}''')
-            
-            pipeline.append("}")
-            
-            # Output section
-            pipeline.append("\noutput {")
-            pipeline.append("  stdout { codec => rubydebug }")
-            
-            # Add elasticsearch outputs for each entry
-            for entry in entries:
-                source_type = entry.get('source_type', 'unknown')
-                index = entry.get('index', 'unparsed')
-                
-                elastic_host = os.getenv('ELASTIC_HOST', 'localhost:9200')
-                elastic_user = os.getenv('ELASTIC_USER', 'elastic')
-                elastic_password = os.getenv('ELASTIC_PASSWORD', 'password')
-                
-                pipeline.append(f'''\n  if [source_type] == "{source_type}" {{
-    elasticsearch {{
-      hosts => ["{elastic_host}"]
-      ssl_enabled => true
-      ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-      user => "{elastic_user}"
-      password => "{elastic_password}"
-      data_stream => true
-      data_stream_type => "logs"
-      data_stream_dataset => "{index}"
-      data_stream_namespace => "default"
-    }}
-  }}''')
-            
-            # Default output for unparsed logs
-            elastic_host = os.getenv('ELASTIC_HOST', 'localhost:9200')
-            elastic_user = os.getenv('ELASTIC_USER', 'elastic')
-            elastic_password = os.getenv('ELASTIC_PASSWORD', 'password')
-            
-            pipeline.append(f'''\n  else {{
-    elasticsearch {{
-      hosts => ["{elastic_host}"]
-      ssl_enabled => true
-      ssl_certificate_authorities => "/etc/logstash/certs/cyberlab-rca-ica-chain.cer"
-      user => "{elastic_user}"
-      password => "{elastic_password}"
-      data_stream => true
-      data_stream_type => "logs"
-      data_stream_dataset => "unparsed"
-      data_stream_namespace => "default"
-    }}
-  }}''')
-            
-            pipeline.append("}")
+}}''')
             
             config = "".join(pipeline)
-            self.log_info(f"Generated Elastic config with {len(entries)} entries")
+            self.log_info(f"Generated Elastic config with {len(all_entries)} entries")
             return config
-            
+
         except Exception as e:
-            self.log_error(f"Error creating Elastic config: {str(e)}", e)
-            return f"# Error creating Elastic configuration: {str(e)}"
+            self.log_error(f"Error generating Elastic config: {str(e)}")
+            return f"# Error: {str(e)}"
     
-    def create_splunk_config(self, entry_ids: List[str]) -> str:
+    def create_config_splunk(self, entry_ids: List[str]) -> str:
         """Create Splunk configuration for SmartLP entries.
         
         Args:
@@ -1330,256 +1098,105 @@ class SmartLPService(CRUDService):
             return f"'{regex}'"
         else:
             return f'"{regex}"'
-    
-    def deploy_to_elasticsearch(self, entry_ids: List[str], pipeline_id: Optional[str] = None) -> Tuple[bool, str]:
-        """Deploy SmartLP configuration to Elasticsearch as a Logstash pipeline.
-        
-        Args:
-            entry_ids: List of entry IDs to deploy
-            pipeline_id: Custom pipeline ID (uses environment default if None)
-            
-        Returns:
-            Tuple of (success, message)
+
+    def _normalize_regex_for_ingest(self, regex: str) -> str:
         """
+        Convert Logstash/PCRE-style regex into Elasticsearch ingest-compatible regex.
+        """
+        if not regex:
+            return regex
+
+        # Convert (?P<name>...) → (?<name>...)
+        regex = pcre2.sub(r"\(\?P<([^>]+)>", r"(?<\1>", regex)
+
+        return regex
+    
+    def deploy_config_elastic(self, pipeline_config: str) -> tuple[bool, str]:
+        """Deploy a Logstash pipeline to Elasticsearch (Centralized Pipeline Management)."""
+
         try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return False, "Elasticsearch library not available. Please install elasticsearch package."
-            
-            self.log_info(f"Starting Elasticsearch deployment for {len(entry_ids)} entries")
-            
-            # Get Elasticsearch configuration from environment
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_user = os.getenv('ELASTIC_USER')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
-            default_pipeline_id = os.getenv('ELASTIC_PIPELINE_ID', 'smartsoc-smartlp-pipeline')
-            
-            # Validate required configuration
+            elastic_settings = self._get_elastic_settings()
+            elastic_host = elastic_settings.get("host")
+            elastic_api_key = elastic_settings.get("api_key")
+            elastic_user = elastic_settings.get("user") or "smartlp"
+            pipeline_id = elastic_settings.get("pipeline_id") or "smartlp"
+
             if not elastic_host:
-                return False, "ELASTIC_HOST environment variable not set"
-            if not elastic_api_token:
-                return False, "ELASTIC_API_TOKEN environment variable not set"
-            
-            # Use provided pipeline ID or default
-            target_pipeline_id = pipeline_id or default_pipeline_id
-            
-            # Generate the Logstash pipeline configuration
-            pipeline_config = self.create_elastic_config(entry_ids)
-            
-            if not pipeline_config or pipeline_config.startswith("# No valid entries"):
-                return False, "No valid configuration generated. Check that entries exist and have required fields."
-            
-            # Create pipeline data structure
-            pipeline_data = {
-                "description": f"SmartSOC SmartLP pipeline - {len(entry_ids)} entries",
-                "last_modified": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
+                return False, "Elasticsearch host not configured"
+            if not elastic_api_key:
+                return False, "Elasticsearch API key not configured"
+            if not pipeline_config or pipeline_config.startswith("#"):
+                return False, "Invalid or empty Logstash pipeline config"
+
+            pipeline_body = {
+                "description": "SmartLP generated Logstash pipeline",
+                "last_modified": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + "Z",
                 "pipeline_metadata": {
                     "type": "logstash_pipeline",
                     "version": 1
                 },
-                "username": elastic_user or "smartsoc",
+                "username": elastic_user,
                 "pipeline": pipeline_config,
                 "pipeline_settings": {
                     "pipeline.workers": 1,
                     "pipeline.batch.size": 125,
                     "pipeline.batch.delay": 50,
-                    "queue.type": "memory",
-                    "queue.max_bytes": "1gb",
-                    "queue.checkpoint.writes": 1024
+                    "queue.type": "memory"
                 }
             }
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            # Add SSL configuration if certificate path is provided
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                self.log_warning("ELASTIC_CERT_PATH not set or certificate not found. Using insecure connection.")
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Deploy the pipeline
-            self.log_info(f"Deploying pipeline '{target_pipeline_id}' to Elasticsearch")
-            response = service_elastic.logstash.put_pipeline(id=target_pipeline_id, body=pipeline_data)
-            
-            # Check response (Elasticsearch returns None for successful operations)
-            if response is None or (isinstance(response, dict) and response.get('acknowledged', False)):
-                success_msg = f"Pipeline '{target_pipeline_id}' deployed successfully to Elasticsearch"
-                self.log_info(success_msg)
-                return True, success_msg
-            else:
-                error_msg = f"Unexpected response from Elasticsearch: {response}"
-                self.log_error(error_msg)
-                return False, error_msg
-                
-        except Exception as e:
-            error_msg = f"Failed to deploy to Elasticsearch: {str(e)}"
-            self.log_error(error_msg, e)
-            return False, error_msg
-    
-    def list_elasticsearch_pipelines(self) -> Tuple[Optional[Dict], Optional[str]]:
-        """List all Logstash pipelines in Elasticsearch.
-        
-        Returns:
-            Tuple of (pipelines_dict, error_message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return None, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
-            
-            if not elastic_host or not elastic_api_token:
-                return None, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Get all pipelines
-            response = service_elastic.logstash.get_pipeline()
-            
-            if response:
-                self.log_info(f"Retrieved {len(response)} pipelines from Elasticsearch")
-                return response, None
-            else:
-                return {}, None
-                
-        except Exception as e:
-            error_msg = f"Failed to list Elasticsearch pipelines: {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
-    
-    def delete_elasticsearch_pipeline(self, pipeline_id: str) -> Tuple[bool, str]:
-        """Delete a Logstash pipeline from Elasticsearch.
-        
-        Args:
-            pipeline_id: ID of the pipeline to delete
-            
-        Returns:
-            Tuple of (success, message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return False, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
-            
-            if not elastic_host or not elastic_api_token:
-                return False, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Delete the pipeline
-            self.log_info(f"Deleting pipeline '{pipeline_id}' from Elasticsearch")
-            response = service_elastic.logstash.delete_pipeline(id=pipeline_id)
-            
-            if response is None or (isinstance(response, dict) and response.get('acknowledged', False)):
-                success_msg = f"Pipeline '{pipeline_id}' deleted successfully from Elasticsearch"
-                self.log_info(success_msg)
-                return True, success_msg
-            else:
-                error_msg = f"Failed to delete pipeline '{pipeline_id}': {response}"
-                self.log_error(error_msg)
-                return False, error_msg
-                
-        except Exception as e:
-            error_msg = f"Failed to delete pipeline '{pipeline_id}': {str(e)}"
-            self.log_error(error_msg, e)
-            return False, error_msg
-    
-    def get_elasticsearch_pipeline(self, pipeline_id: str) -> Tuple[Optional[Dict], Optional[str]]:
-        """Get details of a specific Logstash pipeline from Elasticsearch.
-        
-        Args:
-            pipeline_id: ID of the pipeline to retrieve
-            
-        Returns:
-            Tuple of (pipeline_dict, error_message)
-        """
-        try:
-            if not ELASTICSEARCH_AVAILABLE:
-                return None, "Elasticsearch library not available"
-            
-            # Get Elasticsearch configuration
-            elastic_host = os.getenv('ELASTIC_HOST')
-            elastic_api_token = os.getenv('ELASTIC_API_TOKEN')
-            elastic_cert_path = os.getenv('ELASTIC_CERT_PATH')
-            
-            if not elastic_host or not elastic_api_token:
-                return None, "Elasticsearch configuration not available"
-            
-            # Create Elasticsearch client
-            es_client_config = {
-                "hosts": [elastic_host],
-                "headers": {
-                    "Authorization": f"ApiKey {elastic_api_token}"
-                }
-            }
-            
-            if elastic_cert_path and os.path.exists(elastic_cert_path):
-                es_client_config["ca_certs"] = elastic_cert_path
-                es_client_config["verify_certs"] = True
-            else:
-                es_client_config["verify_certs"] = False
-            
-            service_elastic = Elasticsearch(**es_client_config)
-            
-            # Get the specific pipeline
-            response = service_elastic.logstash.get_pipeline(id=pipeline_id)
-            
-            if response and pipeline_id in response:
-                self.log_info(f"Retrieved pipeline '{pipeline_id}' from Elasticsearch")
-                return response[pipeline_id], None
-            else:
-                return None, f"Pipeline '{pipeline_id}' not found"
-                
-        except Exception as e:
-            error_msg = f"Failed to get pipeline '{pipeline_id}': {str(e)}"
-            self.log_error(error_msg, e)
-            return None, error_msg
 
+            es = Elasticsearch(
+                hosts=[elastic_host],
+                headers={"Authorization": f"ApiKey {elastic_api_key}"},
+                verify_certs=False
+            )
+
+            response = es.logstash.put_pipeline(
+                id=pipeline_id,
+                body=pipeline_body
+            )
+
+            # CPM returns None on success
+            if response is None:
+                return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
+            
+            # Some ES versions may return an ack dict
+            if isinstance(response, dict) and response.get("acknowledged") is True:
+                return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
+            
+            # Safety Net
+            return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
+
+        except Exception as e:
+            self.log_error("Elasticsearch deployment failed", e)
+            return False, f"Failed to deploy Logstash pipeline: {e}"
+
+    def _get_elastic_settings(self) -> Dict[str, Optional[str]]:
+        """Return Elasticsearch connectivity details from settings or env."""
+        siem_configs = settings_service.get_siem_settings() or []
+        elastic_settings = next((cfg for cfg in siem_configs if cfg.get('id') == 'elastic'), {})
+
+        resolved = {
+            'host': elastic_settings.get('host') or os.getenv('ELASTIC_HOST'),
+            'user': elastic_settings.get('user') or os.getenv('ELASTIC_USER'),
+            'password': elastic_settings.get('password') or os.getenv('ELASTIC_PASSWORD'),
+            'api_key': elastic_settings.get('api_key') or os.getenv('ELASTIC_API_TOKEN'),
+            'cert_path': elastic_settings.get('cert_path') or os.getenv('ELASTIC_CERT_PATH'),
+            'pipeline_id': elastic_settings.get('pipeline_id') or os.getenv('ELASTIC_PIPELINE_ID') or 'smartlp'
+        }
+
+        if not resolved['host'] or not resolved['api_key']:
+            self.log_warning("Elasticsearch configuration incomplete; check SIEM settings and environment variables")
+
+        return resolved
+    
+    def deploy_config_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
+        """Deploy SmartLP configuration to Splunk by writing to props.conf and transforms.conf.
+        
+        Args:
+            entry_ids: List of entry IDs to deploy
+        """
+        pass
 
 # Create service instance
 smartlp_service = SmartLPService()

@@ -8,7 +8,7 @@ from pymongo import MongoClient, DESCENDING, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import ConnectionFailure
 
-from config.settings import config
+from settings.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ class DatabaseError(Exception):
     pass
 
 
-DEFAULT_MAX_ATTEMPTS = getattr(config.database, "connection_attempts", 3)
-DEFAULT_BACKOFF_SECONDS = getattr(config.database, "connection_backoff_seconds", 1.0)
-HEALTH_CHECK_INTERVAL = getattr(config.database, "connection_health_interval", 30.0)
+DEFAULT_MAX_ATTEMPTS = getattr(settings.database, "connection_attempts", 3)
+DEFAULT_BACKOFF_SECONDS = getattr(settings.database, "connection_backoff_seconds", 1.0)
+HEALTH_CHECK_INTERVAL = getattr(settings.database, "connection_health_interval", 30.0)
 
 
 class DatabaseConnection:
@@ -69,7 +69,7 @@ class DatabaseConnection:
         self.close()
         try:
             self._client = MongoClient(
-                config.database.mongo_url,
+                settings.database.mongo_url,
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=5000,
                 socketTimeoutMS=5000,
@@ -87,27 +87,13 @@ class DatabaseConnection:
     def _initialize_collections(self) -> None:
         """Initialize database collections."""
         try:
-            # Parser database
-            parser_db = self._client[config.database.parser_db_name]
-            self._collections['parser_entries'] = parser_db[config.database.parser_entries_collection]
-            self._collections['prefix_entries'] = parser_db['prefix_entries']
+            # Database
+            db = self._client[settings.database.db_name]
 
-            # Settings database
-            settings_db = self._client[config.database.settings_db_name]
-            self._collections['global_settings'] = settings_db[config.database.global_settings_collection]
-            self._collections['llms_settings'] = settings_db[config.database.llms_settings_collection]
-            self._collections['siems_settings'] = settings_db[config.database.siems_settings_collection]
-
-            # MITRE database
-            mitre_db = self._client[config.database.mitre_db_name]
-            self._collections['sigma_rules'] = mitre_db[config.database.sigma_rules_collection]
-            self._collections['splunk_rules'] = mitre_db[config.database.splunk_rules_collection]
-            self._collections['elastic_rules'] = mitre_db[config.database.elastic_rules_collection]
-            self._collections['secops_rules'] = mitre_db[config.database.secops_rules_collection]
-
-            # MITRE Techniques database
-            mitre_tech_db = self._client[config.database.mitre_tech_db_name]
-            self._collections['mitre_techniques'] = mitre_tech_db[config.database.mitre_techniques_collection]
+            # Collections
+            self._collections['knowledge_base'] = db[settings.database.knowledge_collection]
+            self._collections['logs'] = db[settings.database.logs_collection]
+            self._collections['settings'] = db[settings.database.config_collection]
 
             logger.info("Database collections initialized successfully")
         except Exception as e:

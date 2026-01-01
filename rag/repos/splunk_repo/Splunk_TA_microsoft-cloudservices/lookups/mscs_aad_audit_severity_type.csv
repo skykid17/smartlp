@@ -1,7 +1,0 @@
-properties.riskLevel,severity,type
-low,low,event
-medium,medium,alert
-high,high,alarm
-hidden,unknown,unknown
-unknownFutureValue,unknown,unknown
-none,unknown,unknown

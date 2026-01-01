@@ -1,5 +1,0 @@
-log_level,severity
-INFO,informational
-WARN,high
-ERROR,critical
-SYSTEM,informational
