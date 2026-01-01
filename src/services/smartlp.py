@@ -14,7 +14,7 @@ import os
 import pcre2
 import json
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, List
 from collections import defaultdict
 
 from .base import BaseService, CRUDService
@@ -345,10 +345,10 @@ class SmartLPService(CRUDService):
                 log_type = entry.get('logtype', 'Unknown')
                 
                 # Count parsed vs unparsed
-                if status == 'Matched':
-                    parsed_count += 1
-                else:
+                if status == 'Unmatched' or status == "Partially Matched":
                     unparsed_count += 1
+                else:
+                    parsed_count += 1
                     
                     # Count unparsed by logtype for top 5
                     if log_type not in logtype_stats:
@@ -830,7 +830,7 @@ class SmartLPService(CRUDService):
         self.log_info(f"Resolved duplicate capture groups: {seen}")
         return regex
     
-    def create_rule_config(self, entry_ids: List[str]) -> str:
+    def create_config(self, entry_ids: List[str]) -> str:
         """Create configuration for SmartLP entries based on active SIEM.
         
         Args:
@@ -860,8 +860,6 @@ class SmartLPService(CRUDService):
         except Exception as e:
             self.log_error(f"Error creating SmartLP config: {str(e)}", e)
             return f"# Error creating configuration: {str(e)}"
-    
-    from typing import List
 
     def create_config_elastic(self, entry_ids: List[str]) -> str:
         """Create Elasticsearch Logstash configuration for SmartLP entries."""

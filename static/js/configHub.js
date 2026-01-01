@@ -10,6 +10,10 @@ class ConfigHub {
         this.selectedEntries = [];
         this.lastGeneratedConfig = null;
 
+        this._saveTimeouts = new Map();
+        this._saveQueue = new Map();
+        this._inFlightSaves = new Map();
+
         this.init();
     }
 
@@ -82,16 +86,19 @@ class ConfigHub {
                         <i class="fas fa-trash text-xs"></i>
                     </button>
                 </div>
-                <div class="space-y-1 text-xs">
-                    <div class="text-gray-600 dark:text-gray-400">
-                        <span class="font-medium">Index:</span> ${entry.index || 'N/A'}
-                    </div>
-                    <div class="text-gray-600 dark:text-gray-400">
-                        <span class="font-medium">Source Type:</span> ${entry.source_type || 'N/A'}
-                    </div>
-                    <div class="text-gray-600 dark:text-gray-400 truncate">
-                        <span class="font-medium">Log:</span> ${entry.log.substring(0, 50)}...
-                    </div>
+                <div class="space-y-2 text-xs">
+                    <label class="block text-gray-600 dark:text-gray-400">
+                        <span class="font-medium">Index:</span>
+                        <input id="input-index-${entry.id}" oninput="window.configHub.onInlineEdit('${entry.id}','index', this.value)" value="${entry.index || ''}" class="mt-1 block w-full rounded-md border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm p-2" />
+                    </label>
+                    <label class="block text-gray-600 dark:text-gray-400">
+                        <span class="font-medium">Source Type:</span>
+                        <input id="input-source-${entry.id}" oninput="window.configHub.onInlineEdit('${entry.id}','source_type', this.value)" value="${entry.source_type || ''}" class="mt-1 block w-full rounded-md border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm p-2" />
+                    </label>
+                    <label class="block text-gray-600 dark:text-gray-400">
+                        <span class="font-medium">Log:</span>
+                        <textarea id="textarea-log-${entry.id}" oninput="window.configHub.onInlineEdit('${entry.id}','log', this.value)" class="mt-1 block w-full rounded-md border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm p-2" rows="3">${entry.log || ''}</textarea>
+                    </label>
                 </div>
             </div>
         `).join('');
@@ -138,6 +145,13 @@ class ConfigHub {
         }
 
         try {
+            // Ensure latest inline edits are persisted so generated config reflects them
+            const savedOk = await this.flushAllPendingSaves();
+            if (!savedOk) {
+                window.showToast('Failed to save edits before generating config', 'error');
+                return;
+            }
+
             // Validate entries have required fields
             const invalidEntries = this.selectedEntries.filter(e => !e.index || !e.source_type);
             if (invalidEntries.length > 0) {
@@ -173,6 +187,7 @@ class ConfigHub {
     showConfigModal(config) {
         // Create and show modal with config
         const modal = document.createElement('div');
+        modal.id = 'generatedConfigModal';
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
         modal.innerHTML = `
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
@@ -183,17 +198,131 @@ class ConfigHub {
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4">
-                    <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code>${this.escapeHtml(config)}</code></pre>
+                    <textarea id="generatedConfigTextarea" class="bg-gray-900 text-gray-100 p-4 rounded-lg w-full overflow-x-auto text-sm" spellcheck="false" style="height:60vh; resize: vertical;"></textarea>
                 </div>
                 <div class="flex justify-end space-x-2 p-4 border-t border-gray-200 dark:border-gray-700">
                     <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Close</button>
-                    <button onclick="window.configHub.deployConfig()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
+                    <button onclick="window.configHub.showDeployConfirm()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
                         <i class="fas fa-rocket mr-2"></i>Deploy
                     </button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
+
+        const textarea = modal.querySelector('#generatedConfigTextarea');
+        textarea.value = config ?? '';
+        textarea.addEventListener('input', () => {
+            this.lastGeneratedConfig = textarea.value;
+        });
+    }
+
+    onInlineEdit(entryId, field, value) {
+        const idx = this.selectedEntries.findIndex(e => e.id === entryId);
+        if (idx === -1) return;
+        // update value
+        this.selectedEntries[idx][field] = value;
+
+        // Persist inline edits to backend (debounced)
+        this.queueEntrySave(entryId, { [field]: value });
+
+        // dispatch update event so other parts of the app can react
+        window.dispatchEvent(new CustomEvent('configEntryUpdated', {
+            detail: { entry: this.selectedEntries[idx], field }
+        }));
+    }
+
+    queueEntrySave(entryId, updates) {
+        const existing = this._saveQueue.get(entryId) || {};
+        this._saveQueue.set(entryId, { ...existing, ...updates });
+
+        const existingTimer = this._saveTimeouts.get(entryId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        const timerId = setTimeout(() => {
+            this.flushEntrySave(entryId);
+        }, 400);
+
+        this._saveTimeouts.set(entryId, timerId);
+    }
+
+    async flushEntrySave(entryId) {
+        const timer = this._saveTimeouts.get(entryId);
+        if (timer) {
+            clearTimeout(timer);
+            this._saveTimeouts.delete(entryId);
+        }
+
+        const updates = this._saveQueue.get(entryId);
+        if (!updates || Object.keys(updates).length === 0) {
+            return true;
+        }
+        this._saveQueue.delete(entryId);
+
+        // Reuse in-flight request if one exists
+        const inFlight = this._inFlightSaves.get(entryId);
+        if (inFlight) {
+            return inFlight;
+        }
+
+        const savePromise = (async () => {
+            try {
+                const response = await fetch(`/api/smartlp/entries/${encodeURIComponent(entryId)}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updates)
+                });
+
+                if (!response.ok) {
+                    let errMsg = 'Failed to save entry edits';
+                    try {
+                        const data = await response.json();
+                        errMsg = data?.message || data?.error || errMsg;
+                    } catch {
+                        // ignore
+                    }
+                    window.showToast(errMsg, 'error');
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                console.error('Entry save error:', e);
+                window.showToast('Error saving entry edits', 'error');
+                return false;
+            } finally {
+                this._inFlightSaves.delete(entryId);
+            }
+        })();
+
+        this._inFlightSaves.set(entryId, savePromise);
+        return savePromise;
+    }
+
+    async flushAllPendingSaves() {
+        const entryIds = new Set([
+            ...this._saveQueue.keys(),
+            ...this._inFlightSaves.keys(),
+            ...this._saveTimeouts.keys()
+        ]);
+
+        const results = [];
+        for (const entryId of entryIds) {
+            results.push(await this.flushEntrySave(entryId));
+        }
+
+        return results.every(Boolean);
+    }
+
+    showDeployConfirm() {
+        const ok = window.confirm(
+            'Confirm Deployment\n\nAre you sure you want to deploy the generated configuration for the selected entries? This action cannot be undone.'
+        );
+        if (!ok) return;
+        this.deployConfig();
     }
 
     async deployConfig() {

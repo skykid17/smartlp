@@ -295,7 +295,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 return jsonify({"error": "At least one entry ID is required"}), 400
             
             # Generate the configuration using the service
-            config_content = smartlp_service.create_rule_config(entry_ids)
+            config_content = smartlp_service.create_config(entry_ids)
             
             settings = settings_service.get_global_settings()
             active_siem = settings.get('active_siem', 'elastic')
@@ -382,6 +382,9 @@ def register_smartlp_routes(app: Flask) -> None:
             
             if success:
                 app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
+                # # update status of entries to 'Deployed'
+                for entry_id in entry_ids:
+                    smartlp_service.update(entry_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
                 return jsonify({
                     "success": True,
                     "message": message,

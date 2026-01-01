@@ -28,7 +28,7 @@ input {
         what => "previous"
         }
     }
-    }
+}
 filter {
 }'''
 
