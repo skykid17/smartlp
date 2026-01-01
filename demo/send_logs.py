@@ -3,7 +3,7 @@ import time
 
 # Configuration
 LOGSTASH_HOST = '192.168.31.62'
-LOGSTASH_PORT = 1700
+LOGSTASH_PORT = 1701
 
 # The raw log string
 raw_log_message = "2025-12-06T14:52:33Z host-7fa3 kernel[1324]: Unauthorized access attempt detected from 192.168.70.51 on port 445 (rule_id=WIN-SMB-401, severity=medium)"

@@ -53,6 +53,7 @@ class Dashboard {
         document.getElementById('entryModalClose')?.addEventListener('click', () => this.closeModal());
         document.getElementById('saveEntryChangesBtn')?.addEventListener('click', () => this.saveEntryChanges());
         document.getElementById('openParserFromModal')?.addEventListener('click', () => this.openParserFromModal());
+        document.getElementById('deleteEntryFromModal')?.addEventListener('click', (e) => this.deleteEntryFromModal());
 
         // Listen for section changes
         window.addEventListener('sectionChanged', (e) => {
@@ -285,6 +286,52 @@ class Dashboard {
 
         this.closeModal();
         window.navigateToSection('playground');
+    }
+
+    async deleteEntryFromModal() {
+        if (!this.currentEntry?.id) return;
+
+        const entryId = this.currentEntry.id;
+        if (!confirm(`Are you sure you want to delete entry ${entryId}?`)) {
+            return;
+        }
+
+        const deleteBtn = document.getElementById('deleteEntryFromModal');
+        if (deleteBtn) deleteBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/smartlp/entries/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: [entryId] })
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success) {
+                window.showToast(`Deleted entry ${entryId}`, 'success');
+
+                // Keep selection/config hub in sync
+                this.selectedEntries.delete(entryId);
+                this.updateSelectionUI();
+
+                // If we just deleted the last entry on the page, step back a page when possible
+                if (this.entries?.length === 1 && this.currentPage > 1) {
+                    this.currentPage -= 1;
+                }
+
+                this.currentEntry = null;
+                this.closeModal();
+                this.searchData();
+            } else {
+                window.showToast(data.message || `Failed to delete entry ${entryId}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting entry:', error);
+            window.showToast('Error deleting entry', 'error');
+        } finally {
+            if (deleteBtn) deleteBtn.disabled = false;
+        }
     }
 
     async deleteEntries() {

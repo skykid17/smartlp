@@ -123,7 +123,7 @@ class Chatbot {
             if (data.success && data.content) {
                 this.addMessage(data.content, 'bot');
 
-                // 🧠 Save assistant reply
+                // Save assistant reply
                 this.session.push({
                     role: 'assistant',
                     content: data.content
