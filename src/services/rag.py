@@ -83,8 +83,8 @@ class RAG:
     def __init__(
         self,
         mongo_uri: str = "mongodb://admin:password@localhost:27017",
-        database: str = "rag",
-        collection_name: str = "documents",
+        database: str = "soc_rag_db",
+        collection_name: str = "knowledge_base",
         embedding_dim: int = 384,
         embedding_provider: str = "all-MiniLM-L6-v2",
         vector_index: str = "rag_vector_index",
@@ -296,14 +296,19 @@ class RAG:
         semantic_k: int = 50,
         keyword_k: int = 50,
         rrf_k: int = 60,
+        filter_category: Optional[str] = None,
     ) -> List[Document]:
         """Python-only hybrid retriever (no mongot, no vector search).
         Uses local embeddings + cosine similarity + keyword scoring, fused by RRF.
         """
         coll = self._ensure_collection()
 
+        query_filter = {}
+        if filter_category:
+            query_filter["metadata.category"] = filter_category
+
         # Load docs (project minimal fields)
-        all_docs = list(coll.find({}, {"content": 1, "metadata": 1, "embedding": 1, "_id": 1}).limit(10000))
+        all_docs = list(coll.find(query_filter, {"content": 1, "metadata": 1, "embedding": 1, "_id": 1}).limit(10000))
         if not all_docs:
             return []
 
@@ -459,6 +464,7 @@ class RAG:
                         semantic_k=self.semantic_candidates,
                         keyword_k=self.keyword_candidates,
                         rrf_k=self.rrf_k,
+                        filter_category=self.filter_category,
                     )
                 else:
                     logging.warning("No parent configured for fallback retriever; returning empty list")
@@ -526,11 +532,8 @@ class RAG:
 
         try:
             # ---- 1. Build retrieval query ----
-            retrieval_query = (
-                f"{system_prompt}\n\n{user_prompt}".strip()
-                if system_prompt
-                else user_prompt.strip()
-            )
+            retrieval_query = user_prompt.strip()
+        
 
             coll = self._ensure_collection()
             retriever = self._MongoHybridRetriever(
@@ -636,11 +639,11 @@ def ensure_text_index(collection: Collection, index_name: str, text_paths: Seque
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Refactored RAG CLI")
+    parser = argparse.ArgumentParser(description="RAG CLI")
     parser.add_argument("mode", choices=["init", "ingest", "query", "test"], help="operation")
     parser.add_argument("--mongo-uri", default="mongodb://admin:password@localhost:27017")
-    parser.add_argument("--database", default="rag")
-    parser.add_argument("--collection", default="documents")
+    parser.add_argument("--database", default="soc_rag_db")
+    parser.add_argument("--collection", default="knowledge_base")
     parser.add_argument("--input-path", type=Path)
     parser.add_argument("--query-text", default="Which package/add on do I install to parse windows_xml logs into elastic? Return only the name of the package/add on.")
     parser.add_argument("--dry-run", action="store_true")

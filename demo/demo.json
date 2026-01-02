@@ -1,0 +1,60 @@
+[
+    {
+        "_id": {
+            "$oid": "68254132438f38ac2818c397"
+        },
+        "id": "d4wg364r",
+        "timestamp": {
+            "$date": "2025-05-06T13:30:11.000Z"
+        },
+        "index": "demo",
+        "log": "[PSOEMS]@[PSCCEMSS] 2025-04-03 12:27:59 Local4.Info PSCCEMSS_Syslog %ASA-6-302013: Built inbound TCP connection 69456651 for FW_INTERCO_LAN:10.65.9.109/51616 (10.65.9.109/51616) to PCC_TO_BCC_INTERCO_LAN:10.66.1.53/80 (10.66.1.53/80)\r",
+        "regex": "\\[(?<process>[^\\]]+)\\]@\\[(?<hostname>[^\\]]+)\\]\\s*(?<timestamp>\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?<level>[^\\s]+)\\s+(?<user>[^\\s]+)\\s+(?<content>.+?)\\s+(?<pid>\\d+)\\s+for\\s+(?<hostname2>[^\\s]+):(?<ip2>[^\\s]+)\\s+\\((?<ip3>[^\\s]+)\\)\\s+to\\s+(?<hostname3>[^\\s]+):(?<ip4>[^\\s]+)\\s+\\((?<ip5>[^\\s]+)\\)\\s*",
+        "status": "Deployed",
+        "siem": "Elastic",
+        "query": "index=unparsed sourcetype=catchall earliest=-5months | head 1",
+        "log_type": "ciscoasa",
+        "source_type": "demo_ciscoasa",
+        "created_at": {
+            "$date": "2025-06-02T16:42:27.935Z"
+        },
+        "props_conf": "route_to_demo_ciscoasa_4",
+        "trans_conf": "REGEX = \\[(?<process>[^\\]]+)\\]@\\[(?<hostname>[^\\]]+)\\]\\s*(?<timestamp>\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?<level>[^\\s]+)\\s+(?<user>[^\\s]+)\\s+(?<content>.+?)\\s+(?<pid>\\d+)\\s+for\\s+(?<hostname2>[^\\s]+):(?<ip2>[^\\s]+)\\s+\\((?<ip3>[^\\s]+)\\)\\s+to\\s+(?<hostname3>[^\\s]+):(?<ip4>[^\\s]+)\\s+\\((?<ip5>[^\\s]+)\\)\\s*\nDEST_KEY = index\nFORMAT = demo\n"
+    },
+    {
+        "_id": {
+            "$oid": "68254132438f38ac2818c398"
+        },
+        "id": "84_Xt_GA",
+        "timestamp": {
+            "$date": "2025-05-05T18:04:38.894Z"
+        },
+        "index": "demo",
+        "log": "4/3/2025 12:16 PM,Notice,172.16.122.237,devname=\"\"SAKRA\"\" devid=\"\"FG100ETK19030012\"\" eventtime=1743653797554605516 tz=\"\"+0800\"\" logid=\"\"0000000013\"\" type=\"\"traffic\"\" subtype=\"\"forward\"\" level=\"\"notice\"\" vd=\"\"root\"\" srcip=172.25.6.3 srcport=63311 srcintf=\"\"port3\"\" srcintfrole=\"\"undefined\"\" dstip=205.173.88.6 dstport=53 dstintf=\"\"port2\"\" dstintfrole=\"\"undefined\"\" srccountry=\"\"Reserved\"\" dstcountry=\"\"United States\"\" sessionid=100842696 proto=17 action=\"\"accept\"\" policyid=10003 policytype=\"\"policy\"\" poluuid=\"\"62dba110-ca59-51ea-7ff6-7ce39de752b9\"\" policyname=\"\"idp-app-policy-8\"\" service=\"\"UDP_53-UDP_53\"\" trandisp=\"\"noop\"\" duration=192 sentbyte=152 rcvdbyte=76 sentpkt=2 rcvdpkt=1 appcat=\"\"unscanned\"\"",
+        "regex": "^(?P<date>\\d{1,2}\\/\\d{1,2}\\/\\d{4}) (?P<time>\\d{1,2}:\\d{2} (?:AM|PM)),(?P<level>\\w+),(?P<device_ip>\\d{1,3}(?:\\.\\d{1,3}){3}),devname=\"\"(?P<devname>\\w+)\"\" devid=\"\"(?P<devid>\\w+)\"\" eventtime=(?P<eventtime>\\d+) tz=\"\"+(?P<tz_offset>[^\"\"]+)\"\" logid=\"\"(?P<logid>\\d+)\"\" type=\"\"(?P<type>\\w+)\"\" subtype=\"\"(?P<subtype>\\w+)\"\" level=\"\"(?P<level2>\\w+)\"\" vd=\"\"(?P<vd>[^\"\"]+)\"\" srcip=(?P<srcip>\\d{1,3}(?:\\.\\d{1,3}){3}) srcport=(?P<srcport>\\d+) srcintf=\"\"(?P<srcintf>[^\"\"]+)\"\" srcintfrole=\"\"(?P<srcintfrole>[^\"\"]+)\"\" dstip=(?P<dstip>\\d{1,3}(?:\\.\\d{1,3}){3}) dstport=(?P<dstport>\\d+) dstintf=\"\"(?P<dstintf>[^\"\"]+)\"\" dstintfrole=\"\"(?P<dstintfrole>[^\"\"]+)\"\" srccountry=\"\"(?P<srccountry>[^\"\"]+)\"\" dstcountry=\"\"(?P<dstcountry>[^\"\"]+)\"\" sessionid=(?P<sessionid>\\d+) proto=(?P<proto>\\d+) action=\"\"(?P<action>[^\"\"]+)\"\" policyid=(?P<policyid>\\d+) policytype=\"\"(?P<policytype>[^\"\"]+)\"\" poluuid=\"\"(?P<poluuid>[a-f0-9\\-]+)\"\" policyname=\"\"(?P<policyname>[^\"\"]+)\"\" service=\"\"(?P<service>[^\"\"]+)\"\" trandisp=\"\"(?P<trandisp>[^\"\"]+)\"\" duration=(?P<duration>\\d+) sentbyte=(?P<sentbyte>\\d+) rcvdbyte=(?P<rcvdbyte>\\d+) sentpkt=(?P<sentpkt>\\d+) rcvdpkt=(?P<rcvdpkt>\\d+) appcat=\"\"(?P<appcat>[^\"\"]+)\"\"",
+        "status": "Deployed",
+        "siem": "Elastic",
+        "query": "index=unparsed sourcetype=catchall \"devid\" earliest=-5months",
+        "log_type": "fortinet",
+        "source_type": "demo_fortinet",
+        "created_at": {
+            "$date": "2025-06-02T16:42:27.938Z"
+        },
+        "props_conf": "route_to_demo_fortinet_2",
+        "trans_conf": "REGEX = ^(?P<date>\\d{1,2}\\/\\d{1,2}\\/\\d{4}) (?P<time>\\d{1,2}:\\d{2} (?:AM|PM)),(?P<level>\\w+),(?P<device_ip>\\d{1,3}(?:\\.\\d{1,3}){3}),devname=\"\"(?P<devname>\\w+)\"\" devid=\"\"(?P<devid>\\w+)\"\" eventtime=(?P<eventtime>\\d+) tz=\"\"+(?P<tz_offset>[^\"\"]+)\"\" logid=\"\"(?P<logid>\\d+)\"\" type=\"\"(?P<type>\\w+)\"\" subtype=\"\"(?P<subtype>\\w+)\"\" level=\"\"(?P<level2>\\w+)\"\" vd=\"\"(?P<vd>[^\"\"]+)\"\" srcip=(?P<srcip>\\d{1,3}(?:\\.\\d{1,3}){3}) srcport=(?P<srcport>\\d+) srcintf=\"\"(?P<srcintf>[^\"\"]+)\"\" srcintfrole=\"\"(?P<srcintfrole>[^\"\"]+)\"\" dstip=(?P<dstip>\\d{1,3}(?:\\.\\d{1,3}){3}) dstport=(?P<dstport>\\d+) dstintf=\"\"(?P<dstintf>[^\"\"]+)\"\" dstintfrole=\"\"(?P<dstintfrole>[^\"\"]+)\"\" srccountry=\"\"(?P<srccountry>[^\"\"]+)\"\" dstcountry=\"\"(?P<dstcountry>[^\"\"]+)\"\" sessionid=(?P<sessionid>\\d+) proto=(?P<proto>\\d+) action=\"\"(?P<action>[^\"\"]+)\"\" policyid=(?P<policyid>\\d+) policytype=\"\"(?P<policytype>[^\"\"]+)\"\" poluuid=\"\"(?P<poluuid>[a-f0-9\\-]+)\"\" policyname=\"\"(?P<policyname>[^\"\"]+)\"\" service=\"\"(?P<service>[^\"\"]+)\"\" trandisp=\"\"(?P<trandisp>[^\"\"]+)\"\" duration=(?P<duration>\\d+) sentbyte=(?P<sentbyte>\\d+) rcvdbyte=(?P<rcvdbyte>\\d+) sentpkt=(?P<sentpkt>\\d+) rcvdpkt=(?P<rcvdpkt>\\d+) appcat=\"\"(?P<appcat>[^\"\"]+)\"\"\nDEST_KEY = index\nFORMAT = demo\n"
+    },
+    {
+        "_id": {
+            "$oid": "694b59e6baa6fc401ba50475"
+        },
+        "id": "A2xPPEAs",
+        "log": "2025-12-06T14:52:33Z host-7fa3 kernel[1324]: Unauthorized access attempt detected from 192.168.70.51 on port 445 (rule_id=WIN-SMB-401, severity=medium)",
+        "regex": "(?P<timestamp>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)\\s+(?P<host>[^ ]+)\\s+(?P<process>kernel\\[\\d+\\])\\:\\s+(?P<message>Unauthorized\\s+access\\s+attempt\\s+detected\\s+from\\s+(?P<source_ip>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\s+on\\s+port\\s+(?P<port>\\d+)\\s+\\((?P<rule_id>[^=]+=[^,]+),\\s+(?P<severity>[^\\)]+)\\))$",
+        "status": "Matched",
+        "log_type": "unknown",
+        "source_type": "host-7fa3",
+        "timestamp": "2025-12-24T11:11:34.011539",
+        "index": "parsed",
+        "last_modified": "2025-12-24T03:33:20.139026"
+    }
+]

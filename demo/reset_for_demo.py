@@ -11,6 +11,7 @@ if SRC_DIR.exists() and str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from services.smartlp import smartlp_service
+from database.connection import db_connection
 
 elastic_settings = smartlp_service._get_elastic_settings()
 elastic_host = elastic_settings.get("host")
@@ -43,10 +44,13 @@ output {{
         password => "{elastic_password}"
         data_stream => true
         data_stream_type => "logs"
-        data_stream_dataset => "parsed"
+        data_stream_dataset => "unparsed"
         data_stream_namespace => "default"
         }}
     }}'''
 
 smartlp_service.deploy_config_elastic(pipeline_body)
 
+# Clear the database collection "logs"
+db_connection.delete_many("logs", {})
+print("Database collection 'logs' has been cleared.")

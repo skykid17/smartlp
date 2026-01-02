@@ -12,6 +12,7 @@ import threading
 import time
 import os
 import pcre2
+import re
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple, List
@@ -23,7 +24,8 @@ from .siem import SIEMServiceFactory
 from .settings import settings_service
 from .regex_engine import regex_engine_service
 from .rag import rag_service
-from utils.formatters import generate_alphanumeric_id
+from .llm import llm_service
+from utils.formatters import generate_alphanumeric_id, clean_response
 
 # Import for Elasticsearch deployment
 try:
@@ -141,18 +143,26 @@ class SmartLPService(CRUDService):
                         self.log_info(f"[INGESTION] Skipped similar log: {log[:50]}...")
                         continue
                     
-                    # Generate regex for the log
-                    results = self.generate_regex(log, fix_count)
-                    regex = results['regex']
-                    
-                    # Run regex match to get status
-                    match_result = regex_engine_service.run_regex_match(log, regex)
-                    status = match_result['status']
-                    
                     # Determine log type and source type
                     results = self.determine_log_type(log)
                     log_type = results["log_type"]
                     source_type = results["source_type"]
+
+                    # Identify package for log
+                    package = self.resolve_native_package(log, active_siem)
+
+                    if not package:
+                        package = self.identify_package(log, log_type, source_type, active_siem)
+                    if not package['found']:
+                        # Generate regex for the log
+                        results = self.generate_regex(log, fix_count)
+                        regex = results['regex']
+                        
+                        # Run regex match to get status
+                        match_result = regex_engine_service.run_regex_match(log, regex)
+                        status = match_result['status']
+                    else:
+                        status = "Pending"
 
                     # Create log entry in database
                     entry_data = {
@@ -163,6 +173,9 @@ class SmartLPService(CRUDService):
                         'log_type': log_type,
                         'source_type': source_type,
                         'timestamp': datetime.now().isoformat(),
+                        'package_name': package.get('package_name', None),
+                        'package_url': package.get('url', None),
+                        'embedding': embedding
                     }
                     
                     entry_id = self.create(entry_data)
@@ -569,29 +582,7 @@ class SmartLPService(CRUDService):
         
         return masked
 
-    def clean_response(self, response: str) -> str:
-        """Clean up LLM response text.
-        
-        Args:
-            response: Raw response text
-            
-        Returns:
-            Cleaned response text
-        """
-        # Remove code block markers
-        response = response.replace("```", "")
-        
-        # Remove regex prefix if present
-        if response.startswith("regex"):
-            response = response[len("regex"):].strip()
-        
-        if response.startswith("`"):
-            response = response[1:-1].strip()
-
-        # Remove newlines
-        response = response.replace("\n", "")
-        
-        return response.strip()
+    
 
     def generate_regex(self, log: str, fix_count: int = 3) -> Dict[str, Any]:
         """Unified entrypoint for regex generation."""
@@ -737,8 +728,8 @@ class SmartLPService(CRUDService):
             self.log_info("Determining log type for entry")
             
             system_prompt = settings_service.get_prompts_settings("detect_type")
-            response = self.query_llm(log, system_prompt)
-
+            response = llm_service.query_llm(log, system_prompt)
+            
             if not response["success"]:
                 return {
                     "success": False,
@@ -797,6 +788,107 @@ class SmartLPService(CRUDService):
             return 'system', 'syslog'
         else:
             return 'unknown', 'generic'
+    
+    def get_package_url(self, package_name: str, siem: str) -> str:
+        """Get package URL based on SIEM type."""
+        if siem == "elastic":
+            return f"https://www.elastic.co/docs/reference/integrations/{package_name}"
+        elif siem == "splunk":
+            package_number = {
+                "TA-Windows": "742",
+            }.get(package_name, "unknown")
+            return f"https://splunkbase.splunk.com/app/{package_number}"
+        return ""
+    
+    def resolve_native_package(self, log: str, source_type: str, active_siem: str) -> Optional[Dict[str, Any]]:
+        """
+        Refactored package resolution using regex for channel extraction 
+        and dictionary-based lookups for cleaner logic.
+        """
+        if source_type.lower() != "windows":
+            return None
+
+        # 1. Extract the Channel name using Regex (faster than full XML parsing)
+        channel_match = re.search(r"<Channel>(.*?)</Channel>", log, re.IGNORECASE)
+        channel = channel_match.group(1) if channel_match else ""
+
+        # 2. Define the logic for package selection
+        # Standard channels go to 'windows', everything else to 'winlog'
+        standard_channels = {"application", "security", "system"}
+        
+        is_elastic = (active_siem.lower() == "elastic")
+        
+        # Determine package name based on SIEM and Channel
+        if channel.lower() in standard_channels:
+            pkg_name = "windows" if is_elastic else "TA-Windows"
+            confidence = 0.9  # High confidence for standard logs
+        else:
+            pkg_name = "winlog" if is_elastic else "TA-Windows"
+            confidence = 0.7  # Lower confidence for custom channels
+
+        # 3. Construct and return the response
+        return {
+            "is_native": True,
+            "package_name": pkg_name,
+            "url": self.get_package_url(pkg_name, active_siem),
+            "siem": active_siem,
+            "confidence": confidence,
+            "found": True,
+            "metadata": {"extracted_channel": channel} # Useful for debugging
+        }
+
+    def identify_package(self, log: str, log_type: str, source_type: str, active_siem: str = None) -> Dict[str, Any]:
+        """Identify package for the log based on log_type and source_type."""
+        if not active_siem:
+            active_siem = settings_service.get_global_settings().get("active_siem")
+        self.log_info(f"Identifying {active_siem} package for log entry...")
+        
+        # Fetch Settings
+        system_prompt = settings_service.get_prompts_settings("identify_package")
+        
+        # Prepare RAG Query
+        user_prompt = f"log: {log}\nlog_type: {log_type}\nsource_type: {source_type}\nsiem: {active_siem}"
+        
+        # Execute RAG
+        response = rag_service.query_rag(user_prompt, system_prompt, filter_category=f"{active_siem}_packages")
+
+        # Handle RAG System Failure (Database down, Network error, etc.)
+        if not response["success"]:
+            return {
+                "success": False,
+                "found": False,
+                "context": response.get("context", []),
+                "error": f"RAG Service Failure: {response.get('error')}",
+                "package_name": "",
+                "url": ""
+            }
+
+        # Parse LLM Result
+        try:
+            content = clean_response(response["content"])
+            result = json.loads(content)
+        except json.JSONDecodeError as e:
+            return {
+                "success": False,
+                "found": False,
+                "context": response["context"],
+                "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response['content']}",
+                "package_name": "", 
+                "url": ""
+            }
+
+        # Determine "Found" vs "Not Found"
+        package_name = result.get("package_name", "")
+        is_found = bool(package_name and package_name.strip())
+
+        return {
+            "success": True,          # The operation completed successfully (no crashes)
+            "found": is_found,        # Did we actually find the package?
+            "context": response["context"],
+            "package_name": package_name,
+            "url": result.get("url", ""),
+            "error": None
+        }
 
     def resolve_duplicate_capture_groups(self, regex: str) -> str:
         """Resolve duplicate named capture groups by appending incremental numbers.

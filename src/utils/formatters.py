@@ -98,3 +98,30 @@ def truncate_text(text: str, max_length: int = 100, suffix: str = "...") -> str:
         return text
     
     return text[:max_length - len(suffix)] + suffix
+
+def clean_response(response: str) -> str:
+    """Clean up LLM response text.
+    
+    Args:
+        response: Raw response text
+        
+    Returns:
+        Cleaned response text
+    """
+    # Remove code block markers
+    response = response.replace("```", "")
+    
+    # Remove regex prefix if present
+    if response.startswith("regex"):
+        response = response[len("regex"):].strip()
+    
+    if response.startswith("json"):
+        response = response[len("json"):].strip()
+    
+    if response.startswith("`"):
+        response = response[1:-1].strip()
+
+    # Remove newlines
+    response = response.replace("\n", "")
+    
+    return response.strip()
