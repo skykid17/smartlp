@@ -534,7 +534,6 @@ class RAG:
             # ---- 1. Build retrieval query ----
             retrieval_query = user_prompt.strip()
         
-
             coll = self._ensure_collection()
             retriever = self._MongoHybridRetriever(
                 collection=coll,

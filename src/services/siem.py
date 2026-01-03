@@ -370,7 +370,7 @@ class SIEMServiceFactory:
         """Get SIEM service instance (alias for create_service for backward compatibility).
         
         Args:
-            siem_type: Type of SIEM ('splunk', 'elastic', 'elasticsearch')
+            siem_type: Type of SIEM ('splunk', 'elastic')
             
         Returns:
             SIEM service instance or None if type not supported

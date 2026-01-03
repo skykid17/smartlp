@@ -149,7 +149,8 @@ class SmartLPService(CRUDService):
                     source_type = results["source_type"]
 
                     # Identify package for log
-                    package = self.resolve_native_package(log, active_siem)
+                    package = self.resolve_native_package(log, source_type, active_siem)
+                    regex = None
 
                     if not package:
                         package = self.identify_package(log, log_type, source_type, active_siem)
@@ -174,7 +175,7 @@ class SmartLPService(CRUDService):
                         'source_type': source_type,
                         'timestamp': datetime.now().isoformat(),
                         'package_name': package.get('package_name', None),
-                        'package_url': package.get('url', None),
+                        'package_url': package.get('package_url', None),
                         'embedding': embedding
                     }
                     
@@ -612,7 +613,7 @@ class SmartLPService(CRUDService):
             }
 
         # Clean
-        regex = self.clean_response(result["content"])
+        regex = clean_response(result["content"])
         if not regex.endswith("$"):
             regex += "$"
 
@@ -651,7 +652,7 @@ class SmartLPService(CRUDService):
                     "latency": total_latency
                 }
 
-            raw = self.clean_response(result["content"])
+            raw = clean_response(result["content"])
             if not raw.endswith("$"):
                 raw += "$"
 
@@ -710,7 +711,7 @@ class SmartLPService(CRUDService):
                 "latency": result["latency"]
             }
 
-        fixed = self.clean_response(result["content"])
+        fixed = clean_response(result["content"])
         if not fixed.endswith("$"):
             fixed += "$"
 
@@ -729,7 +730,7 @@ class SmartLPService(CRUDService):
             
             system_prompt = settings_service.get_prompts_settings("detect_type")
             response = llm_service.query_llm(log, system_prompt)
-            
+
             if not response["success"]:
                 return {
                     "success": False,
@@ -740,7 +741,7 @@ class SmartLPService(CRUDService):
 
             # Parse JSON
             try:
-                result = json.loads(response["content"])
+                result = json.loads(clean_response(response["content"]))
                 return {
                     "success": True,
                     "source_type": result.get("source_type", "unknown"),
@@ -830,7 +831,7 @@ class SmartLPService(CRUDService):
         return {
             "is_native": True,
             "package_name": pkg_name,
-            "url": self.get_package_url(pkg_name, active_siem),
+            "package_url": self.get_package_url(pkg_name, active_siem),
             "siem": active_siem,
             "confidence": confidence,
             "found": True,
@@ -860,7 +861,7 @@ class SmartLPService(CRUDService):
                 "context": response.get("context", []),
                 "error": f"RAG Service Failure: {response.get('error')}",
                 "package_name": "",
-                "url": ""
+                "package_url": ""
             }
 
         # Parse LLM Result
@@ -874,7 +875,7 @@ class SmartLPService(CRUDService):
                 "context": response["context"],
                 "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response['content']}",
                 "package_name": "", 
-                "url": ""
+                "package_url": ""
             }
 
         # Determine "Found" vs "Not Found"
@@ -886,7 +887,7 @@ class SmartLPService(CRUDService):
             "found": is_found,        # Did we actually find the package?
             "context": response["context"],
             "package_name": package_name,
-            "url": result.get("url", ""),
+            "package_url": result.get("package_url", ""),
             "error": None
         }
 

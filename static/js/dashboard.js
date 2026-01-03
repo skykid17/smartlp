@@ -128,7 +128,9 @@ class Dashboard {
         this.entries.forEach(entry => {
             const row = document.createElement('tr');
             row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-150';
-            row.onclick = () => this.showEntryDetails(entry);
+            row.addEventListener('click', () => {
+                this.showEntryDetails(entry);
+            });
             const statusBadge = this.getStatusBadge(entry.status.toLowerCase());
 
             row.innerHTML = `
@@ -136,13 +138,22 @@ class Dashboard {
                     ${entry.id}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    ${new Date(entry.timestamp).toLocaleString()}
+                    ${new Date(entry.timestamp).toLocaleString('en-GB', {
+                day: 'numeric',    // "2"
+                month: 'short',    // "Jan"
+                hour: '2-digit',   // "10"
+                minute: '2-digit', // "34"
+                hour12: false      // 24-hour format (Standard for SecOps)
+            })}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 truncate w-1/3 max-w-0" title="${this.escapeHtml(entry.log)}">
                     ${this.escapeHtml(entry.log.substring(0, 100))}${entry.log.length > 100 ? '...' : ''}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 truncate w-1/4 max-w-0" title="${this.escapeHtml(entry.regex || '')}">
-                    ${this.escapeHtml((entry.regex || '').substring(0, 50))}${entry.regex && entry.regex.length > 50 ? '...' : ''}
+                    ${entry.regex
+                    ? this.escapeHtml((entry.regex || '').substring(0, 50))
+                    : `<a href="${entry.package_url}" target="_blank" class="badge badge-native" title="Package available">${this.escapeHtml(entry.package_name)}</a>`
+                }${entry.regex && entry.regex.length > 50 ? '...' : ''}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                     ${statusBadge}
@@ -376,6 +387,21 @@ class Dashboard {
         document.getElementById('modalLog').textContent = entry.log;
         document.getElementById('modalRegex').textContent = entry.regex || 'N/A';
 
+        const pkgLink = document.getElementById('modalPackageUrl');
+        const pkgName = document.getElementById('modalPackageName');
+
+        if (pkgLink && pkgName) {
+            if (entry.package_url) {
+                pkgLink.href = entry.package_url;
+                pkgLink.classList.remove('pointer-events-none', 'text-gray-400');
+                pkgName.textContent = entry.package_name || 'View Package';
+            } else {
+                pkgLink.removeAttribute('href');
+                pkgLink.classList.add('pointer-events-none', 'text-gray-400');
+                pkgName.textContent = 'N/A';
+            }
+        }
+
         const statusEl = document.getElementById('modalStatus');
         statusEl.innerHTML = this.getStatusBadge(entry.status.toLowerCase());
 
@@ -387,6 +413,7 @@ class Dashboard {
 
     closeModal() {
         document.getElementById('entryModal')?.classList.add('hidden');
+        this.currentEntry = null;
     }
 
     async saveEntryChanges() {

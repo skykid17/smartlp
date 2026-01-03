@@ -11,7 +11,8 @@
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Idle</span>
         </div>
         <!-- Config Hub Button -->
-        <button onclick="window.configHub.toggle()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center space-x-2">
+        <button onclick="window.configHub.toggle()"
+            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center space-x-2">
             <i class="fas fa-cogs"></i>
             <span>Config Hub</span>
         </button>
@@ -33,7 +34,7 @@
                 <label for="searchId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <i class="fas fa-tag mr-1"></i>ID Search
                 </label>
-                <input type="text" id="searchId" 
+                <input type="text" id="searchId"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="Enter ID or comma-separated IDs...">
             </div>
@@ -41,7 +42,7 @@
                 <label for="searchLog" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <i class="fas fa-file-alt mr-1"></i>Log Content
                 </label>
-                <input type="text" id="searchLog" 
+                <input type="text" id="searchLog"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="Search in log content...">
             </div>
@@ -49,7 +50,7 @@
                 <label for="searchRegex" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <i class="fas fa-code mr-1"></i>Regex Pattern
                 </label>
-                <input type="text" id="searchRegex" 
+                <input type="text" id="searchRegex"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="Search regex patterns...">
             </div>
@@ -57,7 +58,7 @@
                 <label for="filterStatusSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <i class="fas fa-filter mr-1"></i>Status Filter
                 </label>
-                <select id="filterStatusSelect" 
+                <select id="filterStatusSelect"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                     <option value="">All Statuses</option>
                     {% for status in statuses %}
@@ -69,27 +70,27 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-wrap items-center gap-2">
-            <button id="clearSearchButton" 
+            <button id="clearSearchButton"
                 class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
                 <i class="fas fa-eraser mr-2"></i>Reset
             </button>
-            <button id="refreshButton" 
+            <button id="refreshButton"
                 class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
                 <i class="fas fa-sync-alt mr-2"></i>Refresh
             </button>
             <div class="ml-auto flex flex-wrap gap-2">
-                <button id="clearSelectionButton" 
-                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                <button id="clearSelectionButton"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled>
                     <i class="fas fa-times mr-2"></i>Clear Selection
                 </button>
-                <button id="openParserButton" 
-                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                <button id="openParserButton"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled>
                     <i class="fas fa-edit mr-2"></i>Parse
                 </button>
-                <button id="deleteEntriesButton" 
-                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                <button id="deleteEntriesButton"
+                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled>
                     <i class="fas fa-trash mr-2"></i>Delete
                 </button>
@@ -110,7 +111,7 @@
         <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2">
                 <label for="rowsPerPage" class="text-sm text-gray-700 dark:text-gray-300">Rows:</label>
-                <select id="rowsPerPage" 
+                <select id="rowsPerPage"
                     class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm">
                     <option value="10">10</option>
                     <option value="15" selected>15</option>
@@ -118,16 +119,16 @@
                     <option value="50">50</option>
                 </select>
             </div>
-            
+
             <div class="flex items-center space-x-2">
-                <button id="prevPage" 
+                <button id="prevPage"
                     class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                     <i class="fas fa-chevron-left mr-1"></i>Previous
                 </button>
                 <div id="pagination-buttons" class="flex items-center space-x-1">
                     <!-- Page buttons will be inserted here -->
                 </div>
-                <button id="nextPage" 
+                <button id="nextPage"
                     class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                     Next<i class="fas fa-chevron-right ml-1"></i>
                 </button>
@@ -135,10 +136,10 @@
 
             <div class="flex items-center space-x-2">
                 <label for="pageInput" class="text-sm text-gray-700 dark:text-gray-300">Go to:</label>
-                <input type="number" id="pageInput" min="1" 
+                <input type="number" id="pageInput" min="1"
                     class="w-20 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm"
                     placeholder="Page">
-                <button id="goToPage" 
+                <button id="goToPage"
                     class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm">
                     <i class="fas fa-arrow-right"></i>
                 </button>
@@ -156,27 +157,33 @@
         </h2>
         <span id="resultsCount" class="text-sm text-gray-600 dark:text-gray-400">0 entries</span>
     </div>
-    
+
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         <i class="fas fa-tag mr-1"></i>ID
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         <i class="fas fa-clock mr-1"></i>Timestamp
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         <i class="fas fa-file-alt mr-1"></i>Log Content
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        <i class="fas fa-code mr-1"></i>Regex
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        <i class="fas fa-code mr-1"></i>Parser/<i class="fas fa-box mr-1"></i>Package
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         <i class="fas fa-info-circle mr-1"></i>Status
                     </th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th
+                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         <i class="fas fa-check-square mr-1"></i>Select
                     </th>
                 </tr>
@@ -193,17 +200,20 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Entry Details</h2>
-            <button id="entryModalClose" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <button id="entryModalClose"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <i class="fas fa-times text-xl"></i>
             </button>
         </div>
-        
+
         <div class="flex-1 overflow-y-auto p-6 space-y-4">
             <!-- ID -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ID</label>
-                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
                         <i class="fas fa-copy"></i>
                     </button>
                     <code id="modalId" class="text-sm text-gray-900 dark:text-gray-100"></code>
@@ -213,8 +223,10 @@
             <!-- Timestamp -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timestamp</label>
-                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
                         <i class="fas fa-copy"></i>
                     </button>
                     <code id="modalTimestamp" class="text-sm text-gray-900 dark:text-gray-100"></code>
@@ -223,23 +235,28 @@
 
             <!-- Index -->
             <div>
-                <label for="modalIndex" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Index</label>
-                <input type="text" id="modalIndex" 
+                <label for="modalIndex"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Index</label>
+                <input type="text" id="modalIndex"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
             </div>
 
             <!-- Source Type -->
             <div>
-                <label for="modalSourceType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source Type</label>
-                <input type="text" id="modalSourceType" 
+                <label for="modalSourceType"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source Type</label>
+                <input type="text" id="modalSourceType"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
             </div>
 
             <!-- Log Type -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Suggested Log Type</label>
-                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Suggested Log
+                    Type</label>
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
                         <i class="fas fa-copy"></i>
                     </button>
                     <code id="modalLogType" class="text-sm text-gray-900 dark:text-gray-100"></code>
@@ -249,22 +266,44 @@
             <!-- Log Content -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Log</label>
-                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <code id="modalLog" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words"></code>
+                    <code id="modalLog"
+                        class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words"></code>
                 </div>
             </div>
 
             <!-- Regex -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Regex</label>
-                <div class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                    <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
                         <i class="fas fa-copy"></i>
                     </button>
-                    <code id="modalRegex" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words"></code>
+                    <code id="modalRegex"
+                        class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words"></code>
+                </div>
+            </div>
+
+            <!-- Package Name (now a single block hyperlinked to the package URL) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Package</label>
+                <div
+                    class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                    <button
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <a id="modalPackageUrl" href="#" target="_blank"
+                        class="text-sm text-blue-600 dark:text-blue-400 underline break-words">
+                        <span id="modalPackageName" class="text-sm text-gray-900 dark:text-gray-100"></span>
+                    </a>
                 </div>
             </div>
 
@@ -276,15 +315,15 @@
         </div>
 
         <div class="flex justify-end space-x-2 p-6 border-t border-gray-200 dark:border-gray-700">
-            <button id="saveEntryChangesBtn" 
+            <button id="saveEntryChangesBtn"
                 class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
                 <i class="fas fa-save mr-2"></i>Save Changes
             </button>
-            <button id="openParserFromModal" 
+            <button id="openParserFromModal"
                 class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
                 <i class="fas fa-edit mr-2"></i>Parse
             </button>
-            <button id="deleteEntryFromModal" 
+            <button id="deleteEntryFromModal"
                 class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200">
                 <i class="fas fa-trash mr-2"></i>Delete
             </button>
