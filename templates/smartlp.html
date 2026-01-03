@@ -71,7 +71,7 @@
         <!-- Logger Button at Bottom -->
         <div class="border-t border-gray-700 p-4">
             <button id="loggerToggle"
-                class="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200 w-full"
+                class="nav-link flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-sidebar-hover hover:text-white rounded-lg transition-all duration-200 w-full"
                 title="Toggle Logger Panel">
                 <i class="fas fa-terminal w-5"></i>
                 <span class="nav-text">Logger</span>
@@ -310,7 +310,7 @@
 
         // Navigation System
         function initializeNavigation() {
-            const navLinks = document.querySelectorAll('.nav-link');
+            const navLinks = document.querySelectorAll('.nav-link[data-section]');
 
             navLinks.forEach(link => {
                 link.addEventListener('click', function (e) {
@@ -323,7 +323,7 @@
 
         function navigateToSection(sectionId) {
             // Update active nav link
-            document.querySelectorAll('.nav-link').forEach(link => {
+            document.querySelectorAll('.nav-link[data-section]').forEach(link => {
                 if (link.getAttribute('data-section') === sectionId) {
                     link.classList.add('bg-blue-600', 'text-white');
                     link.classList.remove('text-gray-300');

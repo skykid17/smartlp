@@ -14,7 +14,7 @@ import os
 import pcre2
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, List
 from collections import defaultdict
 
@@ -154,7 +154,7 @@ class SmartLPService(CRUDService):
 
                     if not package:
                         package = self.identify_package(log, log_type, source_type, active_siem)
-                    if not package['found']:
+                    if not package['package_name'] and not package['package_url']:
                         # Generate regex for the log
                         results = self.generate_regex(log, fix_count)
                         regex = results['regex']
@@ -297,7 +297,6 @@ class SmartLPService(CRUDService):
         """
         try:
             statuses = self.db.get_distinct_values(self.collection_name, "status")
-            self.log_info(f"Retrieved {len(statuses)} unique statuses: {statuses}")
             return statuses
         except Exception as e:
             self.log_error(f"Failed to get all statuses: {str(e)}", e)
@@ -351,34 +350,128 @@ class SmartLPService(CRUDService):
             # Initialize counters
             parsed_count = 0
             unparsed_count = 0
-            logtype_stats = {}
+            logtype_stats: Dict[str, int] = {}
+
+            # Time series aggregation inputs
+            timestamp_rows: List[tuple[datetime, bool]] = []
             
             # Process entries
             for entry in all_entries:
-                status = entry.get('status', 'Unmatched')
-                log_type = entry.get('logtype', 'Unknown')
-                
-                # Count parsed vs unparsed
-                if status == 'Unmatched' or status == "Partially Matched":
+                status_raw = entry.get('status', 'Unmatched')
+                status_norm = str(status_raw).strip().lower().replace('_', '-')
+                if status_norm == 'partially matched':
+                    status_norm = 'partially-matched'
+
+                is_unparsed = status_norm in {'unmatched', 'partially-matched'}
+
+                # Dashboard uses `entry.log_type`; keep backward-compatible fallbacks.
+                log_type = (
+                    entry.get('log_type')
+                    or entry.get('logtype')
+                    or entry.get('logType')
+                    or 'Unknown'
+                )
+                log_type = str(log_type).strip() or 'Unknown'
+
+                # Parse timestamp for volume chart
+                raw_ts = entry.get('timestamp') or entry.get('time') or entry.get('@timestamp')
+                if raw_ts is not None:
+                    dt: datetime | None = None
+                    try:
+                        if isinstance(raw_ts, (int, float)):
+                            dt = datetime.fromtimestamp(float(raw_ts), tz=timezone.utc)
+                        else:
+                            ts_str = str(raw_ts).strip()
+                            # Handle common ISO forms, including trailing 'Z'
+                            dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                            if dt.tzinfo is None:
+                                dt = dt.replace(tzinfo=timezone.utc)
+                    except Exception:
+                        dt = None
+
+                    if dt is not None:
+                        dt_utc = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                        timestamp_rows.append((dt_utc, is_unparsed))
+
+                # Count parsed vs unparsed and aggregate unparsed log types
+                if is_unparsed:
                     unparsed_count += 1
+                    logtype_stats[log_type] = logtype_stats.get(log_type, 0) + 1
                 else:
                     parsed_count += 1
-                    
-                    # Count unparsed by logtype for top 5
-                    if log_type not in logtype_stats:
-                        logtype_stats[log_type] = 0
-                    logtype_stats[log_type] += 1
             
             # Get top 5 unparsed logtypes
             sorted_logtypes = sorted(logtype_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+
+            # Build volume-over-time series (earliest -> latest, dynamic range)
+            volume_over_time: List[Dict[str, Any]] = []
+            if timestamp_rows:
+                min_dt = min(dt for dt, _ in timestamp_rows)
+                max_dt = max(dt for dt, _ in timestamp_rows)
+                span = max_dt - min_dt
+
+                if span <= timedelta(hours=48):
+                    bucket = 'hour'
+                    step = timedelta(hours=1)
+                elif span <= timedelta(days=120):
+                    bucket = 'day'
+                    step = timedelta(days=1)
+                else:
+                    bucket = 'week'
+                    step = timedelta(days=7)
+
+                def floor_bucket(dt: datetime) -> datetime:
+                    if bucket == 'hour':
+                        return dt.replace(minute=0, second=0, microsecond=0)
+                    if bucket == 'day':
+                        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # week bucket (Monday as start of week)
+                    start = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                    return start - timedelta(days=start.weekday())
+
+                start_dt = floor_bucket(min_dt)
+                end_dt = floor_bucket(max_dt)
+
+                buckets: Dict[datetime, Dict[str, int]] = {}
+                cursor = start_dt
+                while cursor <= end_dt:
+                    buckets[cursor] = {'parsed': 0, 'unparsed': 0}
+                    cursor += step
+
+                for dt, is_unparsed in timestamp_rows:
+                    key = floor_bucket(dt)
+                    if key not in buckets:
+                        buckets[key] = {'parsed': 0, 'unparsed': 0}
+                    if is_unparsed:
+                        buckets[key]['unparsed'] += 1
+                    else:
+                        buckets[key]['parsed'] += 1
+
+                for key in sorted(buckets.keys()):
+                    parsed_v = buckets[key]['parsed']
+                    unparsed_v = buckets[key]['unparsed']
+                    if bucket == 'hour':
+                        label = key.strftime('%Y-%m-%d %H:00')
+                    elif bucket == 'day':
+                        label = key.strftime('%Y-%m-%d')
+                    else:
+                        label = f"Week of {key.strftime('%Y-%m-%d')}"
+
+                    volume_over_time.append({
+                        'label': label,
+                        'parsed': parsed_v,
+                        'unparsed': unparsed_v,
+                        'total': parsed_v + unparsed_v
+                    })
             
             # Format for frontend compatibility
             report_data = {
                 'parsed': parsed_count,
                 'unparsed': unparsed_count,
                 'logtypes': sorted_logtypes,  # Array of [logtype, count] pairs
+                'volume_over_time': volume_over_time,
                 'total': parsed_count + unparsed_count,
-                'generated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+                'generated_at': datetime.utcnow().isoformat()
             }
             
             self.log_info(f"Report generated successfully: {parsed_count} parsed, {unparsed_count} unparsed entries")
@@ -797,45 +890,42 @@ class SmartLPService(CRUDService):
         elif siem == "splunk":
             package_number = {
                 "TA-Windows": "742",
+                "TA-VMWare": "3215",
             }.get(package_name, "unknown")
             return f"https://splunkbase.splunk.com/app/{package_number}"
         return ""
     
     def resolve_native_package(self, log: str, source_type: str, active_siem: str) -> Optional[Dict[str, Any]]:
-        """
-        Refactored package resolution using regex for channel extraction 
-        and dictionary-based lookups for cleaner logic.
-        """
-        if source_type.lower() != "windows":
+        siem = active_siem.lower()
+        source = source_type.lower()
+
+        if source == "windows":
+            channel_match = re.search(r"<Channel>(.*?)</Channel>", log, re.IGNORECASE)
+            channel = channel_match.group(1).lower() if channel_match else ""
+            standard_channels = {"application", "security", "system"}
+
+            if siem == "elastic":
+                pkg_name = "windows" if channel in standard_channels else "winlog"
+            elif siem == "splunk":
+                pkg_name = "TA-Windows"
+            else:
+                return None
+
+        elif source in {"vmware", "vsphere"}:
+            if siem == "elastic":
+                pkg_name = "vsphere"
+            elif siem == "splunk":
+                pkg_name = "TA-VMWare"
+            else:
+                return None
+        else:
             return None
 
-        # 1. Extract the Channel name using Regex (faster than full XML parsing)
-        channel_match = re.search(r"<Channel>(.*?)</Channel>", log, re.IGNORECASE)
-        channel = channel_match.group(1) if channel_match else ""
-
-        # 2. Define the logic for package selection
-        # Standard channels go to 'windows', everything else to 'winlog'
-        standard_channels = {"application", "security", "system"}
-        
-        is_elastic = (active_siem.lower() == "elastic")
-        
-        # Determine package name based on SIEM and Channel
-        if channel.lower() in standard_channels:
-            pkg_name = "windows" if is_elastic else "TA-Windows"
-            confidence = 0.9  # High confidence for standard logs
-        else:
-            pkg_name = "winlog" if is_elastic else "TA-Windows"
-            confidence = 0.7  # Lower confidence for custom channels
-
-        # 3. Construct and return the response
         return {
             "is_native": True,
             "package_name": pkg_name,
-            "package_url": self.get_package_url(pkg_name, active_siem),
-            "siem": active_siem,
-            "confidence": confidence,
-            "found": True,
-            "metadata": {"extracted_channel": channel} # Useful for debugging
+            "package_url": self.get_package_url(pkg_name, siem),
+            "found": True
         }
 
     def identify_package(self, log: str, log_type: str, source_type: str, active_siem: str = None) -> Dict[str, Any]:

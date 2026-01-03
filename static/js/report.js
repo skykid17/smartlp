@@ -216,13 +216,17 @@ class Report {
         const colors = this.getThemeColors();
         const timeline = Array.isArray(data.volume_over_time) && data.volume_over_time.length
             ? data.volume_over_time
-            : [
-                { label: 'Parsed', total: data.parsed || 0 },
-                { label: 'Unparsed', total: data.unparsed || 0 }
-            ];
+            : [];
 
-        const labels = timeline.map((item) => item.label || item.date || 'N/A');
-        const totals = timeline.map((item) => item.total ?? (item.parsed || 0) + (item.unparsed || 0));
+        const labels = timeline.length
+            ? timeline.map((item) => item.label || item.date || 'N/A')
+            : ['N/A'];
+        const parsedSeries = timeline.length
+            ? timeline.map((item) => Number(item.parsed ?? 0))
+            : [Number(data.parsed || 0)];
+        const unparsedSeries = timeline.length
+            ? timeline.map((item) => Number(item.unparsed ?? 0))
+            : [Number(data.unparsed || 0)];
 
         this.charts.volume = new Chart(canvas, {
             type: 'line',
@@ -230,10 +234,18 @@ class Report {
                 labels,
                 datasets: [
                     {
-                        label: 'Total Logs',
-                        data: totals,
-                        borderColor: colors.accent[0],
-                        backgroundColor: colors.accent[0],
+                        label: 'Parsed Logs',
+                        data: parsedSeries,
+                        borderColor: colors.parsed,
+                        backgroundColor: colors.parsed,
+                        tension: 0.3,
+                        fill: false
+                    },
+                    {
+                        label: 'Unparsed Logs',
+                        data: unparsedSeries,
+                        borderColor: colors.unparsed,
+                        backgroundColor: colors.unparsed,
                         tension: 0.3,
                         fill: false
                     }
