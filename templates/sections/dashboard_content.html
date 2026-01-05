@@ -291,6 +291,19 @@
                 </div>
             </div>
 
+            <!-- Detection Rules -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Detection Rules</label>
+
+                <!-- Empty state (shown when detection_status === 'none' or no rules) -->
+                <p id="modalDetectionRulesEmpty" class="hidden text-sm text-gray-500 dark:text-gray-400">
+                    No detection rules recommended for this log.
+                </p>
+
+                <!-- Rules list -->
+                <div id="modalDetectionRulesList" class="space-y-3"></div>
+            </div>
+
             <!-- Package Name (now a single block hyperlinked to the package URL) -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Package</label>

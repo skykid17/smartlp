@@ -16,6 +16,7 @@ import logging
 import sys
 import pcre2
 import time
+from tqdm import tqdm 
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -204,11 +205,16 @@ class RAG:
         metadata = filter_metadata(dict(chunk.metadata or {}), allowed_metadata)
         metadata.setdefault("source", chunk.metadata.get("source", "unknown"))
         metadata.setdefault("file_type", chunk.metadata.get("file_type", "text"))
-        content_hash = hashlib.sha1(chunk.page_content.encode("utf-8")).hexdigest()
+        
+        # Sigma aware content normalisation
+        content = chunk.page_content.strip()
+        
+        content_hash = hashlib.sha1(content.encode("utf-8")).hexdigest()
+
         return {
             "_id": content_hash,
             "chunk_id": content_hash,
-            "content": chunk.page_content,
+            "content": content,
             "metadata": metadata,
             "embedding": embedding,
             "embedding_provider": provider,
@@ -247,7 +253,7 @@ class RAG:
         mongo_batch: List[Dict] = []
         inserted = 0
 
-        for chunk_batch in batched(chunks_to_embed, self.embedding_batch_size):
+        for chunk_batch in tqdm(batched(chunks_to_embed, self.embedding_batch_size)):
             texts = [c.page_content for c in chunk_batch]
             embeddings = self.generate_embeddings(texts, show_progress=False)
             for chunk, embedding in zip(chunk_batch, embeddings):
@@ -486,6 +492,7 @@ class RAG:
             model= model_override or "qwen25-coder-32b-awq",
             base_url=url_override or "http://192.168.125.31:8000/v1",
             api_key=api_key_override or "test",
+            temperature=0,
         )
 
         prompt = PromptTemplate(

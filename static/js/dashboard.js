@@ -405,10 +405,127 @@ class Dashboard {
         const statusEl = document.getElementById('modalStatus');
         statusEl.innerHTML = this.getStatusBadge(entry.status.toLowerCase());
 
+        // Detection rules (frontend-only rendering)
+        this.renderDetectionRules(entry);
+
         // Store current entry
         this.currentEntry = entry;
 
         modal.classList.remove('hidden');
+    }
+
+    renderDetectionRules(entry) {
+        const emptyEl = document.getElementById('modalDetectionRulesEmpty');
+        const listEl = document.getElementById('modalDetectionRulesList');
+        if (!emptyEl || !listEl) return;
+
+        // Clear previous content
+        listEl.innerHTML = '';
+        emptyEl.classList.add('hidden');
+
+        const rules = Array.isArray(entry?.detection_rules) ? entry.detection_rules : [];
+        const status = (entry?.detection_status || '').toLowerCase();
+
+        if (status === 'none' || rules.length === 0) {
+            emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        // Sort by confidence descending
+        const sorted = [...rules].sort((a, b) => (b?.confidence ?? 0) - (a?.confidence ?? 0));
+
+        sorted.forEach((rule, idx) => {
+            const title = (rule?.title ?? '').toString();
+            const confidence = Number(rule?.confidence ?? 0);
+            const reason = (rule?.reason ?? '').toString();
+            const siemRule = (rule?.siem_rule ?? '').toString();
+
+            const pct = Number.isFinite(confidence) ? Math.round(confidence * 100) : 0;
+
+            let badgeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+            if (confidence >= 0.9) {
+                badgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+            } else if (confidence >= 0.8) {
+                badgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+            }
+
+            const card = document.createElement('div');
+            card.className = 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800';
+
+            // Header row: Sigma ID + copy button + confidence badge
+            const headerRow = document.createElement('div');
+            headerRow.className = 'flex items-start justify-between gap-3';
+
+            const sigmaWrap = document.createElement('div');
+            sigmaWrap.className = 'min-w-0 flex-1';
+
+            const sigmaBox = document.createElement('div');
+            sigmaBox.className = 'relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-10';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn';
+            copyBtn.setAttribute('aria-label', 'Copy Sigma ID');
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+
+            const sigmaCode = document.createElement('code');
+            sigmaCode.className = 'text-sm text-gray-900 dark:text-gray-100 font-mono whitespace-pre-wrap break-words';
+            sigmaCode.textContent = title || 'N/A';
+
+            sigmaBox.appendChild(copyBtn);
+            sigmaBox.appendChild(sigmaCode);
+            sigmaWrap.appendChild(sigmaBox);
+
+            const badge = document.createElement('span');
+            badge.className = `shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`;
+            badge.textContent = `${pct}%`;
+
+            headerRow.appendChild(sigmaWrap);
+            headerRow.appendChild(badge);
+
+            // Reason
+            const reasonEl = document.createElement('p');
+            reasonEl.className = 'mt-2 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words';
+            reasonEl.textContent = reason || '';
+
+            card.appendChild(headerRow);
+            if (reason) card.appendChild(reasonEl);
+
+            // Optional expandable SIEM rule
+            const hasSiemRule = Boolean(siemRule && siemRule.trim());
+            if (hasSiemRule) {
+                const controlsId = `modalSiemRule_${Date.now()}_${idx}`;
+
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline';
+                toggleBtn.textContent = 'View SIEM Rule';
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                toggleBtn.setAttribute('aria-controls', controlsId);
+
+                const siemContainer = document.createElement('div');
+                siemContainer.id = controlsId;
+                siemContainer.className = 'mt-2 hidden';
+
+                const pre = document.createElement('pre');
+                pre.className = 'text-xs text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 whitespace-pre-wrap break-words overflow-x-auto';
+                pre.textContent = siemRule;
+
+                siemContainer.appendChild(pre);
+
+                toggleBtn.addEventListener('click', () => {
+                    const isHidden = siemContainer.classList.contains('hidden');
+                    siemContainer.classList.toggle('hidden', !isHidden);
+                    toggleBtn.setAttribute('aria-expanded', String(isHidden));
+                    toggleBtn.textContent = isHidden ? 'Hide SIEM Rule' : 'View SIEM Rule';
+                });
+
+                card.appendChild(toggleBtn);
+                card.appendChild(siemContainer);
+            }
+
+            listEl.appendChild(card);
+        });
     }
 
     closeModal() {

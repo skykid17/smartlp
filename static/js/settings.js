@@ -43,6 +43,7 @@ class Settings {
             saveBtn: document.getElementById('saveSettingsBtn'),
             connectionLogger: document.getElementById('connectionTestLogger'),
             queryLogger: document.getElementById('searchQueryLogger'),
+            modelLogger: document.getElementById('testModelLogger'),
             testConnectionBtn: document.getElementById('testConnectionBtn'),
             testQueryBtn: document.getElementById('testQueryBtn'),
             llmEndpointTabs: document.getElementById('llmEndpointTabs')
@@ -198,8 +199,8 @@ class Settings {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = `px-4 py-2 rounded-lg text-sm border ${ep.id === this.selectedLlmEndpoint
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-transparent'
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-transparent'
                 }`;
             btn.textContent = ep.name || ep.id;
             btn.addEventListener('click', () => {
@@ -255,14 +256,86 @@ class Settings {
             const row = document.createElement('div');
             row.className = 'flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm';
             row.innerHTML = `
-                <span>${model}</span>
-                <button type="button" class="text-red-500 hover:text-red-600">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <span class="truncate">${model}</span>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" title="Test model connection">
+                        <i class="fas fa-plug"></i>
+                    </button>
+                    <button type="button" class="text-red-500 hover:text-red-600" title="Remove model">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             `;
-            row.querySelector('button')?.addEventListener('click', () => this.removeModel(index));
+
+            const buttons = row.querySelectorAll('button');
+            const testBtn = buttons[0];
+            const deleteBtn = buttons[1];
+
+            testBtn?.addEventListener('click', () => this.testLlmConnection(model, testBtn));
+            deleteBtn?.addEventListener('click', () => this.removeModel(index));
             container.appendChild(row);
         });
+    }
+
+    async testLlmConnection(model, buttonEl = null) {
+        if (!this.elements.modelLogger) return;
+
+        const endpointId = this.selectedLlmEndpoint;
+        const endpoint = this.llmEndpointMap[endpointId];
+        const url = endpoint?.url || this.elements.llmUrl?.value || '';
+
+        if (!endpointId || !url) {
+            this.elements.modelLogger.innerHTML = '<span class="text-red-500">Select an endpoint and provide an API URL first.</span>';
+            return;
+        }
+
+        this.elements.modelLogger.innerHTML = '<span class="text-blue-500">Testing LLM connection...</span>';
+
+        const originalHtml = buttonEl?.innerHTML;
+        if (buttonEl) {
+            buttonEl.disabled = true;
+            buttonEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        try {
+            const payload = {
+                task: 'test',
+                model,
+                url,
+                llmEndpoint: endpointId
+            };
+
+            const response = await fetch('/api/test_llm_connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const errMsg = data?.error?.error || data?.error || 'LLM connection test failed';
+                throw new Error(errMsg);
+            }
+
+            const status = data?.status_code || response.status;
+            const responsePreview = data?.response || data?.result || data?.data || null;
+
+            if (status >= 200 && status < 300) {
+                this.elements.modelLogger.innerHTML = responsePreview
+                    ? `<pre class="text-xs whitespace-pre-wrap text-green-600 dark:text-green-400">${typeof responsePreview === 'string' ? responsePreview : JSON.stringify(responsePreview, null, 2)}</pre>`
+                    : '<span class="text-green-500">LLM connection test succeeded.</span>';
+            } else {
+                this.elements.modelLogger.innerHTML = '<span class="text-red-500">LLM connection test failed.</span>';
+            }
+        } catch (error) {
+            this.elements.modelLogger.innerHTML = `<span class="text-red-500">${error.message}</span>`;
+        } finally {
+            if (buttonEl) {
+                buttonEl.disabled = false;
+                buttonEl.innerHTML = originalHtml;
+            }
+        }
     }
 
     addModel() {

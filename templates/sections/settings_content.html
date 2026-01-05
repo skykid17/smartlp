@@ -10,7 +10,9 @@
             <i class="fas fa-moon text-gray-600 dark:text-gray-400"></i>
             <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="darkModeToggle" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div
+                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                </div>
             </label>
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</span>
         </div>
@@ -23,13 +25,19 @@
     <div class="lg:col-span-1">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
             <nav class="flex flex-col">
-                <button class="settings-tab active px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" data-tab="smartlp">
+                <button
+                    class="settings-tab active px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                    data-tab="smartlp">
                     <i class="fas fa-cog mr-2"></i>SmartLP
                 </button>
-                <button class="settings-tab px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" data-tab="siem">
+                <button
+                    class="settings-tab px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    data-tab="siem">
                     <i class="fas fa-shield-alt mr-2"></i>SIEM
                 </button>
-                <button class="settings-tab px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" data-tab="llm">
+                <button
+                    class="settings-tab px-6 py-4 text-left font-medium transition-colors duration-200 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    data-tab="llm">
                     <i class="fas fa-brain mr-2"></i>LLM
                 </button>
             </nav>
@@ -42,7 +50,7 @@
         <div id="smartlp-settings" class="settings-content">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">SmartLP Configuration</h2>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Left Column -->
                     <div class="space-y-6">
@@ -53,17 +61,21 @@
                                     <i class="fas fa-download mr-2 text-blue-500"></i>Enable Ingestion
                                 </span>
                                 <input type="checkbox" id="ingestOn" class="sr-only peer">
-                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <div
+                                    class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                                </div>
                             </label>
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Enable to ingest unparsed logs automatically</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Enable to ingest unparsed logs
+                                automatically</p>
                         </div>
 
                         <!-- Parsing Algorithm Version -->
                         <div>
-                            <label for="ingestAlgoVersion" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="ingestAlgoVersion"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Parsing Algorithm Version
                             </label>
-                            <select id="ingestAlgoVersion" 
+                            <select id="ingestAlgoVersion"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                 <option value="v1">Version 1</option>
                                 <option value="v2">Version 2</option>
@@ -72,12 +84,14 @@
 
                         <!-- Ingest Frequency -->
                         <div>
-                            <label for="ingestFrequency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="ingestFrequency"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Ingest Frequency (minutes)
                             </label>
-                            <input type="number" id="ingestFrequency" min="1" max="60" 
+                            <input type="number" id="ingestFrequency" min="1" max="60"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">How often to ingest unparsed logs (1-60 minutes)</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">How often to ingest unparsed logs
+                                (1-60 minutes)</p>
                         </div>
 
                         <!-- Similarity Check -->
@@ -87,19 +101,24 @@
                                     <i class="fas fa-equals mr-2 text-purple-500"></i>Similarity Check
                                 </span>
                                 <input type="checkbox" id="similarityCheck" class="sr-only peer">
-                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <div
+                                    class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                                </div>
                             </label>
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Skip logs similar to existing ones</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Skip logs similar to existing ones
+                            </p>
                         </div>
 
                         <!-- Similarity Threshold -->
                         <div id="similarityThresholdGroup">
-                            <label for="similarityThreshold" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="similarityThreshold"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Similarity Threshold
                             </label>
-                            <input type="number" id="similarityThreshold" step="0.05" min="0" max="1" 
+                            <input type="number" id="similarityThreshold" step="0.05" min="0" max="1"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Skip logs if similarity exceeds this value (0-1)</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Skip logs if similarity exceeds
+                                this value (0-1)</p>
                         </div>
                     </div>
 
@@ -107,10 +126,11 @@
                     <div class="space-y-6">
                         <!-- Active SIEM -->
                         <div>
-                            <label for="activeSiem" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="activeSiem"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Active SIEM
                             </label>
-                            <select id="activeSiem" 
+                            <select id="activeSiem"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                 <option value="">Select SIEM...</option>
                             </select>
@@ -119,10 +139,11 @@
 
                         <!-- Active LLM Endpoint -->
                         <div>
-                            <label for="activeLlmEndpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="activeLlmEndpoint"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Active LLM Endpoint
                             </label>
-                            <select id="activeLlmEndpoint" 
+                            <select id="activeLlmEndpoint"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                 <option value="">Select endpoint...</option>
                             </select>
@@ -131,24 +152,28 @@
 
                         <!-- Active LLM Model -->
                         <div>
-                            <label for="activeLlm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="activeLlm"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Active LLM Model
                             </label>
-                            <select id="activeLlm" 
+                            <select id="activeLlm"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                 <option value="">Select model...</option>
                             </select>
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Current running model for all queries</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Current running model for all
+                                queries</p>
                         </div>
 
                         <!-- Fix Count -->
                         <div>
-                            <label for="fixCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="fixCount"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Regex Fix Count
                             </label>
-                            <input type="number" id="fixCount" min="0" max="100" 
+                            <input type="number" id="fixCount" min="0" max="100"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Number of requeries to fix regex (0-100)</p>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Number of requeries to fix regex
+                                (0-100)</p>
                         </div>
                     </div>
                 </div>
@@ -159,7 +184,7 @@
         <div id="siem-settings" class="settings-content hidden">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">SIEM Configuration</h2>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Left Column -->
                     <div class="space-y-6">
@@ -168,7 +193,7 @@
                             <label for="siem" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 SIEM Platform
                             </label>
-                            <select id="siem" 
+                            <select id="siem"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
                                 <option value="">Select SIEM...</option>
                             </select>
@@ -176,31 +201,33 @@
 
                         <!-- Search Index -->
                         <div>
-                            <label for="searchIndex" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="searchIndex"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Search Index
                             </label>
-                            <input type="text" id="searchIndex" 
+                            <input type="text" id="searchIndex"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                 placeholder="Enter index name...">
                         </div>
 
                         <!-- Entry Count -->
                         <div>
-                            <label for="searchEntryCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="searchEntryCount"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Number of Entries
                             </label>
-                            <input type="number" id="searchEntryCount" 
+                            <input type="number" id="searchEntryCount"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                 placeholder="Enter count...">
                         </div>
 
                         <!-- Test Buttons -->
                         <div class="flex space-x-2">
-                            <button id="testConnectionBtn" 
+                            <button id="testConnectionBtn"
                                 class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
                                 <i class="fas fa-plug mr-2"></i>Test Connection
                             </button>
-                            <button id="testQueryBtn" 
+                            <button id="testQueryBtn"
                                 class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
                                 <i class="fas fa-search mr-2"></i>Test Query
                             </button>
@@ -213,10 +240,11 @@
                     <div class="space-y-6">
                         <!-- Search Query -->
                         <div>
-                            <label for="searchQuery" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label for="searchQuery"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Search Query
                             </label>
-                            <textarea id="searchQuery" rows="10" 
+                            <textarea id="searchQuery" rows="10"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
                                 placeholder="Enter search query..."></textarea>
                         </div>
@@ -231,10 +259,11 @@
         <div id="llm-settings" class="settings-content hidden">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">LLM Configuration</h2>
-                
+
                 <!-- LLM Endpoint Tabs -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">LLM Endpoints:</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">LLM
+                        Endpoints:</label>
                     <div id="llmEndpointTabs" class="flex flex-wrap gap-2">
                         <!-- Endpoint tabs will be populated here -->
                     </div>
@@ -248,7 +277,7 @@
                             <label for="llmUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 LLM API URL
                             </label>
-                            <textarea id="llmUrl" rows="4" 
+                            <textarea id="llmUrl" rows="4"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
                                 placeholder="Enter API URL..."></textarea>
                         </div>
@@ -262,10 +291,10 @@
                                 LLM Models
                             </label>
                             <div class="flex space-x-2 mb-3">
-                                <input type="text" id="newModelInput" 
+                                <input type="text" id="newModelInput"
                                     class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                     placeholder="Enter new model...">
-                                <button id="addModelBtn" 
+                                <button id="addModelBtn"
                                     class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
                                     <i class="fas fa-plus"></i>
                                 </button>
@@ -285,34 +314,34 @@
 
 <!-- Save Settings Button -->
 <div class="flex justify-end mt-6">
-    <button id="saveSettingsBtn" 
+    <button id="saveSettingsBtn"
         class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-lg font-semibold">
         <i class="fas fa-save mr-2"></i>Save Settings
     </button>
 </div>
 
 <script>
-// Settings tab switching
-document.querySelectorAll('.settings-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        // Remove active class from all tabs
-        document.querySelectorAll('.settings-tab').forEach(t => {
-            t.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400');
-            t.classList.add('border-transparent', 'text-gray-700', 'dark:text-gray-300');
+    // Settings tab switching
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            // Remove active class from all tabs
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                t.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400');
+                t.classList.add('border-transparent', 'text-gray-700', 'dark:text-gray-300');
+            });
+
+            // Add active class to clicked tab
+            this.classList.add('active', 'border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400');
+            this.classList.remove('border-transparent', 'text-gray-700', 'dark:text-gray-300');
+
+            // Hide all content
+            document.querySelectorAll('.settings-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Show selected content
+            const tabName = this.getAttribute('data-tab');
+            document.getElementById(`${tabName}-settings`).classList.remove('hidden');
         });
-        
-        // Add active class to clicked tab
-        this.classList.add('active', 'border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'dark:text-blue-400');
-        this.classList.remove('border-transparent', 'text-gray-700', 'dark:text-gray-300');
-        
-        // Hide all content
-        document.querySelectorAll('.settings-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        // Show selected content
-        const tabName = this.getAttribute('data-tab');
-        document.getElementById(`${tabName}-settings`).classList.remove('hidden');
     });
-});
 </script>

@@ -175,8 +175,6 @@ class SettingsService(BaseService):
         changes = []
         
         try:
-            self.log_info(f"Updating settings with data: {list(settings_data.keys())}")
-            
             # Get current settings for comparison
             current_global = self.get_global_settings()
             # keep camelCase maps for display/name lookups

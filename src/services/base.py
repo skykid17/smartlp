@@ -29,7 +29,6 @@ class BaseService(ABC):
         Args:
             message: Message to log
         """
-        self.logger.info(f"[{self.service_name}] {message}")
         app_logger.log_message('log', message)
     
     def log_error(self, message: str, exception: Optional[Exception] = None) -> None:

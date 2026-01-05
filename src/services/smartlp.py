@@ -25,6 +25,7 @@ from .settings import settings_service
 from .regex_engine import regex_engine_service
 from .rag import rag_service
 from .llm import llm_service
+from database.connection import db_connection
 from utils.formatters import generate_alphanumeric_id, clean_response
 
 # Import for Elasticsearch deployment
@@ -144,9 +145,10 @@ class SmartLPService(CRUDService):
                         continue
                     
                     # Determine log type and source type
-                    results = self.determine_log_type(log)
+                    results = self.identify_log_type(log)
                     log_type = results["log_type"]
                     source_type = results["source_type"]
+                    description = results["description"]
 
                     # Identify package for log
                     package = self.resolve_native_package(log, source_type, active_siem)
@@ -164,7 +166,15 @@ class SmartLPService(CRUDService):
                         status = match_result['status']
                     else:
                         status = "Pending"
+                    
+                    results = self.identify_detection_rules(description, active_siem)
+                    if not results.get("success"):
+                        self.log_error(
+                            f"[INGESTION] Detection rule identification failed: {results.get('error')}"
+                        )
 
+                    detection_rules = results.get('detection_rules', [])
+                    
                     # Create log entry in database
                     entry_data = {
                         'id': generate_alphanumeric_id(8),
@@ -173,9 +183,18 @@ class SmartLPService(CRUDService):
                         'status': status,
                         'log_type': log_type,
                         'source_type': source_type,
+                        'description': description,
                         'timestamp': datetime.now().isoformat(),
                         'package_name': package.get('package_name', None),
                         'package_url': package.get('package_url', None),
+                        'detection_rules': detection_rules,
+                        'detection_status': (
+                            "recommended" if detection_rules else "none"
+                        ),
+                        'max_detection_confidence': (
+                            max([r["confidence"] for r in detection_rules])
+                            if detection_rules else 0
+                        ),
                         'embedding': embedding
                     }
                     
@@ -726,15 +745,19 @@ class SmartLPService(CRUDService):
         remaining = log
         final_regex = ""
         total_latency = 0.0
+        failure_count = 0
 
         for i in range(fix_count):
-            # Ask LLM for this segment
+            remaining_stripped = remaining.strip()
+            if not remaining_stripped:
+                self.log_info("Remaining log empty, stopping.")
+                break
+
             self.log_info(f"Generating regex round {i+1}...")
             result = rag_service.query_rag(
                 user_prompt=remaining, 
                 system_prompt=system_prompt
             )
-
             total_latency += result.get("latency", 0)
 
             if not result["success"]:
@@ -750,29 +773,38 @@ class SmartLPService(CRUDService):
                 raw += "$"
 
             # reduce to longest valid partial match
-            reduced = regex_engine_service.run_reduce_regex(remaining, raw)
-            reduced = reduced["regex"]
+            reduced = regex_engine_service.run_reduce_regex(remaining, raw)["regex"]
             self.log_info(f"Reduced regex: {reduced}")
 
             # match it
             match_info = regex_engine_service.run_regex_match(remaining, reduced)
-            if match_info["status"] == "Not Matched":
-                self.log_warning("Reduced regex no longer matches, stopping.")
-                break
-
-            matched = match_info["full"]["value"]
+            matched_value = match_info["full"]["value"]
             end = match_info["full"]["end"]
 
-            # append
+            # check if regex failed to advance
+            if match_info["status"] == "Unmatched" or end == 0:
+                failure_count += 1
+                self.log_warning(f"Regex failed to match or advance. Failure count: {failure_count}")
+                if failure_count >= 3:
+                    final_regex += r"\s?.*"
+                    self.log_warning("Too many failures, appending wildcard and stopping.")
+                    break
+                continue  # try next round without updating remaining
+
+            failure_count = 0  # reset on success
+
+            # append to final regex
             if final_regex:
-                final_regex += r"\s?" + reduced
+                if reduced:
+                    final_regex += r"\s?" + reduced
+                else:
+                    final_regex += reduced
             else:
                 final_regex = reduced
 
             # move forward
             remaining = remaining[end:]
-            if not remaining:
-                break
+            self.log_info(f"Remaining log for next round: {remaining}")
 
         # post-process result
         final_regex = self.resolve_duplicate_capture_groups(final_regex)
@@ -783,6 +815,7 @@ class SmartLPService(CRUDService):
             "error": None,
             "latency": total_latency
         }
+
 
     def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
         system_prompt = settings_service.get_prompts_settings("fix_regex")
@@ -815,13 +848,13 @@ class SmartLPService(CRUDService):
             "latency": result["latency"]
         }
 
-    def determine_log_type(self, log: str) -> Dict[str, Any]:
+    def identify_log_type(self, log: str) -> Dict[str, Any]:
         """Return { success, source_type, log_type, error }"""
 
         try:
             self.log_info("Determining log type for entry")
             
-            system_prompt = settings_service.get_prompts_settings("detect_type")
+            system_prompt = settings_service.get_prompts_settings("identify_type")
             response = llm_service.query_llm(log, system_prompt)
 
             if not response["success"]:
@@ -829,7 +862,8 @@ class SmartLPService(CRUDService):
                     "success": False,
                     "error": response["error"],
                     "source_type": "unknown",
-                    "log_type": "unknown"
+                    "log_type": "unknown",
+                    "description": ""
                 }
 
             # Parse JSON
@@ -839,6 +873,7 @@ class SmartLPService(CRUDService):
                     "success": True,
                     "source_type": result.get("source_type", "unknown"),
                     "log_type": result.get("log_type", "unknown"),
+                    "description": result.get("description", ""),
                     "error": None
                 }
 
@@ -848,7 +883,8 @@ class SmartLPService(CRUDService):
                     "success": False,
                     "error": f"Invalid JSON from LLM: {str(e)}",
                     "source_type": "unknown",
-                    "log_type": "unknown"
+                    "log_type": "unknown",
+                    "description": ""
                 }
 
         except Exception as e:
@@ -856,32 +892,9 @@ class SmartLPService(CRUDService):
                 "success": False,
                 "error": str(e),
                 "source_type": "unknown",
-                "log_type": "unknown"
+                "log_type": "unknown",
+                "description": ""
             }
-
-    
-    def determine_log_type_heuristic(self, log: str) -> Tuple[str, str]:
-        """Determine log type using simple heuristics as fallback.
-        
-        Args:
-            log: The log entry to analyze
-            
-        Returns:
-            Tuple of (log_type, source_type)
-        """
-        log_lower = log.lower()
-        
-        # Simple heuristics for common log types
-        if 'failed' in log_lower or 'error' in log_lower or 'authentication' in log_lower:
-            return 'security', 'auth'
-        elif 'get' in log_lower or 'post' in log_lower or 'http' in log_lower:
-            return 'web', 'access'
-        elif 'firewall' in log_lower or 'blocked' in log_lower:
-            return 'network', 'firewall'
-        elif 'syslog' in log_lower or 'kernel' in log_lower:
-            return 'system', 'syslog'
-        else:
-            return 'unknown', 'generic'
     
     def get_package_url(self, package_name: str, siem: str) -> str:
         """Get package URL based on SIEM type."""
@@ -980,6 +993,120 @@ class SmartLPService(CRUDService):
             "package_url": result.get("package_url", ""),
             "error": None
         }
+
+    def identify_detection_rules(
+        self,
+        log_description: str,
+        active_siem: str = None,
+        confidence_threshold: float = 0.8
+    ) -> Dict[str, Any]:
+        """
+        Identify relevant detection rules for a log using semantic RAG matching.
+
+        This function assumes that log_description has already been generated
+        during the log classification stage.
+        """
+
+        if not active_siem:
+            active_siem = settings_service.get_global_settings().get("active_siem")
+
+        self.log_info(f"Identifying {active_siem} detection rules from log description...")
+
+        # Prepare RAG prompts
+        system_prompt = settings_service.get_prompts_settings("identify_detection_rules")
+
+        user_prompt = (
+            "Evaluate relevant detection rules for the following log description:\n"
+            f"{log_description}"
+        )
+
+        
+        # Execute RAG
+        response = rag_service.query_rag(
+            user_prompt=user_prompt,
+            system_prompt=system_prompt,
+            filter_category="sigma_rules",
+            top_k=5
+        )
+
+        if not response["context"] or all(not c.get("content") for c in response["context"]):
+            return {
+                "success": True,
+                "found": False,
+                "detection_rules": [],
+                "context": response.get("context", []),
+                "error": None
+            }
+
+        if not response["success"]:
+            return {
+                "success": False,
+                "found": False,
+                "detection_rules": [],
+                "context": response.get("context", []),
+                "error": f"RAG service failure: {response.get('error')}"
+            }
+
+        # Parse RAG output
+        try:
+            content = clean_response(response["content"])
+            parsed = json.loads(content)
+
+            if isinstance(parsed, dict):
+                matches = parsed.get("matches", [])
+            elif isinstance(parsed, list):
+                matches = parsed
+            else:
+                raise ValueError("Unexpected RAG output format")
+
+            if not isinstance(matches, list):
+                raise ValueError("Invalid matches format")
+
+            
+
+            detection_rules = []
+            for match in matches:
+                sigma_id = match.get("id")
+                confidence =  float(match.get("confidence", 0))
+
+                if not sigma_id or confidence < confidence_threshold:
+                    continue
+                
+                siem_rule_docs = db_connection.query(
+                    collection_name="knowledge_base",
+                    filter_dict={
+                        "metadata.category": f"{active_siem}_rules",
+                        "sigma_id": sigma_id
+                    },
+                    projection={"_id": 0}
+                )
+
+                siem_rule_doc = siem_rule_docs[0] if siem_rule_docs else None
+                
+                detection_rules.append({
+                    "sigma_id": sigma_id,
+                    "confidence": confidence,
+                    "reason": match.get("reason", ""),
+                    "title": siem_rule_doc.get("title") if siem_rule_doc else "",
+                    "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else ""
+                })
+
+            return {
+                "success": True,
+                "found": len(detection_rules) > 0,
+                "detection_rules": detection_rules,
+                "context": response.get("context", []),
+                "error": None
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "found": False,
+                "detection_rules": [],
+                "context": response.get("context", []),
+                "error": f"Detection rule parsing failed: {str(e)} | Raw: {response.get('content')}"
+            }
 
     def resolve_duplicate_capture_groups(self, regex: str) -> str:
         """Resolve duplicate named capture groups by appending incremental numbers.

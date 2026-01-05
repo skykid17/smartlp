@@ -72,7 +72,7 @@ class DatabaseConnection:
                 settings.database.mongo_url,
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=5000,
-                socketTimeoutMS=5000,
+                socketTimeoutMS=300000,
             )
             self._client.admin.command('ping')
             logger.info("Successfully connected to MongoDB")
@@ -93,7 +93,7 @@ class DatabaseConnection:
             # Collections
             self._collections['knowledge_base'] = db[settings.database.knowledge_collection]
             self._collections['logs'] = db[settings.database.logs_collection]
-            self._collections['settings'] = db[settings.database.config_collection]
+            self._collections['settings'] = db[settings.database.settings_collection]
 
             logger.info("Database collections initialized successfully")
         except Exception as e:

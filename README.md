@@ -68,12 +68,6 @@ APP_HOST=0.0.0.0
 APP_PORT=8800
 APP_DEBUG=True
 SECRET_KEY=change-me
-
-# Optional (used for deployment workflows)
-ANSIBLE_USER=
-ANSIBLE_SSH_PASSWORD=
-ANSIBLE_BECOME_PASSWORD=
-ANSIBLE_COLLECTIONS_PATH=
 ```
 
 4) Ensure MongoDB has the required collections/documents
