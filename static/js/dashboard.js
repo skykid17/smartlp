@@ -54,6 +54,19 @@ class Dashboard {
         document.getElementById('saveEntryChangesBtn')?.addEventListener('click', () => this.saveEntryChanges());
         document.getElementById('openParserFromModal')?.addEventListener('click', () => this.openParserFromModal());
         document.getElementById('deleteEntryFromModal')?.addEventListener('click', (e) => this.deleteEntryFromModal());
+        document.getElementById('deployConfigFromModal')?.addEventListener('click', (e) => {
+            if (!this.currentEntry) {
+                window.showToast?.('No entry selected', 'error');
+                return;
+            }
+
+            // Ensure Config Hub receives a selection when deploying from the modal.
+            configHub.setSelectedEntries([this.currentEntry]);
+            configHub.validateAndGenerate();
+        });
+
+        document.getElementById('deployRuleCancel')?.addEventListener('click', () => this.closeDeployRulePopup());
+        document.getElementById('deployRuleConfirm')?.addEventListener('click', () => this.deployRuleFromPopup());
 
         // Listen for section changes
         window.addEventListener('sectionChanged', (e) => {
@@ -411,7 +424,104 @@ class Dashboard {
         // Store current entry
         this.currentEntry = entry;
 
+        // Reset deploy popup inputs each time a new entry is opened
+        this.resetDeployRulePopup();
+
         modal.classList.remove('hidden');
+    }
+
+    resetDeployRulePopup() {
+        const popup = document.getElementById('deployRulePopup');
+        if (popup) popup.classList.add('hidden');
+
+        const severityEl = document.getElementById('deploySeverity');
+        const riskEl = document.getElementById('deployRiskScore');
+        const latestEl = document.getElementById('deployLatest');
+        const earliestEl = document.getElementById('deployEarliest');
+
+        if (severityEl) severityEl.value = '';
+        if (riskEl) riskEl.value = '';
+        if (latestEl) latestEl.value = '';
+        if (earliestEl) earliestEl.value = '';
+    }
+
+    openDeployRulePopup() {
+        if (!this.currentEntry?.id) {
+            window.showToast?.('No entry selected', 'error');
+            return;
+        }
+
+        // Backend requires entry to be parsed/matched before deployment
+        const status = (this.currentEntry?.status || '').toString().toLowerCase();
+        if (status !== 'deployed') {
+            window.showToast?.('Log must be parsed before deploying a rule', 'error');
+            return;
+        }
+
+        const popup = document.getElementById('deployRulePopup');
+        if (!popup) return;
+        popup.classList.remove('hidden');
+    }
+
+    closeDeployRulePopup() {
+        const popup = document.getElementById('deployRulePopup');
+        if (!popup) return;
+        popup.classList.add('hidden');
+    }
+
+    async deployRuleFromPopup() {
+        const entryId = this.currentEntry?.id;
+        if (!entryId) return;
+
+        const severity = (document.getElementById('deploySeverity')?.value || '').trim();
+        const riskRaw = (document.getElementById('deployRiskScore')?.value || '').trim();
+        const dispatch_latest_time = (document.getElementById('deployLatest')?.value || '').trim();
+        const dispatch_earliest_time = (document.getElementById('deployEarliest')?.value || '').trim();
+
+        if (!severity || !riskRaw || !dispatch_latest_time || !dispatch_earliest_time) {
+            window.showToast?.('All fields are required', 'error');
+            return;
+        }
+
+        const risk_score = Number(riskRaw);
+        if (!Number.isFinite(risk_score) || risk_score < 0 || risk_score > 100) {
+            window.showToast?.('Risk score must be between 0 and 100', 'error');
+            return;
+        }
+
+        const confirmBtn = document.getElementById('deployRuleConfirm');
+        if (confirmBtn) confirmBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/smartlp/deploy_rule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: entryId,
+                    severity,
+                    risk_score,
+                    dispatch_latest_time,
+                    dispatch_earliest_time
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data?.success) {
+                window.showToast?.(data.message || 'Rule deployed', 'success');
+                this.closeDeployRulePopup();
+                this.closeModal();
+                this.searchData();
+            } else {
+                const msg = data?.error || data?.message || 'Failed to deploy rule';
+                window.showToast?.(msg, 'error');
+            }
+        } catch (error) {
+            console.error('Error deploying rule:', error);
+            window.showToast?.('Error deploying rule', 'error');
+        } finally {
+            if (confirmBtn) confirmBtn.disabled = false;
+        }
     }
 
     renderDetectionRules(entry) {
@@ -436,7 +546,6 @@ class Dashboard {
 
         sorted.forEach((rule, idx) => {
             const title = (rule?.title ?? '').toString();
-            console.log('Rendering rule:', title, rule);
             const confidence = Number(rule?.confidence ?? 0);
             const reason = (rule?.reason ?? '').toString();
             const siemRule = (rule?.siem_rule ?? '').toString();
@@ -514,6 +623,18 @@ class Dashboard {
 
                 siemContainer.appendChild(pre);
 
+                const deployBtn = document.createElement('button');
+                deployBtn.type = 'button';
+                deployBtn.className = 'text-xs mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200';
+                deployBtn.id = 'deployRuleFromModal';
+                deployBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-2"></i>Deploy Rule';
+                deployBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openDeployRulePopup();
+                });
+
+                siemContainer.appendChild(deployBtn);
+
                 toggleBtn.addEventListener('click', () => {
                     const isHidden = siemContainer.classList.contains('hidden');
                     siemContainer.classList.toggle('hidden', !isHidden);
@@ -532,6 +653,7 @@ class Dashboard {
     closeModal() {
         document.getElementById('entryModal')?.classList.add('hidden');
         this.currentEntry = null;
+        this.resetDeployRulePopup();
     }
 
     async saveEntryChanges() {

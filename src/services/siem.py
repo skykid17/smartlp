@@ -705,7 +705,7 @@ output {{
             'description': sigma_rule.get('description'),
             'severity': data.get('severity', 'medium'),
             'risk_score': data.get('risk_score', 50),
-            'from': f"{data.get('dispatch_latest_time', "now")}-{data.get('dispatch_earliest_time', "-15m")}",
+            'from': f"{data.get('dispatch_latest_time', "now")}{data.get('dispatch_earliest_time', "-15m")}",
             'interval': data.get('interval', "5m"),
             'deployed': True,
             'type': "esql",

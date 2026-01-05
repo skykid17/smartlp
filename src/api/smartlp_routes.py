@@ -426,11 +426,6 @@ def register_smartlp_routes(app: Flask) -> None:
             if not active_siem:
                 return jsonify({"error": "No active SIEM configured"}), 400
 
-            status = entry.get('status', 'Unmatched')
-
-            if status != 'Matched':
-                return jsonify({"error": f"Entry {entry_id} has not yet been parsed"}), 400
-
             rule = elasticsearch_service.create_rule_elastic(data)
 
             # Deploy to SIEM
