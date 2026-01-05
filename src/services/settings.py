@@ -6,7 +6,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from .base import BaseService
-from models.core import SettingsModel, SIEMType
+from models.core import SIEMType
+from database.connection import db_connection
 from utils.formatters import convert_key_to_camel, convert_key_to_snake
 
 
@@ -24,7 +25,7 @@ class SettingsService(BaseService):
             Global settings as dictionary with camelCase keys
         """
         try:
-            settings = self.db.query(
+            settings = db_connection.query(
                 'settings',
                 {"category": "global_settings"},
                 {"_id": 0, "amendments": 0},
@@ -47,7 +48,7 @@ class SettingsService(BaseService):
             List of SIEM settings with camelCase keys
         """
         try:
-            siems = list(self.db.query(
+            siems = list(db_connection.query(
                 'settings',
                 {"category": "siem_settings"},
                 projection={"_id": 0}
@@ -65,7 +66,7 @@ class SettingsService(BaseService):
             List of LLM settings with camelCase keys
         """
         try:
-            llms = list(self.db.query(
+            llms = list(db_connection.query(
                 'settings',
                 {"category": "llm_settings"},
                 projection={"_id": 0}
@@ -79,7 +80,7 @@ class SettingsService(BaseService):
     def get_prompts_settings(self, key) -> Any:
         """Return the value of a specific prompt field from settings (id='prompts')."""
         try:
-            doc = self.db.query(
+            doc = db_connection.query(
                 'settings',
                 {"id": "prompts"},
                 projection={"_id": 0, key: 1},

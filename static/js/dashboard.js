@@ -436,6 +436,7 @@ class Dashboard {
 
         sorted.forEach((rule, idx) => {
             const title = (rule?.title ?? '').toString();
+            console.log('Rendering rule:', title, rule);
             const confidence = Number(rule?.confidence ?? 0);
             const reason = (rule?.reason ?? '').toString();
             const siemRule = (rule?.siem_rule ?? '').toString();

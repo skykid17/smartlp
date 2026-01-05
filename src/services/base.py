@@ -4,10 +4,33 @@ Base service classes for SmartSOC application.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Tuple
-import logging
 
 from database.connection import db_connection
 from utils.logging import app_logger
+
+
+class LoggerProxy:
+    """Minimal logger proxy that forwards to the centralized app_logger.
+
+    Provides the subset of API used across the codebase: debug/info/warning/error
+    and a `propagate` attribute so existing code that toggles propagation works.
+    """
+
+    def __init__(self, service_name: str):
+        self.service_name = service_name
+        self.propagate = False
+
+    def debug(self, msg: str) -> None:
+        app_logger.log_message('log', f"DEBUG [{self.service_name}] {msg}")
+
+    def info(self, msg: str) -> None:
+        app_logger.log_message('log', f"{msg}")
+
+    def warning(self, msg: str) -> None:
+        app_logger.log_message('log', f"WARNING [{self.service_name}] {msg}")
+
+    def error(self, msg: str) -> None:
+        app_logger.log_message('log', f"ERROR [{self.service_name}] {msg}")
 
 
 class BaseService(ABC):
@@ -20,7 +43,9 @@ class BaseService(ABC):
             service_name: Name of the service for logging
         """
         self.service_name = service_name
-        self.logger = logging.getLogger(f"smartsoc.services.{service_name}")
+        # Use a logger proxy that forwards to the app-wide `app_logger` so we avoid
+        # depending on the stdlib `logging` configuration across modules.
+        self.logger = LoggerProxy(service_name)
         self.db = db_connection
     
     def log_info(self, message: str) -> None:
@@ -38,10 +63,6 @@ class BaseService(ABC):
             message: Error message
             exception: Optional exception object
         """
-        if exception:
-            self.logger.error(f"[{self.service_name}] {message}: {exception}")
-        else:
-            self.logger.error(f"[{self.service_name}] {message}")
         app_logger.log_message('log', f"ERROR: {message}")
     
     def log_warning(self, message: str) -> None:
@@ -50,7 +71,6 @@ class BaseService(ABC):
         Args:
             message: Warning message
         """
-        self.logger.warning(f"[{self.service_name}] {message}")
         app_logger.log_message('log', f"WARNING: {message}")
 
 

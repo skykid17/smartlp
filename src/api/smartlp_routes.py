@@ -14,6 +14,7 @@ from flask import Flask, render_template, request, jsonify, redirect
 
 # Import services
 from services.smartlp import smartlp_service
+from services.siem import elasticsearch_service, splunk_service
 from services.settings import settings_service
 from services.llm import llm_service
 from services.rag import rag_service
@@ -373,12 +374,12 @@ def register_smartlp_routes(app: Flask) -> None:
             config = data.get('config', None)
             # Deploy to SIEM
             if active_siem == 'splunk':
-                success, message = smartlp_service.deploy_config_splunk(entry_ids)
+                success, message = splunk_service.deploy_config_splunk(entry_ids)
             else: # elastic
                 
                 if not config:
                     return jsonify({"error": "Configuration is required for Elasticsearch deployment"}), 400
-                success, message = smartlp_service.deploy_config_elastic(config)
+                success, message = elasticsearch_service.deploy_config_elastic(config)
             
             if success:
                 app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
@@ -400,6 +401,65 @@ def register_smartlp_routes(app: Flask) -> None:
                 
         except Exception as e:
             error_msg = f"Deployment error: {str(e)}"
+            app_logger.log_message("log", error_msg, "ERROR")
+            return jsonify({"error": error_msg}), 500
+    
+    @app.route('/api/smartlp/deploy_rule', methods=['POST'])
+    def deploy_rule():
+        """Deploy a single SmartLP entry as a rule to the active SIEM."""
+        try:
+            data = request.get_json()
+            if not data or 'id' not in data:
+                return jsonify({"error": "Entry ID is required"}), 400
+            
+            entry_id = data.get('id')
+            if not entry_id:
+                return jsonify({"error": "Entry ID cannot be empty"}), 400
+
+            # Get the entry from database
+            entry = smartlp_service.get_by_id(entry_id)
+            if not entry:
+                return jsonify({"error": f"No entry found with ID {entry_id}"}), 404
+            
+            # Get active SIEM
+            active_siem = settings_service.get_active_siem()
+            if not active_siem:
+                return jsonify({"error": "No active SIEM configured"}), 400
+
+            status = entry.get('status', 'Unmatched')
+
+            if status != 'Matched':
+                return jsonify({"error": f"Entry {entry_id} has not yet been parsed"}), 400
+
+            rule = elasticsearch_service.create_rule_elastic(data)
+
+            # Deploy to SIEM
+            if active_siem == 'splunk':
+                rule = splunk_service.create_rule_splunk(data)
+                success, message = splunk_service.deploy_rule_splunk(rule)
+            else: # elastic
+                rule = elasticsearch_service.create_rule_elastic(data)
+                success, message = elasticsearch_service.deploy_rule_elastic(rule)
+            
+            if success:
+                app_logger.log_message("log", f"SIEM rule deployment successful: {message}", "INFO")
+                # update status of entry to 'Deployed'
+                smartlp_service.update(entry_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
+                return jsonify({
+                    "success": True,
+                    "message": message,
+                    "siem": active_siem,
+                    "rule_deployed": rule.get("rule_id")
+                }), 200
+            else:
+                app_logger.log_message("log", f"SIEM rule deployment failed: {message}", "ERROR")
+                return jsonify({
+                    "success": False,
+                    "error": message
+                }), 500
+                
+        except Exception as e:
+            error_msg = f"Rule deployment error: {str(e)}"
             app_logger.log_message("log", error_msg, "ERROR")
             return jsonify({"error": error_msg}), 500
         
