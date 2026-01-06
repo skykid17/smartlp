@@ -67,8 +67,10 @@ class EnvironmentManager:
     def database(self) -> DatabaseSettings:
         """Get database settings."""
         if self._database_settings is None:
+            # Prefer explicit environment variable, but fall back to a sensible localhost default
+            mongo_url = os.getenv('MONGO_URL') or 'mongodb://localhost:27017/?directConnection=true'
             self._database_settings = DatabaseSettings(
-                mongo_url=self._get_env('MONGO_URL'),
+                mongo_url=mongo_url,
                 db_name="soc_rag_db",
                 knowledge_collection="knowledge_base",
                 logs_collection="logs",

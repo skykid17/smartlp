@@ -9,4 +9,4 @@ rag/chroma/
 certs/
 rag/rag_setup.log
 rag/repos/elastic_repo/
-tools/
+tools/"rag/data/knowledge_base.json" 

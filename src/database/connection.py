@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from typing import Optional, Dict, List, Any, Union
-from pymongo import MongoClient, DESCENDING, ASCENDING
+from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import ConnectionFailure
 

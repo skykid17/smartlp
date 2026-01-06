@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Refactored MongoDB RAG toolkit with Python-only fallback retriever.
 
-This is the patched module that:
-- Preserves your original behavior (attempt Atlas/mongot searches)
-- Adds a robust Python fallback retriever using SentenceTransformers + cosine sim + keyword scoring
-- Ensures retrieval returns documents even on MongoDB Community / no mongot
+This version is updated to support:
+- MongoDB Atlas Local (Docker) with 'vectorSearch' type indexes.
+- Direct connection URI handling for local Docker setups.
+- Renamed indexes (vector_index, text_index).
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import sys
 import pcre2
 import time
 from tqdm import tqdm 
@@ -22,6 +21,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Any
 
 from utils.logging import app_logger
+from services.settings import settings_service
 
 import numpy as np
 from pymongo import MongoClient
@@ -43,7 +43,6 @@ DEFAULT_TEXT_PATHS = ["content", "metadata.source"]
 
 # --- Utility helpers ---
 
-
 def batched(items: Sequence, batch_size: int) -> Iterable[Sequence]:
     if batch_size <= 0:
         raise ValueError("batch_size must be positive")
@@ -57,7 +56,6 @@ def filter_metadata(metadata: Dict, allowed_fields: Sequence[str]) -> Dict:
 
 
 # --- RRF fusion ---
-
 
 def reciprocal_rank_fusion(runs: Sequence[List[Dict]], k: int, limit: int) -> List[Dict]:
     scores: Dict[str, float] = defaultdict(float)
@@ -80,17 +78,17 @@ def format_docs(docs: Sequence[Document]) -> str:
 
 # --- RAG class (single programmatic entrypoint) ---
 
-
 class RAG:
     def __init__(
         self,
-        mongo_uri: str = "mongodb://admin:password@localhost:27017",
+        # UPDATED: Added directConnection=true for local Docker compatibility
+        mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
         database: str = "soc_rag_db",
         collection_name: str = "knowledge_base",
         embedding_dim: int = 384,
         embedding_provider: str = "all-MiniLM-L6-v2",
-        vector_index: str = "rag_vector_index",
-        text_index: str = "rag_text_index",
+        vector_index: str = "vector_index",
+        text_index: str = "text_index",
         text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
         text_language: str = "english",
         chunk_size: int = 1000,
@@ -120,6 +118,7 @@ class RAG:
     def connect(self) -> MongoClient:
         if self.client is None:
             try:
+                # serverSelectionTimeoutMS prevents hanging if Docker is down
                 client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
                 client.admin.command("ping")
                 self.client = client
@@ -136,8 +135,8 @@ class RAG:
 
     def init(self) -> None:
         coll = self._ensure_collection()
-        ensure_text_index(coll, self.text_index, self.text_paths, self.text_language)
-        ensure_vector_index(coll, self.vector_index, self.embedding_dim)
+        self.ensure_text_index(coll, self.text_index, self.text_paths, self.text_language)
+        self.ensure_vector_index(coll, self.vector_index, self.embedding_dim)
         app_logger.log_message("log", "RAG initialization complete", "INFO")
 
     # --- Embeddings ---
@@ -150,10 +149,9 @@ class RAG:
     def generate_embeddings(self, texts: Sequence[str], show_progress: bool = False) -> List[List[float]]:
         embedder = self.get_embedding_model()
         embeddings = embedder.encode(texts, show_progress_bar=show_progress)
-        # embeddings may be numpy array — convert to list of lists
         return np.asarray(embeddings).tolist()
 
-    # Cosine similarity
+    # Cosine similarity for fallback
     def cosine(self, a, b):
         a = np.asarray(a, dtype=float)
         b = np.asarray(b, dtype=float)
@@ -167,22 +165,27 @@ class RAG:
         def load_file(path: Path) -> List[Document]:
             suffix = path.suffix.lower()
             if suffix not in SUPPORTED_EXTENSIONS:
-                app_logger.log_message("log", f"Skipping unsupported file {path}", "DEBUG")
                 return []
-            if suffix in {".txt", ".md", ".yaml", ".yml"}:
-                loader = TextLoader(str(path), encoding="utf-8")
-                docs = loader.load()
-            elif suffix == ".json":
-                loader = JSONLoader(str(path), jq_schema=".", text_content=False)
-                docs = loader.load()
-            elif suffix == ".csv":
-                content = path.read_text(encoding="utf-8")
-                docs = [Document(page_content=content, metadata={})]
-            elif suffix == ".pdf":
-                loader = PyPDFLoader(str(path))
-                docs = loader.load()
-            else:
-                docs = []
+            
+            try:
+                if suffix in {".txt", ".md", ".yaml", ".yml"}:
+                    loader = TextLoader(str(path), encoding="utf-8")
+                    docs = loader.load()
+                elif suffix == ".json":
+                    loader = JSONLoader(str(path), jq_schema=".", text_content=False)
+                    docs = loader.load()
+                elif suffix == ".csv":
+                    content = path.read_text(encoding="utf-8")
+                    docs = [Document(page_content=content, metadata={})]
+                elif suffix == ".pdf":
+                    loader = PyPDFLoader(str(path))
+                    docs = loader.load()
+                else:
+                    docs = []
+            except Exception as e:
+                app_logger.log_message("log", f"Failed to load {path}: {e}", "WARNING")
+                return []
+
             for doc in docs:
                 doc.metadata.setdefault("source", path.name)
                 doc.metadata.setdefault("file_path", str(path))
@@ -207,9 +210,7 @@ class RAG:
         metadata.setdefault("source", chunk.metadata.get("source", "unknown"))
         metadata.setdefault("file_type", chunk.metadata.get("file_type", "text"))
         
-        # Sigma aware content normalisation
         content = chunk.page_content.strip()
-        
         content_hash = hashlib.sha1(content.encode("utf-8")).hexdigest()
 
         return {
@@ -232,23 +233,25 @@ class RAG:
             return 0
         chunks = self.chunk_documents(docs)
         if not chunks:
-            app_logger.log_message("log", "No chunks produced; check chunk parameters", "WARNING")
+            app_logger.log_message("log", "No chunks produced", "WARNING")
             return 0
         app_logger.log_message("log", f"Loaded {len(docs)} docs -> {len(chunks)} chunks", "INFO")
 
         # Delta check
         content_hashes = [hashlib.sha1(c.page_content.encode("utf-8")).hexdigest() for c in chunks]
         existing_ids: set[str] = set()
-        batch_size = 5000
-        for i in range(0, len(content_hashes), batch_size):
-            batch = content_hashes[i: i + batch_size]
-            if not batch:
-                continue
+        
+        # Check existence in batches
+        check_batch_size = 5000
+        for i in range(0, len(content_hashes), check_batch_size):
+            batch = content_hashes[i: i + check_batch_size]
+            if not batch: continue
             for doc in coll.find({"_id": {"$in": batch}}, {"_id": 1}):
                 existing_ids.add(doc["_id"])
+        
         chunks_to_embed = [chunk for chunk, h in zip(chunks, content_hashes) if h not in existing_ids]
         if not chunks_to_embed:
-            app_logger.log_message("log", f"All {len(chunks)} chunks already ingested; skipping embedding generation", "INFO")
+            app_logger.log_message("log", "All chunks already exist; skipping ingest", "INFO")
             return 0
 
         mongo_batch: List[Dict] = []
@@ -257,131 +260,77 @@ class RAG:
         for chunk_batch in tqdm(batched(chunks_to_embed, self.embedding_batch_size)):
             texts = [c.page_content for c in chunk_batch]
             embeddings = self.generate_embeddings(texts, show_progress=False)
+            
             for chunk, embedding in zip(chunk_batch, embeddings):
                 if category:
                     chunk.metadata["category"] = category
                 mongo_batch.append(self.chunk_to_record(chunk, embedding, self.embedding_provider, allowed_metadata))
+                
                 if len(mongo_batch) >= self.batch_size:
                     if not dry_run:
                         try:
                             res = coll.insert_many(mongo_batch, ordered=False)
                             inserted += len(res.inserted_ids)
                         except BulkWriteError as exc:
-                            dup_errors = [err for err in exc.details.get("writeErrors", []) if err.get("code") == 11000]
                             inserted += exc.details.get("nInserted", 0)
-                            if dup_errors:
-                                app_logger.log_message("log", f"Skipped {len(dup_errors)} duplicate chunks during insert", "INFO")
-                            non_dup = [err for err in exc.details.get("writeErrors", []) if err.get("code") != 11000]
-                            if non_dup:
-                                raise
                     else:
                         inserted += len(mongo_batch)
                     mongo_batch.clear()
-        if mongo_batch:
-            if not dry_run:
-                try:
-                    res = coll.insert_many(mongo_batch, ordered=False)
-                    inserted += len(res.inserted_ids)
-                except BulkWriteError as exc:
-                    dup_errors = [err for err in exc.details.get("writeErrors", []) if err.get("code") == 11000]
-                    inserted += exc.details.get("nInserted", 0)
-                    if dup_errors:
-                        app_logger.log_message("log", f"Skipped {len(dup_errors)} duplicate chunks during insert", "INFO")
-                    non_dup = [err for err in exc.details.get("writeErrors", []) if err.get("code") != 11000]
-                    if non_dup:
-                        raise
-            else:
-                inserted += len(mongo_batch)
-        app_logger.log_message(
-            "log",
-            f"Ingest complete. {inserted} chunks {'simulated' if dry_run else 'inserted'}",
-            "INFO",
-        )
+
+        if mongo_batch and not dry_run:
+            try:
+                res = coll.insert_many(mongo_batch, ordered=False)
+                inserted += len(res.inserted_ids)
+            except BulkWriteError as exc:
+                inserted += exc.details.get("nInserted", 0)
+        elif mongo_batch and dry_run:
+            inserted += len(mongo_batch)
+
+        app_logger.log_message("log", f"Ingest complete. {inserted} chunks {'simulated' if dry_run else 'inserted'}", "INFO")
         return inserted
 
-    # --- Python-only fallback: semantic + keyword + RRF ---
-    def _py_fallback_retrieve(
-        self,
-        query: str,
-        limit: int = 5,
-        semantic_k: int = 50,
-        keyword_k: int = 50,
-        rrf_k: int = 60,
-        filter_category: Optional[str] = None,
-    ) -> List[Document]:
-        """Python-only hybrid retriever (no mongot, no vector search).
-        Uses local embeddings + cosine similarity + keyword scoring, fused by RRF.
-        """
+    # --- Python-only fallback ---
+    def _py_fallback_retrieve(self, query: str, limit: int = 5, semantic_k: int = 50, keyword_k: int = 50, rrf_k: int = 60, filter_category: Optional[str] = None) -> List[Document]:
+        """Fallback retriever that runs locally using retrieved documents."""
+        app_logger.log_message("log", "Using Python fallback retriever", "INFO")
         coll = self._ensure_collection()
 
         query_filter = {}
         if filter_category:
             query_filter["metadata.category"] = filter_category
 
-        # Load docs (project minimal fields)
+        # Fetch candidates
         all_docs = list(coll.find(query_filter, {"content": 1, "metadata": 1, "embedding": 1, "_id": 1}).limit(10000))
         if not all_docs:
             return []
 
-        # Compute query embedding
+        # 1. Semantic Score (Cosine)
         q_emb = self.generate_embeddings([query], show_progress=False)[0]
-
         for doc in all_docs:
-            emb = doc.get("embedding")
-            if emb:
-                try:
-                    doc["_sim_score"] = self.cosine(q_emb, emb)
-                except Exception:
-                    doc["_sim_score"] = 0.0
-            else:
-                doc["_sim_score"] = 0.0
+            doc["_sim_score"] = self.cosine(q_emb, doc.get("embedding", [])) if doc.get("embedding") else 0.0
 
-        semantic_sorted = sorted(all_docs, key=lambda x: x.get("_sim_score", 0.0), reverse=True)
-        semantic_top = semantic_sorted[:semantic_k]
+        semantic_top = sorted(all_docs, key=lambda x: x.get("_sim_score", 0.0), reverse=True)[:semantic_k]
 
-        # Keyword scoring — token overlap
+        # 2. Keyword Score (Exact Match)
         tokens = set(pcre2.findall(r"\w+", query.lower()))
         for doc in all_docs:
             text = (doc.get("content") or "").lower()
-            # simple presence count
-            count = sum(1 for t in tokens if t in text)
-            doc["_kw_score"] = count
+            doc["_kw_score"] = sum(1 for t in tokens if t in text)
 
-        keyword_sorted = sorted(all_docs, key=lambda x: x.get("_kw_score", 0), reverse=True)
-        keyword_top = keyword_sorted[:keyword_k]
+        keyword_top = sorted(all_docs, key=lambda x: x.get("_kw_score", 0), reverse=True)[:keyword_k]
 
-        # Convert to the same dict shape expected by RRF: with possibly _id, content, metadata, score
-        sem_run = [
-            {"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_sim_score")}
-            for d in semantic_top
-        ]
-        kw_run = [
-            {"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_kw_score")}
-            for d in keyword_top
-        ]
+        # 3. Fuse
+        sem_run = [{"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_sim_score")} for d in semantic_top]
+        kw_run = [{"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_kw_score")} for d in keyword_top]
 
         fused = reciprocal_rank_fusion([sem_run, kw_run], rrf_k, limit)
         return [Document(page_content=d.get("content", ""), metadata=d.get("metadata", {})) for d in fused]
 
-    # --- Retriever (kept simple and internal) ---
+    # --- Retriever (Atlas + Fallback) ---
     class _MongoHybridRetriever:
-        def __init__(
-            self,
-            collection: Collection,
-            embedding_fn,
-            embedding_dim: int,
-            vector_index: str,
-            text_index: str,
-            top_k: int,
-            semantic_candidates: int,
-            keyword_candidates: int,
-            rrf_k: int,
-            allowed_text_paths: Sequence[str],
-            filter_category: Optional[str] = None,
-        ) -> None:
+        def __init__(self, collection: Collection, embedding_fn, embedding_dim: int, vector_index: str, text_index: str, top_k: int, semantic_candidates: int, keyword_candidates: int, rrf_k: int, allowed_text_paths: Sequence[str], filter_category: Optional[str] = None) -> None:
             self.collection = collection
             self.embedding_fn = embedding_fn
-            self.embedding_dim = embedding_dim
             self.vector_index = vector_index
             self.text_index = text_index
             self.top_k = top_k
@@ -390,137 +339,82 @@ class RAG:
             self.rrf_k = rrf_k
             self.allowed_text_paths = allowed_text_paths
             self.filter_category = filter_category
-            # parent will be set by RAG.query so fallback can call back
             self.parent: Optional["RAG"] = None
 
         def invoke(self, query: str) -> List[Document]:
             qv = self.embedding_fn([query])[0]
-            return self._manual_rrf(query, qv)
-
-        def _get_relevant_documents(self, query: str, *, run_native: bool = False) -> List[Document]:
-            qv = self.embedding_fn([query])[0]
-            return self._manual_rrf(query, qv)
-
-        def get_relevant_documents(self, query: str) -> List[Document]:
-            return self._get_relevant_documents(query)
-
-        def _manual_rrf(self, query: str, query_vector: List[float]) -> List[Document]:
+            
             vector_results: List[Dict] = []
             text_results: List[Dict] = []
 
-            # Vector search (Atlas vector search / $vectorSearch) - only run if semantic candidates configured
-            if getattr(self, "semantic_candidates", 0) and self.semantic_candidates > 0:
+            # 1. Vector Search ($vectorSearch)
+            if self.semantic_candidates > 0:
                 vector_search_spec = {
                     "index": self.vector_index,
                     "path": "embedding",
-                    "queryVector": query_vector,
+                    "queryVector": qv,
                     "numCandidates": self.semantic_candidates,
                     "limit": self.top_k,
                 }
                 if self.filter_category:
                     vector_search_spec["filter"] = {"metadata.category": {"$eq": self.filter_category}}
 
-                vector_pipeline = [
+                pipeline = [
                     {"$vectorSearch": vector_search_spec},
                     {"$project": {"content": 1, "metadata": 1, "score": {"$meta": "vectorSearchScore"}}},
-                    {"$unset": "embedding"},
+                    {"$unset": "embedding"}
                 ]
                 try:
-                    vector_results = list(self.collection.aggregate(vector_pipeline, allowDiskUse=True))
-                except OperationFailure as exc:
-                    app_logger.log_message(
-                        "log",
-                        f"Vector search unavailable or failed; continuing without vector results: {exc}",
-                        "WARNING",
-                    )
-                    vector_results = []
+                    vector_results = list(self.collection.aggregate(pipeline))
                 except Exception as exc:
-                    app_logger.log_message("log", f"Vector search raised error; continuing: {exc}", "WARNING")
-                    vector_results = []
+                    app_logger.log_message("log", f"Vector search failed: {exc}", "WARNING")
 
-            # Text search ($search) with fallback to $text for non-Atlas deployments
-            if getattr(self, "keyword_candidates", 0) and self.keyword_candidates > 0:
-                text_pipeline = [
+            # 2. Text Search ($search)
+            if self.keyword_candidates > 0:
+                pipeline = [
                     {"$search": {"index": self.text_index, "text": {"query": query, "path": list(self.allowed_text_paths)}}},
                     {"$limit": self.keyword_candidates},
-                    {"$project": {"content": 1, "metadata": 1, "score": {"$meta": "searchScore"}}},
-                    {"$unset": "embedding"},
+                    {"$project": {"content": 1, "metadata": 1, "score": {"$meta": "searchScore"}}}
                 ]
                 try:
-                    text_results = list(self.collection.aggregate(text_pipeline, allowDiskUse=True))
-                except OperationFailure as exc:
-                    app_logger.log_message("log", f"$search not available; falling back to $text: {exc}", "WARNING")
-                    text_results = []
+                    text_results = list(self.collection.aggregate(pipeline))
+                except Exception:
+                    # Fallback to standard text index if Atlas Search fails
                     try:
-                        text_filter: Dict = {"$text": {"$search": query}}
+                        text_filter = {"$text": {"$search": query}}
                         if self.filter_category:
                             text_filter["metadata.category"] = {"$eq": self.filter_category}
-                        fallback_cursor = (
-                            self.collection.find(text_filter, {"content": 1, "metadata": 1, "score": {"$meta": "textScore"}})
-                            .limit(self.keyword_candidates)
-                        )
-                        text_results = list(fallback_cursor)
+                        text_results = list(self.collection.find(text_filter, {"content": 1, "metadata": 1, "score": {"$meta": "textScore"}}).limit(self.keyword_candidates))
                     except Exception:
-                        app_logger.log_message(
-                            "log",
-                            "Fallback $text query failed; continuing without text results",
-                            "WARNING",
-                        )
-                        text_results = []
-                except Exception as exc:
-                    app_logger.log_message("log", f"Text search raised error; continuing: {exc}", "WARNING")
-                    text_results = []
+                        pass
 
-            # If both vector and text searches returned nothing, fallback to Python-only retriever
+            # 3. Fallback or Fuse
             if not vector_results and not text_results:
-                if self.parent is not None:
-                    app_logger.log_message("log", "No MongoDB search results — using Python fallback retriever", "INFO")
-                    return self.parent._py_fallback_retrieve(
-                        query=query,
-                        limit=self.top_k,
-                        semantic_k=self.semantic_candidates,
-                        keyword_k=self.keyword_candidates,
-                        rrf_k=self.rrf_k,
-                        filter_category=self.filter_category,
-                    )
-                else:
-                    app_logger.log_message(
-                        "log",
-                        "No parent configured for fallback retriever; returning empty list",
-                        "WARNING",
-                    )
-                    return []
+                if self.parent:
+                    return self.parent._py_fallback_retrieve(query, self.top_k, self.semantic_candidates, self.keyword_candidates, self.rrf_k, self.filter_category)
+                return []
 
-            # Otherwise fuse results using RRF
             fused = reciprocal_rank_fusion([vector_results, text_results], self.rrf_k, self.top_k)
-            return [
-                Document(page_content=doc.get("content", ""), metadata={**doc.get("metadata", {}), "score": doc.get("score")})
-                for doc in fused
-            ]
+            return [Document(page_content=doc.get("content", ""), metadata={**doc.get("metadata", {}), "score": doc.get("score")}) for doc in fused]
 
-        def aget_relevant_documents(self, query: str) -> List[Document]:
-            raise NotImplementedError("Async usage not implemented; use sync invoke()")
-
-    # --- Chain builder (kept simple) ---
+    # --- Chain builder ---
     def _build_chain(self, retriever: _MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
+
+        llm_settings = settings_service.get_active_llm()
+        
         llm = ChatOpenAI(
-            model= model_override or "qwen25-coder-32b-awq",
-            base_url=url_override or "http://192.168.125.31:8000/v1",
-            api_key=api_key_override or "test",
+            model=model_override or llm_settings.get('active_llm', '') or "qwen25-coder-32b-awq",
+            base_url=url_override or llm_settings.get('url', '') or "http://192.168.125.31:8000/v1",
+            api_key=api_key_override or llm_settings.get('api_key', '') or "test",
             temperature=0,
         )
 
         prompt = PromptTemplate(
-            template=(
-                "{system_prompt}\n\n"
-                "Context:\n{context}\n\n"
-                "Question:\n{question}\n\n"
-                "Using only the context above, provide the answer."
-            ),
+            template="{system_prompt}\n\nContext:\n{context}\n\nQuestion:\n{question}\n\nUsing only the context above, provide the answer.",
             input_variables=["system_prompt", "question", "context"],
         )
 
-        chain = (
+        return (
             {
                 "system_prompt": lambda x: x["system_prompt"],
                 "question": lambda x: x["question"],
@@ -531,30 +425,10 @@ class RAG:
             | StrOutputParser()
         )
 
-        return chain
-
-    # --- Main RAG query method ---
-    def query_rag(
-        self,
-        user_prompt: str,
-        system_prompt: Optional[str] = None,
-        model_override=None,
-        url_override=None,
-        api_key_override=None,
-        top_k: int = 5,
-        semantic_candidates: int = 50,
-        keyword_candidates: int = 30,
-        rrf_k: int = 60,
-        allowed_text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
-        filter_category: Optional[str] = None,
-    ) -> Dict[str, Any]:
-
+    # --- Query Method ---
+    def query_rag(self, user_prompt: str, system_prompt: Optional[str] = None, top_k: int = 5, **kwargs) -> Dict[str, Any]:
         start = time.time()
-
         try:
-            # ---- 1. Build retrieval query ----
-            retrieval_query = user_prompt.strip()
-        
             coll = self._ensure_collection()
             retriever = self._MongoHybridRetriever(
                 collection=coll,
@@ -563,165 +437,107 @@ class RAG:
                 vector_index=self.vector_index,
                 text_index=self.text_index,
                 top_k=top_k,
-                semantic_candidates=semantic_candidates,
-                keyword_candidates=keyword_candidates,
-                rrf_k=rrf_k,
-                allowed_text_paths=list(allowed_text_paths),
-                filter_category=filter_category,
+                semantic_candidates=kwargs.get("semantic_candidates", 50),
+                keyword_candidates=kwargs.get("keyword_candidates", 30),
+                rrf_k=kwargs.get("rrf_k", 60),
+                allowed_text_paths=kwargs.get("allowed_text_paths", DEFAULT_TEXT_PATHS),
+                filter_category=kwargs.get("filter_category"),
             )
             retriever.parent = self
 
-            # ---- 2. Retrieve context ----
-            docs = retriever.invoke(retrieval_query)
+            chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"))
+            answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
 
-            # ---- 3. Build generation inputs ----
-            generation_input = {
-                "system_prompt": system_prompt or "",
-                "question": user_prompt,
-            }
-
-            # ---- 4. Ask chain ----
-            chain = self._build_chain(
-                retriever, model_override, url_override, api_key_override
-            )
-            answer = chain.invoke(generation_input)
-
-            retrieval_context = [
-                {"content": d.page_content, "metadata": d.metadata}
-                for d in docs
-            ]
-
-            return {
-                "success": True,
-                "content": answer,
-                "context": retrieval_context,
-                "latency": round(time.time() - start, 3),
-                "error": None,
-            }
+            return {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
 
         except Exception as e:
-            return {
-                "success": False,
-                "content": "",
-                "context": [],
-                "latency": round(time.time() - start, 3),
-                "error": str(e),
-            }
+            return {"success": False, "error": str(e), "latency": round(time.time() - start, 3)}
 
-# --- Index helpers (reused) ---
-def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: int) -> None:
-    definition = {
-        "mappings": {
-            "dynamic": True,
-            "fields": {
-                "embedding": {"type": "knnVector", "similarity": "cosine", "dimensions": embedding_dim},
-                "content": {"type": "string"},
-                "metadata": {"type": "document", "fields": {"category": {"type": "token"}}},
-            },
+    # --- Index Creation Helpers ---
+
+    def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: int) -> None:
+        # UPDATED: Matches the working configuration from mongosh
+        definition = {
+            "fields": [
+                {
+                    "type": "vector",
+                    "path": "embedding",
+                    "numDimensions": embedding_dim,
+                    "similarity": "cosine"
+                },
+                {
+                    "type": "filter",
+                    "path": "metadata.category"
+                }
+            ]
         }
-    }
-    try:
-        existing = collection.database.command({"listSearchIndexes": collection.name, "name": index_name})
-        if any(idx.get("name") == index_name for idx in existing.get("indexes", [])):
-            app_logger.log_message("log", f"Vector search index '{index_name}' already exists", "INFO")
-            return
-    except OperationFailure as exc:
-        code = getattr(exc, "code", None)
-        if code == 31082 or "SearchNotEnabled" in str(exc):
-            app_logger.log_message(
-                "log",
-                f"$listSearchIndexes unavailable on this deployment; assuming index '{index_name}' is missing",
-                "WARNING",
-            )
-        elif "NamespaceNotFound" in str(exc):
+        
+        try:
+            # Check if index exists via listSearchIndexes (Atlas only)
+            # We assume if it exists, it's correct.
+            existing = list(collection.list_search_indexes(index_name))
+            if existing:
+                app_logger.log_message("log", f"Vector index '{index_name}' already exists.", "INFO")
+                return
+        except Exception:
             pass
-        else:
-            raise
 
-    payload = {"createSearchIndexes": collection.name, "indexes": [{"name": index_name, "definition": definition}]}
-    app_logger.log_message("log", f"Creating vector search index '{index_name}'", "INFO")
-    try:
-        collection.database.command(payload)
-    except OperationFailure as exc:
-        if "already exists" in str(exc):
-            app_logger.log_message(
-                "log",
-                f"Vector search index '{index_name}' already exists (reported by server)",
-                "INFO",
-            )
-            return
-        raise
-
-
-def ensure_text_index(collection: Collection, index_name: str, text_paths: Sequence[str], language: str) -> None:
-    existing = collection.index_information()
-    if index_name in existing:
-        app_logger.log_message("log", f"Text index '{index_name}' already exists", "INFO")
-        return
-    index_fields = [(path, "text") for path in text_paths]
-    app_logger.log_message("log", f"Creating text index '{index_name}' on {list(text_paths)}", "INFO")
-    collection.create_index(index_fields, name=index_name, default_language=language)
-
-
-# --- CLI wrapper (thin) ---
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="RAG CLI")
-    parser.add_argument("mode", choices=["init", "ingest", "query", "test"], help="operation")
-    parser.add_argument("--mongo-uri", default="mongodb://admin:password@localhost:27017")
-    parser.add_argument("--database", default="soc_rag_db")
-    parser.add_argument("--collection", default="knowledge_base")
-    parser.add_argument("--input-path", type=Path)
-    parser.add_argument("--query-text", default="Which package/add on do I install to parse windows_xml logs into elastic? Return only the name of the package/add on.")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--category")
-    parser.add_argument("--log-level", default="INFO")
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
-    # App logger is already configured globally.
-    rag = RAG(mongo_uri=args.mongo_uri, database=args.database, collection_name=args.collection)
-
-    if args.mode == "init":
-        rag.init()
-    elif args.mode == "ingest":
-        if not args.input_path:
-            app_logger.log_message("log", "--input-path required for ingest", "ERROR")
-            sys.exit(1)
-        rag.init()
-        rag.ingest(args.input_path, category=args.category, dry_run=args.dry_run)
-    elif args.mode == "query":
-        rag.init()
-        answer, ctx = rag.query_rag(args.query_text)
-        print(json.dumps({"answer": answer, "retrieval_context": ctx}, indent=2, default=str))
-    elif args.mode == "test":
-        coll = rag._ensure_collection()
+        app_logger.log_message("log", f"Creating vector search index '{index_name}'...", "INFO")
         try:
-            qv = rag.generate_embeddings(["Smoke test"], show_progress=False)[0]
-        except Exception as exc:
-            app_logger.log_message("log", f"Failed to generate test embedding: {exc}", "ERROR")
-            raise
-        if not any(x != 0.0 for x in qv):
-            app_logger.log_message("log", "Generated test embedding is all zeros; aborting vector test", "ERROR")
-            raise RuntimeError("test embedding is zero vector")
-        pipeline = [{"$vectorSearch": {"index": rag.vector_index, "path": "embedding", "queryVector": qv, "numCandidates": 5, "limit": 1}}, {"$limit": 1}]
-        try:
-            list(coll.aggregate(pipeline))
-            app_logger.log_message(
-                "log",
-                f"Vector search pipeline executed. mongot is reachable and index '{rag.vector_index}' responded.",
-                "INFO",
+            collection.create_search_index(
+                model={"definition": definition, "name": index_name, "type": "vectorSearch"}
             )
-        except OperationFailure as exc:
-            app_logger.log_message("log", f"Vector search test failed: {exc}", "ERROR")
-            raise
+            app_logger.log_message("log", "Index creation initiated. Check status in Atlas/Mongot.", "INFO")
+        except OperationFailure as e:
+            if "already exists" in str(e):
+                app_logger.log_message("log", f"Index '{index_name}' exists.", "INFO")
+            else:
+                app_logger.log_message("log", f"Failed to create vector index: {e}", "ERROR")
+
+    def ensure_text_index(collection: Collection, index_name: str) -> None:
+        definition = {
+            "mappings": {
+                "dynamic": True
+            }
+        }
+        try:
+            existing = list(collection.list_search_indexes(index_name))
+            if existing:
+                app_logger.log_message("log", f"search index '{index_name}' already exists.", "INFO")
+                return
+        except Exception:
+            pass
+
+        app_logger.log_message("log", f"Creating search index '{index_name}'...", "INFO")
+        try:
+            collection.create_search_index(
+                model={"definition": definition, "name": index_name, "type": "search"}
+            )
+            app_logger.log_message("log", f"search creation initiated. Check status in Atlas/Mongot.", "INFO")
+        except OperationFailure as e:
+            if "already exists" in str(e):
+                app_logger.log_message("log", f"Index '{index_name}' exists.", "INFO")
+            else:
+                app_logger.log_message("log", f"Failed to create search index: {e}", "ERROR")
 
 rag_service = RAG()
 
-# test query rag
-# question = "Which package/add on do I install to parse windows_xml logs into elastic? Return only the name of the package/add on."
-# result = rag_service.query_rag(question, system_prompt="You are a SOC assistant.", top_k=5)
-# print("Answer:", result["content"])
+# --- CLI ---
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", choices=["init", "ingest", "query"])
+    parser.add_argument("--query-text", default="Test query")
+    parser.add_argument("--input-path", type=Path)
+    args = parser.parse_args()
+
+    rag = RAG() # Uses new defaults
+
+    if args.mode == "init":
+        rag.init()
+    elif args.mode == "ingest" and args.input_path:
+        rag.ingest(args.input_path)
+    elif args.mode == "query":
+        print(rag.query_rag(args.query_text))
+
+if __name__ == "__main__":
+    main()

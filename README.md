@@ -27,7 +27,6 @@ SmartLP (Smart Log Parser) is a Flask-based web application for ingesting securi
   - `src/database/` – MongoDB connection wrapper
 - `templates/` – main UI template (`smartlp.html`) and sections
 - `static/` – CSS/JS assets used by the UI
-- `mongo/` – example MongoDB documents and datasets used by the application
 - `rag/` – scripts/data used to build/update RAG resources
 
 ## Requirements
@@ -61,7 +60,7 @@ Create a `.env` file in the project root:
 
 ```env
 # Required
-MONGO_URL=mongodb://localhost:27017
+MONGO_URL=mongodb://localhost:27017/?directConnection=true
 
 # Optional application settings
 APP_HOST=0.0.0.0

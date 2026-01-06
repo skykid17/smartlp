@@ -61,7 +61,8 @@ def register_settings_routes(app: Flask) -> None:
             result = llm_service.query_llm(
                 user_prompt=user_prompt,
                 model_override=data['model'],
-                url_override=data['url']
+                url_override=data['url'],
+                api_key_override=data.get('apiKey') or data.get('api_key')
             )
 
             return jsonify(result), (result["status_code"] or 500)

@@ -36,10 +36,13 @@ class Settings {
             searchIndex: document.getElementById('searchIndex'),
             searchEntryCount: document.getElementById('searchEntryCount'),
             searchQuery: document.getElementById('searchQuery'),
+            llmName: document.getElementById('llmName'),
             llmUrl: document.getElementById('llmUrl'),
+            llmApiKey: document.getElementById('llmApiKey'),
             modelsContainer: document.getElementById('models'),
             newModelInput: document.getElementById('newModelInput'),
             addModelBtn: document.getElementById('addModelBtn'),
+            deleteLlmEndpointBtn: document.getElementById('deleteLlmEndpointBtn'),
             saveBtn: document.getElementById('saveSettingsBtn'),
             connectionLogger: document.getElementById('connectionTestLogger'),
             queryLogger: document.getElementById('searchQueryLogger'),
@@ -69,7 +72,11 @@ class Settings {
             this.addModel();
         });
 
+        this.elements.llmName?.addEventListener('input', (e) => this.updateSelectedEndpointName(e.target.value));
         this.elements.llmUrl?.addEventListener('input', (e) => this.updateSelectedEndpointUrl(e.target.value));
+        this.elements.llmApiKey?.addEventListener('input', (e) => this.updateSelectedEndpointApiKey(e.target.value));
+
+        this.elements.deleteLlmEndpointBtn?.addEventListener('click', () => this.deleteSelectedEndpoint());
 
         this.elements.saveBtn?.addEventListener('click', () => this.saveSettings());
         this.elements.testConnectionBtn?.addEventListener('click', () => this.testSiemConnection());
@@ -96,7 +103,10 @@ class Settings {
                 this.llmEndpoints.map((ep) => [ep.id, { ...ep, models: [...(ep.models || [])] }])
             );
 
-            if (!this.selectedLlmEndpoint && this.llmEndpoints.length) {
+            const activeEndpoint = this.currentSettings?.activeLlmEndpoint;
+            if (activeEndpoint && this.llmEndpointMap[activeEndpoint]) {
+                this.selectedLlmEndpoint = activeEndpoint;
+            } else if (!this.selectedLlmEndpoint && this.llmEndpoints.length) {
                 this.selectedLlmEndpoint = this.llmEndpoints[0].id;
             }
 
@@ -229,9 +239,34 @@ class Settings {
         const ep = this.llmEndpointMap[id];
         if (!ep) return;
 
+        this.setValue(this.elements.llmName, ep.name || ep.id || '');
         this.setValue(this.elements.llmUrl, ep.url || '');
+        this.setValue(this.elements.llmApiKey, ep.apiKey || '');
         this.renderModelList(ep.models || []);
         this.refreshActiveModelOptionsIfNeeded();
+    }
+
+    markEndpointChanged(endpointId) {
+        if (!endpointId) return;
+        const ep = this.llmEndpointMap[endpointId];
+        if (!ep) return;
+        this.newLlmEndpoints[endpointId] = {
+            id: endpointId,
+            name: ep.name || endpointId,
+            url: ep.url || '',
+            apiKey: ep.apiKey || '',
+            models: ep.models || []
+        };
+    }
+
+    updateSelectedEndpointName(value) {
+        if (!this.selectedLlmEndpoint) return;
+        const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
+        if (ep) {
+            ep.name = value;
+            this.markEndpointChanged(this.selectedLlmEndpoint);
+            this.renderLlmTabs();
+        }
     }
 
     updateSelectedEndpointUrl(value) {
@@ -239,6 +274,16 @@ class Settings {
         const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
         if (ep) {
             ep.url = value;
+            this.markEndpointChanged(this.selectedLlmEndpoint);
+        }
+    }
+
+    updateSelectedEndpointApiKey(value) {
+        if (!this.selectedLlmEndpoint) return;
+        const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
+        if (ep) {
+            ep.apiKey = value;
+            this.markEndpointChanged(this.selectedLlmEndpoint);
         }
     }
 
@@ -283,6 +328,7 @@ class Settings {
         const endpointId = this.selectedLlmEndpoint;
         const endpoint = this.llmEndpointMap[endpointId];
         const url = endpoint?.url || this.elements.llmUrl?.value || '';
+        const apiKey = endpoint?.apiKey || this.elements.llmApiKey?.value || '';
 
         if (!endpointId || !url) {
             this.elements.modelLogger.innerHTML = '<span class="text-red-500">Select an endpoint and provide an API URL first.</span>';
@@ -302,7 +348,8 @@ class Settings {
                 task: 'test',
                 model,
                 url,
-                llmEndpoint: endpointId
+                llmEndpoint: endpointId,
+                apiKey
             };
 
             const response = await fetch('/api/test_llm_connection', {
@@ -349,6 +396,7 @@ class Settings {
         }
 
         ep.models.push(value);
+        this.markEndpointChanged(this.selectedLlmEndpoint);
         this.elements.newModelInput.value = '';
         this.renderModelList(ep.models);
         this.refreshActiveModelOptionsIfNeeded();
@@ -357,6 +405,7 @@ class Settings {
     removeModel(index) {
         const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
         ep.models.splice(index, 1);
+        this.markEndpointChanged(this.selectedLlmEndpoint);
         this.renderModelList(ep.models);
         this.refreshActiveModelOptionsIfNeeded();
     }
@@ -378,13 +427,50 @@ class Settings {
         const name = prompt('Enter endpoint display name:', id) || id;
         const url = prompt('Enter endpoint API URL:', '') || '';
 
-        const endpoint = { id, name, url, models: [] };
+        const endpoint = { id, name, url, apiKey: '', models: [] };
         this.llmEndpoints.push(endpoint);
         this.llmEndpointMap[id] = endpoint;
-        this.newLlmEndpoints[id] = { ...endpoint };
+        this.markEndpointChanged(id);
         this.renderLlmControls();
         this.selectLlmEndpoint(id);
         this.toast(`Endpoint ${name} created`, 'success');
+    }
+
+    deleteSelectedEndpoint() {
+        const id = this.selectedLlmEndpoint;
+        if (!id) return;
+
+        if (!confirm(`Delete endpoint "${this.llmEndpointMap[id]?.name || id}"?`)) {
+            return;
+        }
+
+        // Mark for deletion in the save payload
+        this.newLlmEndpoints[id] = null;
+
+        // Remove locally
+        delete this.llmEndpointMap[id];
+        this.llmEndpoints = this.llmEndpoints.filter((ep) => ep.id !== id);
+
+        // Update selection
+        const nextId = this.llmEndpoints[0]?.id || null;
+        this.selectedLlmEndpoint = nextId;
+
+        // If active endpoint was deleted, clear active selections (user can set a new one)
+        if (this.elements.activeLlmEndpoint?.value === id) {
+            this.elements.activeLlmEndpoint.value = '';
+            this.handleActiveEndpointChange();
+        }
+
+        this.renderLlmControls();
+        if (nextId) {
+            this.selectLlmEndpoint(nextId);
+        } else {
+            this.setValue(this.elements.llmName, '');
+            this.setValue(this.elements.llmUrl, '');
+            this.setValue(this.elements.llmApiKey, '');
+            this.renderModelList([]);
+        }
+        this.toast('Endpoint deleted (pending save)', 'info');
     }
 
     async saveSettings() {
@@ -413,6 +499,8 @@ class Settings {
             const endpoint = this.llmEndpointMap[this.selectedLlmEndpoint];
             payload.llmEndpoint = this.selectedLlmEndpoint;
             payload.llmUrl = endpoint?.url || '';
+            payload.llmName = endpoint?.name || '';
+            payload.llmApiKey = endpoint?.apiKey || '';
             payload.models = endpoint?.models || [];
         }
 

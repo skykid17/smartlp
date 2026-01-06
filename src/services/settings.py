@@ -76,6 +76,47 @@ class SettingsService(BaseService):
         except Exception as e:
             self.log_error("Failed to get LLM settings", e)
             return []
+        
+    def get_active_llm(self) -> Optional[Dict[str, Any]]:
+        """Get the configuration for the active LLM endpoint.
+        
+        Returns:
+            Dictionary containing LLM configuration or None if not found
+        """
+        try:
+            # Read active endpoint id from global settings (accept snake_case and camelCase)
+            global_settings = self.get_global_settings()
+            active_endpoint_id = None
+
+            if isinstance(global_settings, dict):
+                active_endpoint_id = global_settings.get('active_llm_endpoint')
+
+            if not active_endpoint_id:
+                self.log_warning("No active LLM endpoint configured")
+                return None
+
+            # Get list of endpoints (stored as-is in DB). Be defensive about key names.
+            endpoints = self.get_llm_settings()
+            for endpoint in endpoints:
+                if not isinstance(endpoint, dict):
+                    continue
+                eid = endpoint.get('id') or endpoint.get('ID') or endpoint.get('Id')
+                name = endpoint.get('name') or endpoint.get('Name')
+
+                try:
+                    if eid and str(eid).lower() == str(active_endpoint_id).lower():
+                        return endpoint
+                    if name and str(name).lower() == str(active_endpoint_id).lower():
+                        return endpoint
+                except Exception:
+                    continue
+
+            self.log_warning(f"Active LLM endpoint '{active_endpoint_id}' not found in configuration")
+            return None
+
+        except Exception as e:
+            self.log_error(f"Error getting active LLM settings: {str(e)}", e)
+            return None
 
     def get_prompts_settings(self, key) -> Any:
         """Return the value of a specific prompt field from settings (id='prompts')."""
@@ -258,6 +299,20 @@ class SettingsService(BaseService):
             if 'llmEndpoint' in settings_data:
                 llm_id = settings_data['llmEndpoint']
                 llm_updates = {}
+
+                # Check for LLM name changes
+                if 'llmName' in settings_data:
+                    new_name = settings_data['llmName']
+                    if current_llms_snake.get(llm_id, {}).get('name') != new_name:
+                        llm_updates['name'] = new_name
+                        changes.append(f"LLM Endpoint Name ({llm_id}): {new_name}")
+
+                # Check for LLM API key changes
+                if 'llmApiKey' in settings_data:
+                    new_key = settings_data['llmApiKey']
+                    if current_llms_snake.get(llm_id, {}).get('api_key') != new_key:
+                        llm_updates['api_key'] = new_key
+                        changes.append(f"LLM API Key ({llm_id}): updated")
                 
                 # Check for LLM URL changes
                 if 'llmUrl' in settings_data:
@@ -305,6 +360,17 @@ class SettingsService(BaseService):
                 
                 for endpoint_id, endpoint_data in new_endpoints.items():
                     current_endpoint = current_llms.get(endpoint_id, {})
+
+                    # Delete endpoint if explicitly marked
+                    if endpoint_data is None or (isinstance(endpoint_data, dict) and endpoint_data.get('_delete')):
+                        deleted = db_connection.delete_one(
+                            'settings',
+                            {"category": "llm_settings", "id": endpoint_id}
+                        )
+                        if deleted:
+                            changes.append(f"Deleted LLM endpoint: {current_endpoint.get('name', endpoint_id) if current_endpoint else endpoint_id}")
+                            self.log_info(f"LLM endpoint deleted: {endpoint_id}")
+                        continue
                     
                     # Check if this is a new endpoint
                     if not current_endpoint:
@@ -313,6 +379,7 @@ class SettingsService(BaseService):
                             'id': endpoint_id,
                             'name': endpoint_data.get('name', endpoint_id),
                             'url': endpoint_data.get('url', ''),
+                            'api_key': endpoint_data.get('api_key') or endpoint_data.get('apiKey') or '',
                             'models': endpoint_data.get('models', []),
                             'created_at': datetime.now().isoformat(),
                             'updated_at': datetime.now().isoformat(),
@@ -332,6 +399,10 @@ class SettingsService(BaseService):
                             
                         if current_endpoint.get('url') != endpoint_data.get('url'):
                             endpoint_updates['url'] = endpoint_data.get('url')
+
+                        incoming_key = endpoint_data.get('api_key') or endpoint_data.get('apiKey')
+                        if incoming_key is not None and current_endpoint.get('api_key') != incoming_key:
+                            endpoint_updates['api_key'] = incoming_key
                             
                         if set(current_endpoint.get('models', [])) != set(endpoint_data.get('models', [])):
                             endpoint_updates['models'] = endpoint_data.get('models', [])

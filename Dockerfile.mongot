@@ -1,0 +1,16 @@
+FROM mongodb/mongodb-community-search:latest
+
+USER root
+
+# 1. Fix Password File (as before)
+COPY pwfile /mongot-community/pwfile
+RUN chown 1000:1000 /mongot-community/pwfile && \
+    chmod 400 /mongot-community/pwfile
+
+# 2. Fix Data Directory Permissions (The New Fix)
+# We ensure the directory exists and is owned by user 1000
+RUN mkdir -p /data/mongot && \
+    chown -R 1000:1000 /data/mongot
+
+# Switch back to the standard user
+USER 1000

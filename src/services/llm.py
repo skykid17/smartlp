@@ -21,55 +21,12 @@ class LLMService(BaseService):
     def __init__(self):
         super().__init__('llm')
         self.temperature = 0.1  # Low temperature for consistent output
-        
-    def _get_active_llm_config(self) -> Optional[Dict[str, Any]]:
-        """Get the configuration for the active LLM endpoint.
-        
-        Returns:
-            Dictionary containing LLM configuration or None if not found
-        """
-        try:
-            # Read active endpoint id from global settings (accept snake_case and camelCase)
-            global_settings = settings_service.get_global_settings()
-            active_endpoint_id = None
-
-            if isinstance(global_settings, dict):
-                active_endpoint_id = global_settings.get('active_llm_endpoint')
-
-            if not active_endpoint_id:
-                self.log_warning("No active LLM endpoint configured")
-                return None
-
-            # Get list of endpoints (stored as-is in DB). Be defensive about key names.
-            endpoints = settings_service.get_llm_settings()
-            for endpoint in endpoints:
-                if not isinstance(endpoint, dict):
-                    continue
-                eid = endpoint.get('id') or endpoint.get('ID') or endpoint.get('Id')
-                name = endpoint.get('name') or endpoint.get('Name')
-
-                try:
-                    if eid and str(eid).lower() == str(active_endpoint_id).lower():
-                        return endpoint
-                    if name and str(name).lower() == str(active_endpoint_id).lower():
-                        return endpoint
-                except Exception:
-                    continue
-
-            self.log_warning(f"Active LLM endpoint '{active_endpoint_id}' not found in configuration")
-            return None
-
-        except Exception as e:
-            self.log_error(f"Error getting active LLM settings: {str(e)}", e)
-            return None
     
     def _build_llm_client(self, model_override=None, url_override=None, api_key_override=None):
         """Build a ChatOpenAI client from DB settings or frontend overrides."""
-        settings = self._get_active_llm_config()
-        global_settings = settings_service.get_global_settings()
-        active_llm = global_settings.get('active_llm', '') if isinstance(global_settings, dict) else None
+        llm_settings = settings_service.get_active_llm()
 
-        if not settings:
+        if not llm_settings:
             return None, {
                 "success": False,
                 "content": None,
@@ -79,10 +36,10 @@ class LLMService(BaseService):
             }
 
         try:
-            model = model_override or active_llm or settings.get("model")[0]
-            url = url_override or settings.get("url")
-            api_key = api_key_override or settings.get("api_key", "test")
-            temperature = settings.get("temperature", 0.1)
+            model = model_override or llm_settings.get("model")[0]
+            url = url_override or llm_settings.get("url")
+            api_key = api_key_override or llm_settings.get("api_key", "test")
+            temperature = llm_settings.get("temperature", 0.1)
 
             llm = ChatOpenAI(
                 model=model,
