@@ -211,7 +211,7 @@ class SettingsService(BaseService):
                 global_settings_to_update['id'] = 'global'
                 global_settings_to_update['updated_at'] = datetime.now().isoformat()
                 
-                result = self.db.update_one(
+                result = db_connection.update_one(
                     'settings',
                     {"id": "global"},
                     {"$set": global_settings_to_update}
@@ -245,7 +245,7 @@ class SettingsService(BaseService):
                 if siem_updates:
                     siem_updates['updated_at'] = datetime.now().isoformat()
                     
-                    result = self.db.update_one(
+                    result = db_connection.update_one(
                         'settings',
                         {"category": "siem_settings", "id": siem_id},
                         {"$set": siem_updates}
@@ -290,7 +290,7 @@ class SettingsService(BaseService):
                 if llm_updates:
                     llm_updates['updated_at'] = datetime.now().isoformat()
                     
-                    result = self.db.update_one(
+                    result = db_connection.update_one(
                         'settings',
                         {"category": "llm_settings", "id": llm_id},
                         {"$set": llm_updates}
@@ -319,7 +319,7 @@ class SettingsService(BaseService):
                             'category': 'llm_settings'
                         }
 
-                        result = self.db.insert_one('settings', new_endpoint)
+                        result = db_connection.insert_one('settings', new_endpoint)
                         if result:
                             changes.append(f"Added new LLM endpoint: {new_endpoint['name']}")
                             self.log_info(f"New LLM endpoint created: {endpoint_id}")
@@ -338,7 +338,7 @@ class SettingsService(BaseService):
                         
                         if endpoint_updates:
                             endpoint_updates['updated_at'] = datetime.now().isoformat()
-                            result = self.db.update_one(
+                            result = db_connection.update_one(
                                 'settings',
                                 {"category": "llm_settings", "id": endpoint_id},
                                 {"$set": endpoint_updates}
@@ -385,7 +385,7 @@ class SettingsService(BaseService):
                 self.log_error(f"Invalid SIEM type: {siem_type}")
                 return False
             
-            result = self.db.update_one(
+            result = db_connection.update_one(
                 'settings',
                 {"category": "global_settings", "id": "global"},
                 {"$set": {

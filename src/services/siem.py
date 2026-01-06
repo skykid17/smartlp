@@ -17,7 +17,7 @@ from elasticsearch import Elasticsearch
 import splunklib.client as splunk_client
 import splunklib.results as splunk_results
 
-from settings.settings import settings
+from config.environment import env_manager
 from database.connection import db_connection
 
 class SIEMConnectionError(Exception):
@@ -90,7 +90,7 @@ class SplunkService(BaseSIEMService):
     def __init__(self):
         """Initialize Splunk service."""
         super().__init__("splunk")
-        self.settings = settings.splunk
+        self.settings = env_manager.splunk
     
     def connect(self) -> bool:
         """Connect to Splunk.
@@ -205,7 +205,7 @@ class SplunkService(BaseSIEMService):
                 # Get entries from database
                 entries = []
                 for entry_id in entry_ids:
-                    entry = self.db.query(
+                    entry = db_connection.query(
                         self.collection_name,
                         {"id": entry_id},
                         projection={"_id": 0},
@@ -325,7 +325,7 @@ class ElasticsearchService(BaseSIEMService):
     def __init__(self):
         """Initialize Elasticsearch service."""
         super().__init__("elasticsearch")
-        self.settings = settings.elastic
+        self.settings = env_manager.elastic
         self.ssl_verified = False  # Track whether SSL verification is being used
     
     def connect(self) -> bool:

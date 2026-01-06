@@ -3,7 +3,7 @@ Settings and environment management for SmartSOC.
 """
 
 import os
-from typing import Optional, Dict, Any
+from typing import Optional
 from dotenv import load_dotenv
 from dataclasses import dataclass
 from pymongo import MongoClient
@@ -48,7 +48,7 @@ class AppSettings:
     secret_key: Optional[str] = None
 
 
-class SettingsManager:
+class EnvironmentManager:
     """Centralized settings management."""
     
     def __init__(self, env_file: Optional[str] = None):
@@ -135,5 +135,5 @@ class SettingsManager:
         return value
 
 
-# Global settings instance
-settings = SettingsManager()
+# Global configuration instance
+env_manager = EnvironmentManager()

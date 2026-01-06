@@ -8,7 +8,7 @@ from pymongo import MongoClient, DESCENDING, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import ConnectionFailure
 
-from settings.settings import settings
+from config.environment import env_manager
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ class DatabaseError(Exception):
     pass
 
 
-DEFAULT_MAX_ATTEMPTS = getattr(settings.database, "connection_attempts", 3)
-DEFAULT_BACKOFF_SECONDS = getattr(settings.database, "connection_backoff_seconds", 1.0)
-HEALTH_CHECK_INTERVAL = getattr(settings.database, "connection_health_interval", 30.0)
+DEFAULT_MAX_ATTEMPTS = getattr(env_manager.database, "connection_attempts", 3)
+DEFAULT_BACKOFF_SECONDS = getattr(env_manager.database, "connection_backoff_seconds", 1.0)
+HEALTH_CHECK_INTERVAL = getattr(env_manager.database, "connection_health_interval", 30.0)
 
 
 class DatabaseConnection:
@@ -69,7 +69,7 @@ class DatabaseConnection:
         self.close()
         try:
             self._client = MongoClient(
-                settings.database.mongo_url,
+                env_manager.database.mongo_url,
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=5000,
                 socketTimeoutMS=300000,
@@ -88,12 +88,12 @@ class DatabaseConnection:
         """Initialize database collections."""
         try:
             # Database
-            db = self._client[settings.database.db_name]
+            db = self._client[env_manager.database.db_name]
 
             # Collections
-            self._collections['knowledge_base'] = db[settings.database.knowledge_collection]
-            self._collections['logs'] = db[settings.database.logs_collection]
-            self._collections['settings'] = db[settings.database.settings_collection]
+            self._collections['knowledge_base'] = db[env_manager.database.knowledge_collection]
+            self._collections['logs'] = db[env_manager.database.logs_collection]
+            self._collections['settings'] = db[env_manager.database.settings_collection]
 
             logger.info("Database collections initialized successfully")
         except Exception as e:

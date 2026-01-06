@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 import sys
 import pcre2
 import time
@@ -21,6 +20,8 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Any
+
+from utils.logging import app_logger
 
 import numpy as np
 from pymongo import MongoClient
@@ -123,7 +124,7 @@ class RAG:
                 client.admin.command("ping")
                 self.client = client
             except ServerSelectionTimeoutError as exc:
-                logging.error("Unable to reach MongoDB at %s: %s", self.mongo_uri, exc)
+                app_logger.log_message("log", f"Unable to reach MongoDB at {self.mongo_uri}: {exc}", "ERROR")
                 raise
         return self.client
 
@@ -137,12 +138,12 @@ class RAG:
         coll = self._ensure_collection()
         ensure_text_index(coll, self.text_index, self.text_paths, self.text_language)
         ensure_vector_index(coll, self.vector_index, self.embedding_dim)
-        logging.info("RAG initialization complete")
+        app_logger.log_message("log", "RAG initialization complete", "INFO")
 
     # --- Embeddings ---
     def get_embedding_model(self) -> SentenceTransformer:
         if self._embedding_model is None:
-            logging.info("Loading SentenceTransformer: %s", self.embedding_provider)
+            app_logger.log_message("log", f"Loading SentenceTransformer: {self.embedding_provider}", "INFO")
             self._embedding_model = SentenceTransformer(self.embedding_provider)
         return self._embedding_model
 
@@ -166,7 +167,7 @@ class RAG:
         def load_file(path: Path) -> List[Document]:
             suffix = path.suffix.lower()
             if suffix not in SUPPORTED_EXTENSIONS:
-                logging.debug("Skipping unsupported file %s", path)
+                app_logger.log_message("log", f"Skipping unsupported file {path}", "DEBUG")
                 return []
             if suffix in {".txt", ".md", ".yaml", ".yml"}:
                 loader = TextLoader(str(path), encoding="utf-8")
@@ -227,13 +228,13 @@ class RAG:
         coll = self._ensure_collection()
         docs = self.load_documents(input_path)
         if not docs:
-            logging.warning("No documents found under %s", input_path)
+            app_logger.log_message("log", f"No documents found under {input_path}", "WARNING")
             return 0
         chunks = self.chunk_documents(docs)
         if not chunks:
-            logging.warning("No chunks produced; check chunk parameters")
+            app_logger.log_message("log", "No chunks produced; check chunk parameters", "WARNING")
             return 0
-        logging.info("Loaded %d docs -> %d chunks", len(docs), len(chunks))
+        app_logger.log_message("log", f"Loaded {len(docs)} docs -> {len(chunks)} chunks", "INFO")
 
         # Delta check
         content_hashes = [hashlib.sha1(c.page_content.encode("utf-8")).hexdigest() for c in chunks]
@@ -247,7 +248,7 @@ class RAG:
                 existing_ids.add(doc["_id"])
         chunks_to_embed = [chunk for chunk, h in zip(chunks, content_hashes) if h not in existing_ids]
         if not chunks_to_embed:
-            logging.info("All %d chunks already ingested; skipping embedding generation", len(chunks))
+            app_logger.log_message("log", f"All {len(chunks)} chunks already ingested; skipping embedding generation", "INFO")
             return 0
 
         mongo_batch: List[Dict] = []
@@ -269,7 +270,7 @@ class RAG:
                             dup_errors = [err for err in exc.details.get("writeErrors", []) if err.get("code") == 11000]
                             inserted += exc.details.get("nInserted", 0)
                             if dup_errors:
-                                logging.info("Skipped %d duplicate chunks during insert", len(dup_errors))
+                                app_logger.log_message("log", f"Skipped {len(dup_errors)} duplicate chunks during insert", "INFO")
                             non_dup = [err for err in exc.details.get("writeErrors", []) if err.get("code") != 11000]
                             if non_dup:
                                 raise
@@ -285,13 +286,17 @@ class RAG:
                     dup_errors = [err for err in exc.details.get("writeErrors", []) if err.get("code") == 11000]
                     inserted += exc.details.get("nInserted", 0)
                     if dup_errors:
-                        logging.info("Skipped %d duplicate chunks during insert", len(dup_errors))
+                        app_logger.log_message("log", f"Skipped {len(dup_errors)} duplicate chunks during insert", "INFO")
                     non_dup = [err for err in exc.details.get("writeErrors", []) if err.get("code") != 11000]
                     if non_dup:
                         raise
             else:
                 inserted += len(mongo_batch)
-        logging.info("Ingest complete. %d chunks %s", inserted, "simulated" if dry_run else "inserted")
+        app_logger.log_message(
+            "log",
+            f"Ingest complete. {inserted} chunks {'simulated' if dry_run else 'inserted'}",
+            "INFO",
+        )
         return inserted
 
     # --- Python-only fallback: semantic + keyword + RRF ---
@@ -320,8 +325,6 @@ class RAG:
 
         # Compute query embedding
         q_emb = self.generate_embeddings([query], show_progress=False)[0]
-
-        
 
         for doc in all_docs:
             emb = doc.get("embedding")
@@ -425,10 +428,14 @@ class RAG:
                 try:
                     vector_results = list(self.collection.aggregate(vector_pipeline, allowDiskUse=True))
                 except OperationFailure as exc:
-                    logging.warning("Vector search unavailable or failed; continuing without vector results: %s", exc)
+                    app_logger.log_message(
+                        "log",
+                        f"Vector search unavailable or failed; continuing without vector results: {exc}",
+                        "WARNING",
+                    )
                     vector_results = []
                 except Exception as exc:
-                    logging.warning("Vector search raised error; continuing: %s", exc)
+                    app_logger.log_message("log", f"Vector search raised error; continuing: {exc}", "WARNING")
                     vector_results = []
 
             # Text search ($search) with fallback to $text for non-Atlas deployments
@@ -442,7 +449,7 @@ class RAG:
                 try:
                     text_results = list(self.collection.aggregate(text_pipeline, allowDiskUse=True))
                 except OperationFailure as exc:
-                    logging.warning("$search not available; falling back to $text: %s", exc)
+                    app_logger.log_message("log", f"$search not available; falling back to $text: {exc}", "WARNING")
                     text_results = []
                     try:
                         text_filter: Dict = {"$text": {"$search": query}}
@@ -454,16 +461,20 @@ class RAG:
                         )
                         text_results = list(fallback_cursor)
                     except Exception:
-                        logging.warning("Fallback $text query failed; continuing without text results")
+                        app_logger.log_message(
+                            "log",
+                            "Fallback $text query failed; continuing without text results",
+                            "WARNING",
+                        )
                         text_results = []
                 except Exception as exc:
-                    logging.warning("Text search raised error; continuing: %s", exc)
+                    app_logger.log_message("log", f"Text search raised error; continuing: {exc}", "WARNING")
                     text_results = []
 
             # If both vector and text searches returned nothing, fallback to Python-only retriever
             if not vector_results and not text_results:
                 if self.parent is not None:
-                    logging.info("No MongoDB search results — using Python fallback retriever")
+                    app_logger.log_message("log", "No MongoDB search results — using Python fallback retriever", "INFO")
                     return self.parent._py_fallback_retrieve(
                         query=query,
                         limit=self.top_k,
@@ -473,7 +484,11 @@ class RAG:
                         filter_category=self.filter_category,
                     )
                 else:
-                    logging.warning("No parent configured for fallback retriever; returning empty list")
+                    app_logger.log_message(
+                        "log",
+                        "No parent configured for fallback retriever; returning empty list",
+                        "WARNING",
+                    )
                     return []
 
             # Otherwise fuse results using RRF
@@ -497,11 +512,10 @@ class RAG:
 
         prompt = PromptTemplate(
             template=(
-                "You are a SOC assistant.\n"
                 "{system_prompt}\n\n"
-                "Question:\n{question}\n\n"
                 "Context:\n{context}\n\n"
-                "Answer:"
+                "Question:\n{question}\n\n"
+                "Using only the context above, provide the answer."
             ),
             input_variables=["system_prompt", "question", "context"],
         )
@@ -609,24 +623,32 @@ def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: 
     try:
         existing = collection.database.command({"listSearchIndexes": collection.name, "name": index_name})
         if any(idx.get("name") == index_name for idx in existing.get("indexes", [])):
-            logging.info("Vector search index '%s' already exists", index_name)
+            app_logger.log_message("log", f"Vector search index '{index_name}' already exists", "INFO")
             return
     except OperationFailure as exc:
         code = getattr(exc, "code", None)
         if code == 31082 or "SearchNotEnabled" in str(exc):
-            logging.warning("$listSearchIndexes unavailable on this deployment; assuming index '%s' is missing", index_name)
+            app_logger.log_message(
+                "log",
+                f"$listSearchIndexes unavailable on this deployment; assuming index '{index_name}' is missing",
+                "WARNING",
+            )
         elif "NamespaceNotFound" in str(exc):
             pass
         else:
             raise
 
     payload = {"createSearchIndexes": collection.name, "indexes": [{"name": index_name, "definition": definition}]}
-    logging.info("Creating vector search index '%s'", index_name)
+    app_logger.log_message("log", f"Creating vector search index '{index_name}'", "INFO")
     try:
         collection.database.command(payload)
     except OperationFailure as exc:
         if "already exists" in str(exc):
-            logging.info("Vector search index '%s' already exists (reported by server)", index_name)
+            app_logger.log_message(
+                "log",
+                f"Vector search index '{index_name}' already exists (reported by server)",
+                "INFO",
+            )
             return
         raise
 
@@ -634,10 +656,10 @@ def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: 
 def ensure_text_index(collection: Collection, index_name: str, text_paths: Sequence[str], language: str) -> None:
     existing = collection.index_information()
     if index_name in existing:
-        logging.info("Text index '%s' already exists", index_name)
+        app_logger.log_message("log", f"Text index '{index_name}' already exists", "INFO")
         return
     index_fields = [(path, "text") for path in text_paths]
-    logging.info("Creating text index '%s' on %s", index_name, text_paths)
+    app_logger.log_message("log", f"Creating text index '{index_name}' on {list(text_paths)}", "INFO")
     collection.create_index(index_fields, name=index_name, default_language=language)
 
 
@@ -660,14 +682,14 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO), format="%(asctime)s %(levelname)s %(message)s")
+    # App logger is already configured globally.
     rag = RAG(mongo_uri=args.mongo_uri, database=args.database, collection_name=args.collection)
 
     if args.mode == "init":
         rag.init()
     elif args.mode == "ingest":
         if not args.input_path:
-            logging.error("--input-path required for ingest")
+            app_logger.log_message("log", "--input-path required for ingest", "ERROR")
             sys.exit(1)
         rag.init()
         rag.ingest(args.input_path, category=args.category, dry_run=args.dry_run)
@@ -680,17 +702,21 @@ def main() -> None:
         try:
             qv = rag.generate_embeddings(["Smoke test"], show_progress=False)[0]
         except Exception as exc:
-            logging.error("Failed to generate test embedding: %s", exc)
+            app_logger.log_message("log", f"Failed to generate test embedding: {exc}", "ERROR")
             raise
         if not any(x != 0.0 for x in qv):
-            logging.error("Generated test embedding is all zeros; aborting vector test")
+            app_logger.log_message("log", "Generated test embedding is all zeros; aborting vector test", "ERROR")
             raise RuntimeError("test embedding is zero vector")
         pipeline = [{"$vectorSearch": {"index": rag.vector_index, "path": "embedding", "queryVector": qv, "numCandidates": 5, "limit": 1}}, {"$limit": 1}]
         try:
             list(coll.aggregate(pipeline))
-            logging.info("Vector search pipeline executed. mongot is reachable and index '%s' responded.", rag.vector_index)
+            app_logger.log_message(
+                "log",
+                f"Vector search pipeline executed. mongot is reachable and index '{rag.vector_index}' responded.",
+                "INFO",
+            )
         except OperationFailure as exc:
-            logging.error("Vector search test failed: %s", exc)
+            app_logger.log_message("log", f"Vector search test failed: {exc}", "ERROR")
             raise
 
 rag_service = RAG()
@@ -699,4 +725,3 @@ rag_service = RAG()
 # question = "Which package/add on do I install to parse windows_xml logs into elastic? Return only the name of the package/add on."
 # result = rag_service.query_rag(question, system_prompt="You are a SOC assistant.", top_k=5)
 # print("Answer:", result["content"])
-

@@ -46,7 +46,6 @@ class BaseService(ABC):
         # Use a logger proxy that forwards to the app-wide `app_logger` so we avoid
         # depending on the stdlib `logging` configuration across modules.
         self.logger = LoggerProxy(service_name)
-        self.db = db_connection
     
     def log_info(self, message: str) -> None:
         """Log info message.
@@ -100,7 +99,7 @@ class CRUDService(BaseService):
             ServiceError: If creation fails
         """
         try:
-            record_id = self.db.insert_one(self.collection_name, data)
+            record_id = db_connection.insert_one(self.collection_name, data)
             self.log_info(f"Created record with ID: {record_id}")
             return record_id
         except Exception as e:
@@ -118,7 +117,7 @@ class CRUDService(BaseService):
             Record data or None if not found
         """
         try:
-            return self.db.query(
+            return db_connection.query(
                 self.collection_name, 
                 {'id': record_id}, 
                 projection=projection, 
@@ -144,7 +143,7 @@ class CRUDService(BaseService):
             List of matching records
         """
         try:
-            return self.db.query(
+            return db_connection.query(
                 self.collection_name, 
                 filter_dict, 
                 projection=projection,
@@ -167,7 +166,7 @@ class CRUDService(BaseService):
             True if updated successfully, False otherwise
         """
         try:
-            success = self.db.update_one(
+            success = db_connection.update_one(
                 self.collection_name,
                 {'id': record_id},
                 {'$set': update_data}
@@ -189,7 +188,7 @@ class CRUDService(BaseService):
             True if deleted successfully, False otherwise
         """
         try:
-            success = self.db.delete_one(
+            success = db_connection.delete_one(
                 self.collection_name,
                 {'id': record_id}
             )
@@ -210,7 +209,7 @@ class CRUDService(BaseService):
             Number of matching records
         """
         try:
-            return self.db.count_documents(self.collection_name, filter_dict)
+            return db_connection.count_documents(self.collection_name, filter_dict)
         except Exception as e:
             self.log_error(f"Failed to count records", e)
             return 0

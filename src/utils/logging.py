@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
-class SmartSOCLogger:
-    """Custom logger for SmartSOC with SocketIO integration."""
+class SmartLPLogger:
+    """Custom logger for SmartLP with SocketIO integration."""
     
-    def __init__(self, name: str = "smartsoc"):
+    def __init__(self, name: str = "smartlp"):
         """Initialize logger.
         
         Args:
@@ -24,19 +24,22 @@ class SmartSOCLogger:
         if not self.logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                '%(asctime)s - %(levelname)s - %(message)s'
             )
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
+        # Prevent messages from being propagated to the root logger
+        # which can cause duplicate output if a root handler exists.
+        self.logger.propagate = False
     
     def log_message(self, channel: str, message: str, level: str = "INFO") -> None:
         ts = datetime.now(timezone.utc).isoformat()
 
-        # 1. Backend logging (for terminal / files / journald)
+        # Backend logging (for terminal / files / journald)
         self.logger.log(getattr(logging, level.upper(), logging.INFO), message)
 
-        # 2. UI event stream (structured, no formatting)
+        # UI event stream (structured, no formatting)
         if channel in ("log", "notification"):
             try:
                 from core.socketio_manager import socketio_manager
@@ -50,4 +53,4 @@ class SmartSOCLogger:
                 pass
         
 # Global logger instance
-app_logger = SmartSOCLogger()
+app_logger = SmartLPLogger()

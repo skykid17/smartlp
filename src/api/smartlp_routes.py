@@ -20,6 +20,7 @@ from services.llm import llm_service
 from services.rag import rag_service
 from services.regex_engine import regex_engine_service
 from utils.logging import app_logger
+from database.connection import db_connection
 
 
 def register_smartlp_routes(app: Flask) -> None:
@@ -201,7 +202,7 @@ def register_smartlp_routes(app: Flask) -> None:
             # Get count for each status
             status_counts = {}
             for status in all_statuses:
-                count = smartlp_service.db.count_documents(
+                count = db_connection.count_documents(
                     smartlp_service.collection_name,
                     {"status": status}
                 )
@@ -475,7 +476,10 @@ def register_smartlp_routes(app: Flask) -> None:
                 regex = data.get('regex', '')
                 result = smartlp_service.fix_regex(log, regex)
             case _:
-                user_prompt = data.get('prompt', '')
-                result = rag_service.query_rag(user_prompt)
-            
+                user_prompt = data.get("prompt", "").strip()
+                result = rag_service.query_rag(
+                    user_prompt=user_prompt,
+                    system_prompt=settings_service.get_prompts_settings("general")
+                )
+
         return jsonify(result)

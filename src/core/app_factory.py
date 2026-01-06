@@ -8,11 +8,15 @@ import sys
 import threading
 from typing import Optional
 from flask import Flask
+from flask_caching import Cache
 
-from settings.settings import settings
+from config.environment import env_manager
 from core.socketio_manager import socketio_manager
 from utils.logging import app_logger
 
+
+    
+cache = Cache(config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 30})
 
 class ApplicationFactory:
     """Factory class for creating and configuring Flask application."""
@@ -63,15 +67,16 @@ class ApplicationFactory:
             app: Flask application instance
         """
         # Set secret key if available
-        if settings.app.secret_key:
-            app.config['SECRET_KEY'] = settings.app.secret_key
+        if env_manager.app.secret_key:
+            app.config['SECRET_KEY'] = env_manager.app.secret_key
         
         # Additional Flask configuration
         app.config['JSON_SORT_KEYS'] = False
         app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
         
         print("Flask application configured")  # Use print instead of logger initially
-    
+
+
     @staticmethod
     def _initialize_extensions(app: Flask) -> None:
         """Initialize Flask extensions.
@@ -80,6 +85,7 @@ class ApplicationFactory:
             app: Flask application instance
         """
         # Initialize SocketIO
+        cache.init_app(app)
         socketio_instance = socketio_manager.initialize(app)
         print(f"SocketIO initialized: {socketio_instance is not None}")
         socketio_manager.register_handlers()
@@ -172,9 +178,9 @@ class ApplicationFactory:
             debug: Debug mode (uses settings default if None)
         """
         # Use settings defaults if not specified
-        run_host = host or settings.app.host
-        run_port = port or settings.app.port
-        run_debug = debug if debug is not None else settings.app.debug
+        run_host = host or env_manager.app.host
+        run_port = port or env_manager.app.port
+        run_debug = debug if debug is not None else env_manager.app.debug
         
         print(f'Starting SmartSOC server on {run_host}:{run_port}')
         
@@ -189,7 +195,8 @@ class ApplicationFactory:
                     app, 
                     host=run_host, 
                     port=run_port, 
-                    debug=run_debug
+                    debug=run_debug,
+                    # use_reloader=False  # Disable reloader to avoid double threads
                 )
             except Exception as e:
                 print(f"SocketIO run error: {e}")

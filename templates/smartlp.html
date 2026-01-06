@@ -18,6 +18,34 @@
 
     <!-- Custom CSS Overrides -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overrides.css') }}">
+    <style>
+        /* Ensure chat messages wrap and break long words */
+        .markdown-message {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .markdown-message p {
+            margin: 0;
+        }
+
+        .markdown-message ul,
+        .markdown-message ol {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        /* Minimal copy button styling inside chat */
+        .copy-reply {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .copy-reply i {
+            font-size: 0.95rem;
+        }
+    </style>
 </head>
 
 <body class="h-full bg-gray-50 dark:bg-gray-900">
@@ -275,6 +303,11 @@
     <!-- JavaScript Libraries -->
     <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/html2pdf.bundle.min.js') }}"></script>
+
+    <!-- Marked (Markdown parser) - loaded before module scripts for chatbot -->
+    <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
+    <!-- DOMPurify for sanitizing rendered markdown -->
+    <script src="{{ url_for('static', filename='js/purify.min.js') }}"></script>
 
     <!-- ES6 Module Scripts (type="module" for proper imports/exports) -->
     <script type="module" src="{{ url_for('static', filename='js/dashboard.js') }}"></script>

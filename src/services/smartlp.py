@@ -266,9 +266,9 @@ class SmartLPService(CRUDService):
         try:
             self.log_info("Searching for oldest unmatched entry")
             
-            entry = self.db.query(
+            entry = db_connection.query(
                 self.collection_name,
-                {"status": RuleStatus.UNMATCHED.value},
+                {"status": "Unmatched" or "Partially Matched"},
                 projection={"_id": 0, "id": 1, "log": 1, "regex": 1, "timestamp": 1},
                 sort=[("timestamp", 1)],  # Ascending order (oldest first)
                 limit=1
@@ -292,7 +292,7 @@ class SmartLPService(CRUDService):
             Number of unmatched entries in database
         """
         try:
-            count = self.db.count_documents(
+            count = db_connection.count_documents(
                 self.collection_name,
                 {"status": RuleStatus.UNMATCHED.value}
             )
@@ -308,7 +308,7 @@ class SmartLPService(CRUDService):
             List of unique status values
         """
         try:
-            statuses = self.db.get_distinct_values(self.collection_name, "status")
+            statuses = db_connection.get_distinct_values(self.collection_name, "status")
             return statuses
         except Exception as e:
             self.log_error(f"Failed to get all statuses: {str(e)}", e)
@@ -329,7 +329,7 @@ class SmartLPService(CRUDService):
             
             # Query entries with specified IDs
             query = {"id": {"$in": ids}}
-            entries = self.db.query(
+            entries = db_connection.query(
                 self.collection_name,
                 query,
                 projection={"_id": 0, "id": 1, "status": 1}
@@ -357,7 +357,7 @@ class SmartLPService(CRUDService):
             self.log_info("Generating SmartLP report data")
             
             # Get all entries
-            all_entries = self.db.query(self.collection_name, {})
+            all_entries = db_connection.query(self.collection_name, {})
             
             # Initialize counters
             parsed_count = 0
@@ -620,7 +620,7 @@ class SmartLPService(CRUDService):
             from difflib import SequenceMatcher
 
             # Fetch recent entries
-            recent_entries = self.db.query(
+            recent_entries = db_connection.query(
                 self.collection_name,
                 {},
                 projection={"log": 1},
@@ -1163,6 +1163,15 @@ class SmartLPService(CRUDService):
         except Exception as e:
             self.log_error(f"Error creating SmartLP config: {str(e)}", e)
             return f"# Error creating configuration: {str(e)}"
+        
+    def add_context_to_prompt(self, prompt: str):
+        general_settings = settings_service.get_global_settings()
+        active_siem = general_settings.get("active_siem")
+        active_llm = general_settings.get("active_llm")
+        active_llm_endpoint = general_settings.get("active_llm_endpoint")
+        enhanced_text = f"The application currently uses SIEM: {active_siem}, LLM: {active_llm} at endpoint {active_llm_endpoint}. Based on this context, answer the following prompt accordingly."
+        return enhanced_text + "\n" + prompt
+
 
 # Create service instance
 smartlp_service = SmartLPService()

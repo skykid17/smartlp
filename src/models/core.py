@@ -11,6 +11,7 @@ from enum import Enum
 class RuleStatus(Enum):
     """Enumeration for rule statuses."""
     MATCHED = "Matched"
+    PARTIIALLY_MATCHED = "Partially Matched"
     UNMATCHED = "Unmatched"
     PENDING = "Pending"
     APPROVED = "Approved"
