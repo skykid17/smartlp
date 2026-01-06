@@ -59,64 +59,72 @@ class SettingsService(BaseService):
             self.log_error("Failed to get SIEM settings", e)
             return []
     
-    def get_llm_settings(self) -> List[Dict[str, Any]]:
-        """Get LLM endpoint settings.
-        
-        Returns:
-            List of LLM settings with camelCase keys
+    def get_llm_endpoints(self):
+        return list(db_connection.query(
+            'settings',
+            {"category": "llm_endpoint"},
+            projection={"_id": 0}
+        ))
+    
+    def get_llm_models(self):
+        return list(db_connection.query(
+            'settings',
+            {"category": "llm_model"},
+            projection={"_id": 0}
+        ))
+
+    def get_active_llm(self):
+        """Returns:
+        {
+            "model": {...},
+            "endpoint": {url, api_key, ...}
+        }
         """
         try:
-            llms = list(db_connection.query(
-                'settings',
-                {"category": "llm_settings"},
-                projection={"_id": 0}
-            ))
-            
-            return llms
-        except Exception as e:
-            self.log_error("Failed to get LLM settings", e)
-            return []
-        
-    def get_active_llm(self) -> Optional[Dict[str, Any]]:
-        """Get the configuration for the active LLM endpoint.
-        
-        Returns:
-            Dictionary containing LLM configuration or None if not found
-        """
-        try:
-            # Read active endpoint id from global settings (accept snake_case and camelCase)
             global_settings = self.get_global_settings()
-            active_endpoint_id = None
+            active_model_id = global_settings.get("active_llm_model_id")
 
-            if isinstance(global_settings, dict):
-                active_endpoint_id = global_settings.get('active_llm_endpoint')
-
-            if not active_endpoint_id:
-                self.log_warning("No active LLM endpoint configured")
+            if not active_model_id:
+                self.log_warning("No active LLM model configured")
                 return None
+            
+            # Fetch model
+            model = db_connection.find_one(
+                'settings',
+                {"category": "llm_model", "id": active_model_id},
+                projection={"_id": 0}
+            )
 
-            # Get list of endpoints (stored as-is in DB). Be defensive about key names.
-            endpoints = self.get_llm_settings()
-            for endpoint in endpoints:
-                if not isinstance(endpoint, dict):
-                    continue
-                eid = endpoint.get('id') or endpoint.get('ID') or endpoint.get('Id')
-                name = endpoint.get('name') or endpoint.get('Name')
+            if not model:
+                self.log_warning(f"Active LLM model '{active_model_id}' not found")
+                return None
+            
+            endpoint_id = model.get("endpoint_id")
 
-                try:
-                    if eid and str(eid).lower() == str(active_endpoint_id).lower():
-                        return endpoint
-                    if name and str(name).lower() == str(active_endpoint_id).lower():
-                        return endpoint
-                except Exception:
-                    continue
+            if not endpoint_id:
+                self.log_warning(f"Model '{active_model_id}' missing endpoint_id")
+                return None
+            
+            # Fetch endpoint
+            endpoint = db_connection.find_one(
+                'settings',
+                {"category": "llm_endpoint", "id": endpoint_id},
+                projection={"_id": 0}
+            )
 
-            self.log_warning(f"Active LLM endpoint '{active_endpoint_id}' not found in configuration")
-            return None
+            if not endpoint:
+                self.log_warning(f"Endpoint '{endpoint_id}' not found for model '{active_model_id}'")
+                return None
+            
+            return {
+                "model": model,
+                "endpoint": endpoint
+            }
 
         except Exception as e:
-            self.log_error(f"Error getting active LLM settings: {str(e)}", e)
+            self.log_error("Error resolving active LLM", e)
             return None
+
 
     def get_prompts_settings(self, key) -> Any:
         """Return the value of a specific prompt field from settings (id='prompts')."""
@@ -142,22 +150,51 @@ class SettingsService(BaseService):
         """Get all application settings (for frontend).
         
         Returns:
-            All settings grouped by category
+            All settings grouped by category, with LLM endpoints nested with their models
         """
-        # Convert backend (snake_case) docs to camelCase for frontend/API responses
         try:
+            # Fetch raw backend settings
             global_settings = self.get_global_settings() or {}
             siems = self.get_siem_settings() or []
-            llms = self.get_llm_settings() or []
+            endpoints = self.get_llm_endpoints() or []
+            models = self.get_llm_models() or []
+
+            # Map models by endpoint_id for easy nesting
+            models_by_endpoint = {}
+            for m in models:
+                endpoint_id = m.get("endpoint_id")
+                if endpoint_id not in models_by_endpoint:
+                    models_by_endpoint[endpoint_id] = []
+                models_by_endpoint[endpoint_id].append({
+                    "id": m.get("id"),
+                    "displayName": m.get("display_name"),
+                    "modelName": m.get("model_name"),
+                    "provider": m.get("provider")
+                })
+
+            # Build endpoints with nested models
+            endpoints_nested = []
+            for e in endpoints:
+                endpoint_models = models_by_endpoint.get(e.get("id"), [])
+                endpoints_nested.append({
+                    "id": e.get("id"),
+                    "name": e.get("name"),
+                    "url": e.get("url"),
+                    "apiKey": e.get("api_key"),
+                    "updatedAt": e.get("updated_at"),
+                    "models": endpoint_models
+                })
 
             return {
-                "settings": convert_key_to_camel(global_settings) if isinstance(global_settings, dict) else {},
+                "globalSettings": convert_key_to_camel(global_settings) if isinstance(global_settings, dict) else {},
                 "siems": [convert_key_to_camel(s) for s in siems],
-                "llmEndpoints": [convert_key_to_camel(l) for l in llms]
+                "llmEndpoints": endpoints_nested
             }
+
         except Exception as e:
             self.log_error("Failed to prepare frontend settings response", e)
-            return {"settings": {}, "siems": [], "llmEndpoints": []}
+            return {"globalSettings": {}, "siems": [], "llmEndpoints": []}
+
     
     def get_human_friendly_change_description(self, field: str, new_value: Any, current_siems: Dict = None, current_llms: Dict = None) -> str:
         """Generate human-friendly change descriptions.
@@ -206,227 +243,141 @@ class SettingsService(BaseService):
             return f"{display_name}: {new_value}"
 
     def update_settings(self, settings_data: Dict[str, Any]) -> List[str]:
-        """Update application settings.
-        
-        Args:
-            settings_data: Flat settings data from frontend
-            
-        Returns:
-            List of changes made
-        """
+        """Update application settings with the new llm_endpoint / llm_model schema."""
         changes = []
-        
+
         try:
-            # Get current settings for comparison
-            current_global = self.get_global_settings()
-            # keep camelCase maps for display/name lookups
-            current_siems = {siem['id']: siem for siem in self.get_siem_settings()}
-            current_llms = {llm['id']: llm for llm in self.get_llm_settings()}
-            # snake_case maps for value comparisons
+            # --- Load current settings ---
+            current_global = self.get_global_settings() or {}
+            current_siems = {s['id']: s for s in self.get_siem_settings() or []}
+            current_endpoints = {e['id']: e for e in self.get_llm_endpoints() or []}
+            current_models = {m['id']: m for m in self.get_llm_models() or []}
+
+            # Convert to snake_case for comparison
             current_global_snake = convert_key_to_snake(current_global)
-            current_siems_snake = {siem['id']: convert_key_to_snake(siem) for siem in self.get_siem_settings()}
-            current_llms_snake = {llm['id']: convert_key_to_snake(llm) for llm in self.get_llm_settings()}
-            
-            # Prepare global settings update
-            global_settings_to_update = {}
+            current_siems_snake = {s['id']: convert_key_to_snake(s) for s in current_siems.values()}
+            current_endpoints_snake = {e['id']: convert_key_to_snake(e) for e in current_endpoints.values()}
+            current_models_snake = {m['id']: convert_key_to_snake(m) for m in current_models.values()}
+
+            # --- Update global settings ---
             global_fields = [
-                'activeSiem', 'activeLlmEndpoint', 'activeLlm', 'ingestFrequency', 
-                'similarityThreshold', 'similarityCheck', 'ingestOn', 
+                'activeSiem', 'activeLlmModelId', 'ingestFrequency',
+                'similarityThreshold', 'similarityCheck', 'ingestOn',
                 'ingestAlgoVersion', 'fixCount'
             ]
-            
+            global_updates = {}
             for field in global_fields:
                 if field in settings_data:
-                    snake_field = convert_key_to_snake({field: settings_data[field]})
-                    field_snake = list(snake_field.keys())[0]
-                    new_value = snake_field[field_snake]
-                    
-                    # Compare with current value (use snake-case map)
-                    if current_global_snake.get(field_snake) != new_value:
-                        global_settings_to_update[field_snake] = new_value
-                        change_desc = self.get_human_friendly_change_description(field, new_value, current_siems, current_llms)
-                        changes.append(change_desc)
-            
-            # Update global settings if there are changes
-            if global_settings_to_update:
-                global_settings_to_update['id'] = 'global'
-                global_settings_to_update['updated_at'] = datetime.now().isoformat()
-                
-                result = db_connection.update_one(
-                    'settings',
-                    {"id": "global"},
-                    {"$set": global_settings_to_update}
-                )
-                
-                if result:
-                    self.log_info(f"Global settings updated: {list(global_settings_to_update.keys())}")
-            
-            # Handle SIEM settings updates
+                    key_snake, new_value = list(convert_key_to_snake({field: settings_data[field]}).items())[0]
+                    if current_global_snake.get(key_snake) != new_value:
+                        global_updates[key_snake] = new_value
+                        changes.append(f"Global setting '{field}' updated to '{new_value}'")
+            if global_updates:
+                global_updates['updated_at'] = datetime.now().isoformat()
+                db_connection.update_one('settings', {"id": "global"}, {"$set": global_updates})
+
+            # --- Update SIEM settings ---
             if 'siem' in settings_data:
                 siem_id = settings_data['siem']
                 siem_updates = {}
-                
-                # Check for SIEM-specific fields
                 siem_fields = ['searchIndex', 'searchEntryCount', 'searchQuery']
                 for field in siem_fields:
                     if field in settings_data:
-                        snake_field = convert_key_to_snake({field: settings_data[field]})
-                        field_snake = list(snake_field.keys())[0]
-                        new_value = snake_field[field_snake]
-                        
-                        # Compare with current value (use snake-case map)
+                        key_snake, new_value = list(convert_key_to_snake({field: settings_data[field]}).items())[0]
                         current_siem = current_siems_snake.get(siem_id, {})
-                        if current_siem.get(field_snake) != new_value:
-                            siem_updates[field_snake] = new_value
-                            change_desc = self.get_human_friendly_change_description(field, new_value, current_siems, current_llms)
+                        if current_siem.get(key_snake) != new_value:
+                            siem_updates[key_snake] = new_value
                             siem_name = current_siems.get(siem_id, {}).get('name', siem_id)
-                            changes.append(f"{siem_name} {change_desc}")
-                
-                # Update SIEM settings if there are changes
+                            changes.append(f"{siem_name} {field} updated to {new_value}")
                 if siem_updates:
                     siem_updates['updated_at'] = datetime.now().isoformat()
-                    
-                    result = db_connection.update_one(
-                        'settings',
-                        {"category": "siem_settings", "id": siem_id},
-                        {"$set": siem_updates}
+                    db_connection.update_one(
+                        'settings', {"category": "siem_settings", "id": siem_id}, {"$set": siem_updates}
                     )
-                    
-                    if result:
-                        self.log_info(f"SIEM {siem_id} settings updated: {list(siem_updates.keys())}")
-            
-            # Handle LLM settings updates (including models and URL)
-            if 'llmEndpoint' in settings_data:
-                llm_id = settings_data['llmEndpoint']
-                llm_updates = {}
 
-                # Check for LLM name changes
-                if 'llmName' in settings_data:
-                    new_name = settings_data['llmName']
-                    if current_llms_snake.get(llm_id, {}).get('name') != new_name:
-                        llm_updates['name'] = new_name
-                        changes.append(f"LLM Endpoint Name ({llm_id}): {new_name}")
-
-                # Check for LLM API key changes
-                if 'llmApiKey' in settings_data:
-                    new_key = settings_data['llmApiKey']
-                    if current_llms_snake.get(llm_id, {}).get('api_key') != new_key:
-                        llm_updates['api_key'] = new_key
-                        changes.append(f"LLM API Key ({llm_id}): updated")
-                
-                # Check for LLM URL changes
-                if 'llmUrl' in settings_data:
-                    new_url = settings_data['llmUrl']
-                    current_llm = current_llms.get(llm_id, {})
-                    if current_llms_snake.get(llm_id, {}).get('url') != new_url:
-                        llm_updates['url'] = new_url
-                        llm_name = current_llms.get(llm_id, {}).get('name', llm_id)
-                        changes.append(f"{llm_name} URL: {new_url}")
-                
-                # Check for model changes
-                if 'models' in settings_data:
-                    new_models = settings_data['models']
-                    current_llm = current_llms.get(llm_id, {})
-                    current_models = current_llms_snake.get(llm_id, {}).get('models', [])
-                    
-                    # Compare model arrays
-                    if set(new_models) != set(current_models):
-                        llm_updates['models'] = new_models
-                        added_models = set(new_models) - set(current_models)
-                        removed_models = set(current_models) - set(new_models)
-                        
-                        llm_name = current_llms.get(llm_id, {}).get('name', llm_id)
-                        if added_models:
-                            changes.append(f"{llm_name} - Added Models: {', '.join(added_models)}")
-                        if removed_models:
-                            changes.append(f"{llm_name} - Removed Models: {', '.join(removed_models)}")
-                
-                # Update LLM settings if there are changes
-                if llm_updates:
-                    llm_updates['updated_at'] = datetime.now().isoformat()
-                    
-                    result = db_connection.update_one(
-                        'settings',
-                        {"category": "llm_settings", "id": llm_id},
-                        {"$set": llm_updates}
-                    )
-                    
-                    if result:
-                        self.log_info(f"LLM {llm_id} settings updated: {list(llm_updates.keys())}")
-            
-            # Handle new LLM endpoints creation/updates
+            # --- Update / create LLM endpoints ---
             if 'llmEndpoints' in settings_data:
-                new_endpoints = settings_data['llmEndpoints']
-                
-                for endpoint_id, endpoint_data in new_endpoints.items():
-                    current_endpoint = current_llms.get(endpoint_id, {})
+                for endpoint_id, endpoint_data in settings_data['llmEndpoints'].items():
+                    current_endpoint = current_endpoints.get(endpoint_id)
 
-                    # Delete endpoint if explicitly marked
+                    # Delete endpoint
                     if endpoint_data is None or (isinstance(endpoint_data, dict) and endpoint_data.get('_delete')):
-                        deleted = db_connection.delete_one(
-                            'settings',
-                            {"category": "llm_settings", "id": endpoint_id}
-                        )
-                        if deleted:
-                            changes.append(f"Deleted LLM endpoint: {current_endpoint.get('name', endpoint_id) if current_endpoint else endpoint_id}")
-                            self.log_info(f"LLM endpoint deleted: {endpoint_id}")
+                        db_connection.delete_one('settings', {"category": "llm_endpoint", "id": endpoint_id})
+                        changes.append(f"Deleted LLM endpoint: {endpoint_id}")
                         continue
-                    
-                    # Check if this is a new endpoint
+
+                    # Create new endpoint
                     if not current_endpoint:
-                        # Create new endpoint document in 'settings' collection
                         new_endpoint = {
                             'id': endpoint_id,
                             'name': endpoint_data.get('name', endpoint_id),
                             'url': endpoint_data.get('url', ''),
                             'api_key': endpoint_data.get('api_key') or endpoint_data.get('apiKey') or '',
-                            'models': endpoint_data.get('models', []),
+                            'category': 'llm_endpoint',
                             'created_at': datetime.now().isoformat(),
-                            'updated_at': datetime.now().isoformat(),
-                            'category': 'llm_settings'
+                            'updated_at': datetime.now().isoformat()
                         }
+                        db_connection.insert_one('settings', new_endpoint)
+                        changes.append(f"Added new LLM endpoint: {new_endpoint['name']}")
+                        continue
 
-                        result = db_connection.insert_one('settings', new_endpoint)
-                        if result:
-                            changes.append(f"Added new LLM endpoint: {new_endpoint['name']}")
-                            self.log_info(f"New LLM endpoint created: {endpoint_id}")
-                    else:
-                        # Check for changes to existing endpoint
-                        endpoint_updates = {}
-                        
-                        if current_endpoint.get('name') != endpoint_data.get('name'):
-                            endpoint_updates['name'] = endpoint_data.get('name')
-                            
-                        if current_endpoint.get('url') != endpoint_data.get('url'):
-                            endpoint_updates['url'] = endpoint_data.get('url')
+                    # Update existing endpoint
+                    endpoint_updates = {}
+                    for key in ['name', 'url', 'api_key']:
+                        incoming_val = endpoint_data.get(key) or (endpoint_data.get('apiKey') if key == 'api_key' else None)
+                        if incoming_val is not None and current_endpoint.get(key) != incoming_val:
+                            endpoint_updates[key] = incoming_val
 
-                        incoming_key = endpoint_data.get('api_key') or endpoint_data.get('apiKey')
-                        if incoming_key is not None and current_endpoint.get('api_key') != incoming_key:
-                            endpoint_updates['api_key'] = incoming_key
-                            
-                        if set(current_endpoint.get('models', [])) != set(endpoint_data.get('models', [])):
-                            endpoint_updates['models'] = endpoint_data.get('models', [])
-                        
-                        if endpoint_updates:
-                            endpoint_updates['updated_at'] = datetime.now().isoformat()
-                            result = db_connection.update_one(
-                                'settings',
-                                {"category": "llm_settings", "id": endpoint_id},
-                                {"$set": endpoint_updates}
-                            )
+                    if endpoint_updates:
+                        endpoint_updates['updated_at'] = datetime.now().isoformat()
+                        db_connection.update_one(
+                            'settings', {"category": "llm_endpoint", "id": endpoint_id}, {"$set": endpoint_updates}
+                        )
+                        changes.append(f"Updated LLM endpoint: {endpoint_id}")
 
-                            if result:
-                                endpoint_name = endpoint_data.get('name', endpoint_id)
-                                changes.append(f"Updated LLM endpoint: {endpoint_name}")
-                                self.log_info(f"LLM endpoint updated: {endpoint_id}")
-            
-            if changes:
-                self.log_info(f"Settings updated successfully: {len(changes)} changes made")
-            else:
-                self.log_info("No settings changes detected")
-            
+            # --- Update / create LLM models ---
+            if 'llmModels' in settings_data:
+                for model_id, model_data in settings_data['llmModels'].items():
+                    current_model = current_models.get(model_id)
+
+                    # Delete model
+                    if model_data is None or (isinstance(model_data, dict) and model_data.get('_delete')):
+                        db_connection.delete_one('settings', {"category": "llm_model", "id": model_id})
+                        changes.append(f"Deleted LLM model: {model_id}")
+                        continue
+
+                    # Create new model
+                    if not current_model:
+                        new_model = {
+                            'id': model_id,
+                            'model_name': model_data['model_name'],
+                            'display_name': model_data.get('display_name', model_data['model_name']),
+                            'endpoint_id': model_data['endpoint_id'],
+                            'provider': model_data.get('provider', ''),
+                            'category': 'llm_model',
+                            'created_at': datetime.now().isoformat(),
+                            'updated_at': datetime.now().isoformat()
+                        }
+                        db_connection.insert_one('settings', new_model)
+                        changes.append(f"Added new LLM model: {new_model['display_name']}")
+                        continue
+
+                    # Update existing model
+                    model_updates = {}
+                    for key in ['model_name', 'display_name', 'endpoint_id', 'provider']:
+                        incoming_val = model_data.get(key)
+                        if incoming_val is not None and current_model.get(key) != incoming_val:
+                            model_updates[key] = incoming_val
+
+                    if model_updates:
+                        model_updates['updated_at'] = datetime.now().isoformat()
+                        db_connection.update_one(
+                            'settings', {"category": "llm_model", "id": model_id}, {"$set": model_updates}
+                        )
+                        changes.append(f"Updated LLM model: {model_id}")
+
             return changes
-            
+
         except Exception as e:
             self.log_error("Failed to update settings", e)
             return [f"Error updating settings: {str(e)}"]

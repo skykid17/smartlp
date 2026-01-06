@@ -401,12 +401,14 @@ class RAG:
     def _build_chain(self, retriever: _MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
 
         llm_settings = settings_service.get_active_llm()
+        model_cfg = llm_settings["model"]
+        endpoint_cfg = llm_settings["endpoint"]
         
         llm = ChatOpenAI(
-            model=model_override or llm_settings.get('active_llm', '') or "qwen25-coder-32b-awq",
-            base_url=url_override or llm_settings.get('url', '') or "http://192.168.125.31:8000/v1",
-            api_key=api_key_override or llm_settings.get('api_key', '') or "test",
-            temperature=0,
+            model=model_override or model_cfg["model_name"],
+            base_url=url_override or endpoint_cfg["url"],
+            api_key=api_key_override or endpoint_cfg.get("api_key", ""),
+            temperature=0
         )
 
         prompt = PromptTemplate(

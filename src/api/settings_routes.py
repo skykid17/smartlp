@@ -36,36 +36,62 @@ def register_settings_routes(app: Flask) -> None:
             data = request.get_json()
             if not data:
                 return jsonify({"error": "No data provided"}), 400
-            
+
+            # Expect structure like:
+            # {
+            #   "globalSettings": {...},
+            #   "siems": {...},
+            #   "llmEndpoints": {...},
+            #   "llmModels": {...}
+            # }
             changes_list = settings_service.update_settings(data)
             return jsonify({"changes": changes_list}), 200
-            
+
         except Exception as e:
             return jsonify({"error": f"Failed to save settings: {str(e)}"}), 500
     
     @app.route('/api/test_llm_connection', methods=['POST'])
     def test_llm_connection():
+        """
+        Test LLM connectivity.
+        Expects:
+        {
+            "task": "string",
+            "endpoint_id": "llm endpoint id",
+            "model_id": "llm model id"
+        }
+        """
         try:
             data = request.get_json()
             if not data:
                 return jsonify({"status_code": 400, "error": {"error": "No data provided"}}), 400
 
-            required_fields = ['task', 'model', 'url', 'llmEndpoint']
+            required_fields = ['task', 'endpoint_id', 'model_id']
             for field in required_fields:
                 if field not in data:
                     return jsonify({"status_code": 400, "error": {"error": f"Missing required field: {field}"}}), 400
 
+            # Fetch prompt for testing
             user_prompt = settings_service.get_prompts_settings("test")
 
-            # OVERRIDE the model + URL being used.
+            # Fetch endpoint & model details from settings
+            llm_endpoint = settings_service.get_llm_endpoints(data['endpoint_id'])
+            llm_model = settings_service.get_llm_models(data['model_id'])
+
+            if not llm_endpoint:
+                return jsonify({"status_code": 404, "error": {"error": f"LLM endpoint '{data['endpoint_id']}' not found"}}), 404
+            if not llm_model:
+                return jsonify({"status_code": 404, "error": {"error": f"LLM model '{data['model_id']}' not found"}}), 404
+
+            # OVERRIDE the model + URL + API key being used.
             result = llm_service.query_llm(
                 user_prompt=user_prompt,
-                model_override=data['model'],
-                url_override=data['url'],
-                api_key_override=data.get('apiKey') or data.get('api_key')
+                model_override=llm_model.get('model_name'),
+                url_override=llm_endpoint.get('url'),
+                api_key_override=llm_endpoint.get('api_key')
             )
 
-            return jsonify(result), (result["status_code"] or 500)
+            return jsonify(result), (result.get("status_code") or 500)
 
         except Exception as e:
             return jsonify({

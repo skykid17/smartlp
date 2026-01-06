@@ -1,445 +1,157 @@
-[{
-  "_id": {
-    "$oid": "67f48a0918cde7a9e3d6314c"
+[
+  {
+    "_id": {
+      "$oid": "67f48a0918cde7a9e3d6314c"
+    },
+    "id": "global",
+    "prefixes": [],
+    "active_llm": "qwen25-coder-32b-awq",
+    "active_llm_endpoint": "vllm",
+    "active_siem": "elastic",
+    "fix_count": 10,
+    "ingest_algo_version": "v2",
+    "ingest_frequency": 1,
+    "ingest_on": true,
+    "similarity_check": true,
+    "similarity_threshold": 0.7,
+    "updated_at": "2026-01-05T11:54:07.443434",
+    "category": "global_settings",
+    "ammendments": [
+      ""
+    ]
   },
-  "id": "global",
-  "prefixes": [],
-  "active_llm": "qwen25-coder-32b-awq",
-  "active_llm_endpoint": "vllm",
-  "active_siem": "elastic",
-  "fix_count": 10,
-  "ingest_algo_version": "v2",
-  "ingest_frequency": 1,
-  "ingest_on": true,
-  "similarity_check": true,
-  "similarity_threshold": 0.7,
-  "updated_at": "2026-01-05T11:54:07.443434",
-  "category": "global_settings",
-  "ammendments": [
-    ""
-  ]
-},
-{
-  "_id": {
-    "$oid": "67f4846418cde7a9e3d630c4"
+  {
+    "id": "ollama",
+    "name": "Ollama",
+    "url": "http://localhost:11434/api/chat",
+    "api_key": "",
+    "category": "llm_endpoint",
+    "updated_at": "2025-10-04T11:55:26.535624"
   },
-  "id": "ollama",
-  "url": "http://localhost:11434/api/chat",
-  "models": [
-    "qwen3.0-coder"
-  ],
-  "amendments": [
-    {
-      "timestamp": "24 Apr 2025 17:30:15",
-      "action": "Changed URL for LLM Endpoint 'ollama' from http://localhost:11434/api/generate to http://localhost:11434/api/generate1"
-    },
-    {
-      "timestamp": "24 Apr 2025 17:30:25",
-      "action": "Changed URL for LLM Endpoint 'ollama' from http://localhost:11434/api/generate1 to http://localhost:11434/api/generate"
-    },
-    {
-      "timestamp": "25 Apr 2025 18:17:53",
-      "action": "Changed URL for LLM Endpoint 'ollama' from http://localhost:11434/api/generate to "
-    },
-    {
-      "timestamp": "25 Apr 2025 19:12:43",
-      "action": "Changed models for LLM Endpoint 'ollama' from ['log2regex', 'llama3.2_3B_gguf', 'log2reg2'] to ['qwen25-coder-14b']"
-    },
-    {
-      "timestamp": "25 Apr 2025 19:18:26",
-      "action": "Changed URL for LLM Endpoint 'ollama' from  to http://localhost:11434/api/generate"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-08T15:06:40.471Z"
-      },
-      "action": "Changed URL for LLM Endpoint 'ollama' from http://localhost:11434/api/generate to http://localhost:11434/api/chat"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-15T13:54:56.664Z"
-      },
-      "action": "Changed models for LLM Endpoint 'ollama' from ['log2regex', 'log2reg2'] to ['log2regex', 'log2reg2', 'prefix3']"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-15T15:22:36.861Z"
-      },
-      "action": "Changed models for LLM Endpoint 'ollama' from ['log2regex', 'log2reg2', 'prefix3'] to ['log2regex', 'log2reg2']"
-    }
-  ],
-  "name": "Ollama",
-  "updated_at": "2025-10-04T11:55:26.535624",
-  "category": "llm_settings"
-},
-{
-  "_id": {
-    "$oid": "680b441287c8d30b08c3d2eb"
+  {
+    "id": "lmstudio",
+    "name": "LM Studio",
+    "api_key": "",
+    "url": "http://localhost/v1/chat/completions",
+    "category": "llm_endpoint",
+    "updated_at": "2025-09-26T23:46:53.156457"
   },
-  "id": "lmstudio",
-  "url": "http://localhost/v1/chat/completions",
-  "models": [
-    "falcon3-10b-instruct"
-  ],
-  "name": "LM Studio",
-  "updated_at": "2025-09-26T23:46:53.156457",
-  "category": "llm_settings"
-},
-{
-  "_id": {
-    "$oid": "681b125f8eefcb4d83143618"
+  {
+    "id": "vllm",
+    "name": "VLLM",
+    "api_key": "test",
+    "url": "http://192.168.125.31:8000/v1",
+    "category": "llm_endpoint",
+    "updated_at": "2026-01-05T15:25:15.810059"
   },
-  "id": "vllm",
-  "url": "http://192.168.125.31:8000/v1",
-  "models": [
-    "qwen25-coder-32b-awq"
-  ],
-  "amendments": [
-    {
-      "timestamp": {
-        "$date": "2025-05-07T16:57:21.025Z"
-      },
-      "action": "Changed models for LLM Endpoint 'vllm2' from ['test', 'qwen25-coder-32b-awq-2'] to ['qwen25-coder-32b-awq-2']"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-06-23T17:23:12.914Z"
-      },
-      "action": "Changed URL for LLM Endpoint 'vllm2' from https://qwen25-coder-32b-awq-2-test.apps.cluster1.stecyberlab.local/v1/chat/completions to https://192.168.125.32:8000/v1/chat/completions"
-    }
-  ],
-  "name": "VLLM",
-  "updated_at": "2026-01-05T15:25:15.810059",
-  "category": "llm_settings"
-},
-{
-  "_id": {
-    "$oid": "67f48acf18cde7a9e3d63164"
+  {
+    "id": "ollama-qwen3.0-coder",
+    "endpoint_id": "ollama",
+    "model_name": "qwen3.0-coder",
+    "display_name": "Qwen 3.0 Coder (Ollama)",
+    "provider": "Ollama",
+    "category": "llm_model",
+    "updated_at": "2025-10-04T11:55:26.535624"
   },
-  "id": "splunk",
-  "name": "Splunk",
-  "amendments": [
-    {
-      "timestamp": "25 Apr 2025 18:17:53",
-      "action": "Changed searchIndex for splunk from search index=\"unparsed\" source=tcp:7000 host=\"CYberlab-ENT-PA-440\" earliest=-5m | head 1 to unparsed"
-    },
-    {
-      "timestamp": "25 Apr 2025 18:17:53",
-      "action": "Changed searchQuery for splunk from search index=unparsed sourcetype=catchall | head 1 to "
-    },
-    {
-      "timestamp": "25 Apr 2025 18:18:24",
-      "action": "Changed searchIndex for splunk from  to unparsed"
-    },
-    {
-      "timestamp": "25 Apr 2025 18:18:24",
-      "action": "Changed searchQuery for splunk from  to search index=unparsed sourcetype=catchall | head 1"
-    },
-    {
-      "timestamp": "25 Apr 2025 19:12:42",
-      "action": "Changed searchIndex for splunk from unparsed to "
-    },
-    {
-      "timestamp": "25 Apr 2025 19:12:42",
-      "action": "Changed searchQuery for splunk from search index=unparsed sourcetype=catchall | head 1 to "
-    },
-    {
-      "timestamp": "28 Apr 2025 10:56:14",
-      "action": "Changed searchQuery for splunk from search index=unparsed | head 1 to index=unparsed sourcetype=catchall earliest=-3months"
-    },
-    {
-      "timestamp": "28 Apr 2025 12:12:45",
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-3months to index=unparsed sourcetype=catchall earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "28 Apr 2025 12:26:18",
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-3months | head 1 to index=\"unparsed\" sourcetype=catchall earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "28 Apr 2025 12:28:26",
-      "action": "Changed searchQuery for splunk from index=\"unparsed\" sourcetype=catchall earliest=-3months | head 1 to index=unparsed sourcetype=catchall earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "28 Apr 2025 16:01:46",
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-3months | head 1 to index=\"unparsed\" sourcetype=catchall earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "28 Apr 2025 16:02:12",
-      "action": "Changed searchQuery for splunk from index=\"unparsed\" sourcetype=catchall earliest=-3months | head 1 to index=unparsed sourcetype=catchall earliest=-3months"
-    },
-    {
-      "timestamp": "28 Apr 2025 16:12:17",
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-3months to search index=unparsed sourcetype=catchall earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "28 Apr 2025 16:30:44",
-      "action": "Changed searchQuery for splunk from search index=unparsed sourcetype=catchall earliest=-3months | head 1 to search index=unparsed sourcetype=catchall \"devid\" earliest=-3months | head 1"
-    },
-    {
-      "timestamp": "29 Apr 2025 17:09:40",
-      "action": "Changed searchQuery for splunk from search index=unparsed sourcetype=catchall \"devid\" earliest=-3months | head 1 to search index=unparsed sourcetype=catchall"
-    },
-    {
-      "timestamp": "29 Apr 2025 17:40:41",
-      "action": "Changed searchQuery for splunk from search index=unparsed sourcetype=catchall to index=unparsed sourcetype=catchall earliest=-24h"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T10:29:29.420Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-24h to index=unparsed earliest=-24h"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T10:41:34.063Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed earliest=-24h to index=* sourcetype=\"tcp-raw\" earliest=-5m | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T11:12:54.970Z"
-      },
-      "action": "Changed searchQuery for splunk from index=* sourcetype=\"tcp-raw\" earliest=-5m | head 1 to index=unparsed sourcetype=catchall earliest=-5m | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T12:29:06.660Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-5m | head 1 to index=unparsed sourcetype=catchall \"devid\" earliest=-4months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T12:30:01.996Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"devid\" earliest=-4months to index=unparsed sourcetype=catchall (\"devid\" OR \"Palo Alto Networks\" OR \"EventCode\") earliest=-4months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T12:43:05.146Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall (\"devid\" OR \"Palo Alto Networks\" OR \"EventCode\") earliest=-4months to index=unparsed sourcetype=catchall (\"devid\" OR \"Palo Alto Networks\" OR \"EventCode\") earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T13:56:11.965Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall (\"devid\" OR \"Palo Alto Networks\" OR \"EventCode\") earliest=-5months to index=unparsed sourcetype=catchall earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T14:01:37.308Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-5months to index=unparsed earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-05T14:21:21.039Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed earliest=-5months to index=unparsed sourcetype=catchall \"devid\" earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-06T11:06:50.461Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"devid\" earliest=-5months to index=unparsed sourcetype=catchall \"devid\" earliest=-4months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-06T11:06:59.878Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"devid\" earliest=-4months to index=unparsed sourcetype=catchall \"devid\" earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-06T14:16:24.976Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"devid\" earliest=-5months to index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-06T14:46:05.478Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months to index=unparsed sourcetype=catchall earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-08T13:58:01.478Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall earliest=-5months | head 1 to index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-08T14:29:08.297Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months | head 1 to index=unparsed sourcetype=catchall \"devid\" earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-08T14:43:05.359Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"devid\" earliest=-5months | head 1 to index=unparsed sourcetype=catchall \"EventCode\" earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-08T14:56:11.466Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"EventCode\" earliest=-5months | head 1 to index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-13T10:01:53.349Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1 to index=unparsed sourcetype=catchall | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-13T11:43:01.458Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall | head 1 to index=unparsed sourcetype=tcp-raw earliest=-5m | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-13T12:03:35.760Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=tcp-raw earliest=-5m | head 1 to index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-13T14:11:08.584Z"
-      },
-      "action": "Changed searchQuery for splunk from index=unparsed sourcetype=catchall \"Palo Alto Networks\" earliest=-5months | head 1 to index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-07-04T14:02:15.271Z"
-      },
-      "action": "Changed search_entry_count for splunk from None to 1"
-    }
-  ],
-  "search_index": "unparsed",
-  "search_query": "index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1",
-  "search_entry_count": 1,
-  "updated_at": "2025-12-23T15:25:46.647287",
-  "category": "siem_settings",
-  "host": "12.168.30.52",
-  "password": "P@55w0rd12345",
-  "port": "8089",
-  "user": "spladmin"
-},
-{
-  "_id": {
-    "$oid": "67f48b2618cde7a9e3d6316e"
+  {
+    "id": "lmstudio-falcon3-10b-instruct",
+    "endpoint_id": "lmstudio",
+    "model_name": "falcon3-10b-instruct",
+    "display_name": "Falcon 3 10B Instruct (LM Studio)",
+    "provider": "LM Studio",
+    "category": "llm_model",
+    "updated_at": "2025-09-26T23:46:53.156457"
   },
-  "id": "elastic",
-  "amendments": [
-    {
-      "timestamp": "24 Apr 2025 17:31:24",
-      "action": "Changed searchIndex for elastic from logs-testing2-* to logs-unparsed-*"
-    },
-    {
-      "timestamp": "25 Apr 2025 15:35:14",
-      "action": "Changed searchIndex for elastic from logs-unparsed-* to logs-testing2-*"
-    },
-    {
-      "timestamp": "25 Apr 2025 15:36:12",
-      "action": "Changed searchQuery for elastic from {\n    \"query\": {\n        \"range\": {\n            \"@timestamp\": {\n                \"gte\": \"now-24h\",\n                \"lte\": \"now\",\n                \"format\": \"strict_date_time\"\n            }\n        }\n    },\n    \"size\": 1\n} to {\n    \"query\": {\n        \"range\": {\n            \"@timestamp\": {\n                \"gte\": \"now-48h\",\n                \"lte\": \"now\",\n                \"format\": \"strict_date_time\"\n            }\n        }\n    },\n    \"size\": 1\n}"
-    },
-    {
-      "timestamp": "28 Apr 2025 10:11:34",
-      "action": "Changed searchQuery for elastic from {\n    \"query\": {\n        \"range\": {\n            \"@timestamp\": {\n                \"gte\": \"now-48h\",\n                \"lte\": \"now\",\n                \"format\": \"strict_date_time\"\n            }\n        }\n    },\n    \"size\": 1\n} to {\n    \"query\": {\n        \"range\": {\n            \"@timestamp\": {\n                \"gte\": \"now-7d/d\",\n                \"lte\": \"now\",\n                \"format\": \"strict_date_time\"\n            }\n        }\n    },\n    \"size\": 1\n}"
-    },
-    {
-      "timestamp": "28 Apr 2025 16:40:22",
-      "action": "Changed searchQuery for elastic from {\n    \"query\": {\n        \"range\": {\n            \"@timestamp\": {\n                \"gte\": \"now-7d/d\",\n                \"lte\": \"now\",\n                \"format\": \"strict_date_time\"\n            }\n        }\n    },\n    \"size\": 1\n} to {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"match\": {\n            \"message\": \"%ASA\"\n          }\n        },\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"2025-04-24T00:00:00.000Z\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n"
-    },
-    {
-      "timestamp": "29 Apr 2025 16:12:17",
-      "action": "Changed searchIndex for elastic from logs-testing2-* to logs-zone8003*"
-    },
-    {
-      "timestamp": "29 Apr 2025 16:12:17",
-      "action": "Changed searchQuery for elastic from {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"match\": {\n            \"message\": \"%ASA\"\n          }\n        },\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"2025-04-24T00:00:00.000Z\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n to {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"2025-04-24T00:00:00.000Z\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n"
-    },
-    {
-      "timestamp": "29 Apr 2025 16:16:32",
-      "action": "Changed searchQuery for elastic from {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"2025-04-24T00:00:00.000Z\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n to {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n          {\n          \"match\": {\n            \"message\": \"OpcodeValue\"\n          }\n        },\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"now\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-07T17:41:06.773Z"
-      },
-      "action": "Changed searchQuery for elastic from {\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n          {\n          \"match\": {\n            \"message\": \"OpcodeValue\"\n          }\n        },\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"now\"\n            }\n          }\n        }\n      ]\n    }\n  }\n}\n to {\n  \"query\": {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"2025-04-23T00:00:00.000Z\",\n              \"lt\": \"now\"\n            }\n        }\n    }\n}\n"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-05-28T16:59:50.754Z"
-      },
-      "action": "Changed search_index for elastic from logs-zone8003* to logs-*"
-    },
-    {
-      "timestamp": {
-        "$date": "2025-07-31T12:02:31.647Z"
-      },
-      "action": "Changed search_index for elastic from filebeat-* to logs-windows*"
-    }
-  ],
-  "name": "Elastic",
-  "search_index": "logs-all-*",
-  "search_query": "{\n        \"size\": 1,\n        \"sort\": [\n            {\"@timestamp\": {\"order\": \"desc\"}}\n        ],\n        \"query\": {\n            \"match_all\": {}\n        }\n    }",
-  "search_entry_count": 1,
-  "updated_at": "2026-01-06T13:07:58.519141",
-  "api_key": "dnBVVzU1WUI2MFhUUENVblpCSzA6OVdHN2JGamVUSC1SWHEtd0hpQmhhUQ==",
-  "category": "siem_settings",
-  "host": "https://192.168.31.62:9200",
-  "password": "P@55w0rd",
-  "user": "george",
-  "cert_path": "./certs/elastic_chain_cert.cer",
-  "pipeline_id": "smartlp",
-  "kibana_url": "https://192.168.31.62:5601"
-},
-{
-  "_id": {
-    "$oid": "6932998c0adfaa6299fc1953"
+  {
+    "id": "vllm-qwen25-coder-32b-awq",
+    "endpoint_id": "vllm",
+    "model_name": "qwen25-coder-32b-awq",
+    "display_name": "Qwen 2.5 Coder 32B AWQ (vLLM)",
+    "provider": "vLLM",
+    "category": "llm_model",
+    "updated_at": "2026-01-05T15:25:15.810059"
   },
-  "id": "rag",
-  "allowed_metadata": [
-    "source",
-    "category",
-    "tags",
-    "file_type",
-    "collection"
-  ],
-  "text_paths": [
-    "content",
-    "metadata.source"
-  ],
-  "text_language": "english",
-  "chunk_size": 1000,
-  "chunk_overlap": 200,
-  "insert_batch_size": 128,
-  "enabled": false,
-  "embedding_model": "all-MiniLM-L6-v2",
-  "embedding_dim": 384,
-  "embedding_provider": "sentence-transformers",
-  "embedding_batch_size": 512,
-  "retrieval_top_k": 5,
-  "retrieval_semantic_candidates": 50,
-  "retrieval_keyword_candidates": 30,
-  "retrieval_rrf_k": 60,
-  "category": "global_settings"
-},
-{
-  "_id": {
-    "$oid": "6934f1ff1b96084b81740345"
+  {
+    "_id": {
+      "$oid": "67f48acf18cde7a9e3d63164"
+    },
+    "id": "splunk",
+    "name": "Splunk",
+    "amendments": [],
+    "search_index": "unparsed",
+    "search_query": "index=unparsed sourcetype=catchall (\"Palo Alto Networks\" OR \"devid\" OR \"EventCode\") earliest=-5months | head 1",
+    "search_entry_count": 1,
+    "updated_at": "2025-12-23T15:25:46.647287",
+    "category": "siem_settings",
+    "host": "12.168.30.52",
+    "password": "P@55w0rd12345",
+    "port": "8089",
+    "user": "spladmin"
   },
-  "id": "prompts",
-  "generate_regex": "You are a deterministic PCRE2 regex generator for log parsing.\n\nYour ONLY task is to output a single PCRE2-compatible regular expression that parses the given log line.\n\nSTRICT RULES (violations are errors):\n1. Output ONLY the regex. No explanations, comments, markdown, or extra text.\n2. Use PCRE2 syntax ONLY.\n3. Do NOT start the regex with ^ or end with $.\n4. Use named capture groups exclusively, using the syntax (?<name>...).\n5. Each named capture group must capture exactly ONE logical field.\n6. Capture ALL identifiable fields in the log (timestamp, host, service, pid, ip, port, user, status, severity, rule_id, etc.).\n7. If the log contains a free-text body, capture it as (?<content>...).\n   - NEVER use the name \"message\".\n8. Use .*? ONLY inside capture groups.\n   - NEVER use .* or .*? outside capture groups.\n9. Replace ALL literal whitespace outside capture groups with \\\\s+.\n10. Escape ALL literal special characters, including:\n    . [ ] ( ) { } + * ? ^ $ | \\\\ /\n11. Do NOT hard-code values that may vary between similar logs.\n12. Do NOT use overly-greedy quantifiers that may overmatch.\n13. Prefer explicit character classes over wildcards when possible.\n14. Named capture group names MUST:\n    - be lowercase\n    - use underscores\n    - be descriptive and consistent (e.g., source_ip, dest_port, process_name)\n15. If a field may be optional, make the entire field non-capturing optional, not the capture group itself.\n\nOUTPUT FORMAT:\n- A single line regex.\n- No leading or trailing whitespace.\n",
-  "fix_regex": "You are an expert in PCRE2-compatible regular expressions for log parsing.\nGiven a log entry and corresponding regex, your task is to fix a PCRE2-compatible regex pattern that parses the log with as many named capture groups as possible.\n\nRequirements:\n1. Use PCRE2 syntax.\n2. Include as many named capture groups for all identifiable fields.\n3. Do not start with ^ and do not end with $.\n4. Do not produce explanations—return only the regex.\n5. Each capture group must capture one field only.\n6. Use ONLY the (?<name>...) syntax for named capture groups.\n7. Use .*? inside capture groups only, never outside.\n8. If a group represents the main body or message of the log, it must be named (?<content>...). Never use the name \"message\".\n9. Replace all literal whitespace outside of capture groups with \\s+.\n10. Escape all literal special characters and slashes (/) in the regex.\n11. Make the regex flexible enough to match similar logs without overmatching.",
-  "test": "You are a helpful AI assistant. Please respond with a simple confirmation that you received this test message.",
-  "category": "prompts_settings",
-  "suggest": "You are an expert in cybersecurity log analysis. Given the log type and brand/technology, suggest the most appropriate category and classification.\\n\\nPlease respond in a clear, structured format.\\n\\nDetails to analyze:",
-  "identify_package": "You are a precise technical assistant for a Security Operations Center (SOC).\nYour task is to identify the Elastic integration package associated with the provided log.\nYou must answer strictly using the provided Context.\n\nIdentification rules:\n1. An Elastic package may be identified explicitly OR implicitly.\n2. If the package name is not written verbatim, you MUST derive it from:\n   - metadata.source file paths\n   - directory names under /packages/<package_name>/\n3. If multiple documents reference the same package directory, that package is considered identified.\n4. The package name MUST exactly match the Elastic package folder name.\n5. If no single package can be confidently identified, return empty strings.\n\nOutput rules:\n- Respond with a single valid JSON object\n- Use exactly 2 keys:\n  - \"package_name\"\n  - \"package_url\"\n- If URL is not present in context, return \"\" for those fields.\n- Do not include explanations, markdown, code fences or extra text.\n- The first character of your response MUST be '{'.\n- The last character of your response MUST be '}'.\n- Any response that includes ``` is INVALID.",
-  "identify_type": "You are an expert in security log analysis and classification.\n\nGiven a raw log entry, identify:\n1. source_type – the system or product that generated the log\n2. log_type – the category of the log\n3. description – a concise, security-relevant summary of the event\n\nThe description must focus on:\n- What happened\n- The type of activity\n- Any potential security implications\n\nReturn a STRICTLY valid JSON object with exactly the following keys:\n\n{\n  \"source_type\": string,\n  \"log_type\": string,\n  \"description\": string\n}\n\nExamples:\n// Web access log\n{\"source_type\": \"apache\", \"log_type\": \"access\", \"description\": \"HTTP request received by a web server, potentially exposing application endpoints.\"}\n// Authentication log\n{\"source_type\": \"system\", \"log_type\": \"auth\", \"description\": \"User authentication activity indicating a login attempt on the host.\"}\n// Firewall log\n{\"source_type\": \"firewall\", \"log_type\": \"security\", \"description\": \"Network traffic evaluated by firewall rules, possibly indicating blocked or suspicious connections.\"}\n\nDo not include explanations, comments, or additional fields.",
-  "identify_detection_rules": "You are a detection engineering assistant.\n\nYou are given:\n- A security log description\n- A set of candidate Sigma detection rules\n\nYour task is to evaluate which Sigma rules best match the described\nlog behavior.\n\nRules:\n- Only select from the provided candidates\n- Do NOT invent rule IDs and titles. Use the id and title provided.\n- Assign a confidence score between 0 and 1\n- Only include matches with confidence >= 0.8\n\nCRITICAL OUTPUT RULES:\n- Respond with JSON ONLY\n- Do NOT include explanations, markdown, or prose\n- If no rules match, return an empty matches array\n\nReturn JSON using EXACTLY this schema:\n{\n  \"matches\": [\n    {\n      \"id\": string,\n      \"title\": string,\n      \"confidence\": number,\n      \"reason\": string\n    }\n  ]\n}",
-  "general": "You are a SOC knowledge assistant.\n\nYou must answer the user's question using the provided context.\nIf the answer is present in the context, give a direct and concrete answer.\nIf multiple steps are required, explain them clearly.\n\nDo NOT mention missing documentation unless it is explicitly stated in the context.\nDo NOT hallucinate."
-}]
+  {
+    "_id": {
+      "$oid": "67f48b2618cde7a9e3d6316e"
+    },
+    "id": "elastic",
+    "amendments": [],
+    "name": "Elastic",
+    "search_index": "logs-all-*",
+    "search_query": "{\n        \"size\": 1,\n        \"sort\": [\n            {\"@timestamp\": {\"order\": \"desc\"}}\n        ],\n        \"query\": {\n            \"match_all\": {}\n        }\n    }",
+    "search_entry_count": 1,
+    "updated_at": "2026-01-06T13:07:58.519141",
+    "api_key": "dnBVVzU1WUI2MFhUUENVblpCSzA6OVdHN2JGamVUSC1SWHEtd0hpQmhhUQ==",
+    "category": "siem_settings",
+    "host": "https://192.168.31.62:9200",
+    "password": "P@55w0rd",
+    "user": "george",
+    "cert_path": "./certs/elastic_chain_cert.cer",
+    "pipeline_id": "smartlp",
+    "kibana_url": "https://192.168.31.62:5601"
+  },
+  {
+    "_id": {
+      "$oid": "6932998c0adfaa6299fc1953"
+    },
+    "id": "rag",
+    "allowed_metadata": [
+      "source",
+      "category",
+      "tags",
+      "file_type",
+      "collection"
+    ],
+    "text_paths": [
+      "content",
+      "metadata.source"
+    ],
+    "text_language": "english",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "insert_batch_size": 128,
+    "enabled": false,
+    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_dim": 384,
+    "embedding_provider": "sentence-transformers",
+    "embedding_batch_size": 512,
+    "retrieval_top_k": 5,
+    "retrieval_semantic_candidates": 50,
+    "retrieval_keyword_candidates": 30,
+    "retrieval_rrf_k": 60,
+    "category": "global_settings"
+  },
+  {
+    "_id": {
+      "$oid": "6934f1ff1b96084b81740345"
+    },
+    "id": "prompts",
+    "generate_regex": "You are a deterministic PCRE2 regex generator for log parsing.\n\nYour ONLY task is to output a single PCRE2-compatible regular expression that parses the given log line.\n\nSTRICT RULES (violations are errors):\n1. Output ONLY the regex. No explanations, comments, markdown, or extra text.\n2. Use PCRE2 syntax ONLY.\n3. Do NOT start the regex with ^ or end with $.\n4. Use named capture groups exclusively, using the syntax (?<name>...).\n5. Each named capture group must capture exactly ONE logical field.\n6. Capture ALL identifiable fields in the log (timestamp, host, service, pid, ip, port, user, status, severity, rule_id, etc.).\n7. If the log contains a free-text body, capture it as (?<content>...).\n   - NEVER use the name \"message\".\n8. Use .*? ONLY inside capture groups.\n   - NEVER use .* or .*? outside capture groups.\n9. Replace ALL literal whitespace outside capture groups with \\\\s+.\n10. Escape ALL literal special characters, including:\n    . [ ] ( ) { } + * ? ^ $ | \\\\ /\n11. Do NOT hard-code values that may vary between similar logs.\n12. Do NOT use overly-greedy quantifiers that may overmatch.\n13. Prefer explicit character classes over wildcards when possible.\n14. Named capture group names MUST:\n    - be lowercase\n    - use underscores\n    - be descriptive and consistent (e.g., source_ip, dest_port, process_name)\n15. If a field may be optional, make the entire field non-capturing optional, not the capture group itself.\n\nOUTPUT FORMAT:\n- A single line regex.\n- No leading or trailing whitespace.\n",
+    "fix_regex": "You are an expert in PCRE2-compatible regular expressions for log parsing.\nGiven a log entry and corresponding regex, your task is to fix a PCRE2-compatible regex pattern that parses the log with as many named capture groups as possible.\n\nRequirements:\n1. Use PCRE2 syntax.\n2. Include as many named capture groups for all identifiable fields.\n3. Do not start with ^ and do not end with $.\n4. Do not produce explanations—return only the regex.\n5. Each capture group must capture one field only.\n6. Use ONLY the (?<name>...) syntax for named capture groups.\n7. Use .*? inside capture groups only, never outside.\n8. If a group represents the main body or message of the log, it must be named (?<content>...). Never use the name \"message\".\n9. Replace all literal whitespace outside of capture groups with \\s+.\n10. Escape all literal special characters and slashes (/) in the regex.\n11. Make the regex flexible enough to match similar logs without overmatching.",
+    "test": "You are a helpful AI assistant. Please respond with a simple confirmation that you received this test message.",
+    "category": "prompts_settings",
+    "suggest": "You are an expert in cybersecurity log analysis. Given the log type and brand/technology, suggest the most appropriate category and classification.\\n\\nPlease respond in a clear, structured format.\\n\\nDetails to analyze:",
+    "identify_package": "You are a precise technical assistant for a Security Operations Center (SOC).\nYour task is to identify the Elastic integration package associated with the provided log.\nYou must answer strictly using the provided Context.\n\nIdentification rules:\n1. An Elastic package may be identified explicitly OR implicitly.\n2. If the package name is not written verbatim, you MUST derive it from:\n   - metadata.source file paths\n   - directory names under /packages/<package_name>/\n3. If multiple documents reference the same package directory, that package is considered identified.\n4. The package name MUST exactly match the Elastic package folder name.\n5. If no single package can be confidently identified, return empty strings.\n\nOutput rules:\n- Respond with a single valid JSON object\n- Use exactly 2 keys:\n  - \"package_name\"\n  - \"package_url\"\n- If URL is not present in context, return \"\" for those fields.\n- Do not include explanations, markdown, code fences or extra text.\n- The first character of your response MUST be '{'.\n- The last character of your response MUST be '}'.\n- Any response that includes ``` is INVALID.",
+    "identify_type": "You are an expert in security log analysis and classification.\n\nGiven a raw log entry, identify:\n1. source_type – the system or product that generated the log\n2. log_type – the category of the log\n3. description – a concise, security-relevant summary of the event\n\nThe description must focus on:\n- What happened\n- The type of activity\n- Any potential security implications\n\nReturn a STRICTLY valid JSON object with exactly the following keys:\n\n{\n  \"source_type\": string,\n  \"log_type\": string,\n  \"description\": string\n}\n\nExamples:\n// Web access log\n{\"source_type\": \"apache\", \"log_type\": \"access\", \"description\": \"HTTP request received by a web server, potentially exposing application endpoints.\"}\n// Authentication log\n{\"source_type\": \"system\", \"log_type\": \"auth\", \"description\": \"User authentication activity indicating a login attempt on the host.\"}\n// Firewall log\n{\"source_type\": \"firewall\", \"log_type\": \"security\", \"description\": \"Network traffic evaluated by firewall rules, possibly indicating blocked or suspicious connections.\"}\n\nDo not include explanations, comments, or additional fields.",
+    "identify_detection_rules": "You are a detection engineering assistant.\n\nYou are given:\n- A security log description\n- A set of candidate Sigma detection rules\n\nYour task is to evaluate which Sigma rules best match the described\nlog behavior.\n\nRules:\n- Only select from the provided candidates\n- Do NOT invent rule IDs and titles. Use the id and title provided.\n- Assign a confidence score between 0 and 1\n- Only include matches with confidence >= 0.8\n\nCRITICAL OUTPUT RULES:\n- Respond with JSON ONLY\n- Do NOT include explanations, markdown, or prose\n- If no rules match, return an empty matches array\n\nReturn JSON using EXACTLY this schema:\n{\n  \"matches\": [\n    {\n      \"id\": string,\n      \"title\": string,\n      \"confidence\": number,\n      \"reason\": string\n    }\n  ]\n}",
+    "general": "You are a SOC knowledge assistant.\n\nYou must answer the user's question using the provided context.\nIf the answer is present in the context, give a direct and concrete answer.\nIf multiple steps are required, explain them clearly.\n\nDo NOT mention missing documentation unless it is explicitly stated in the context.\nDo NOT hallucinate."
+  }
+]

@@ -96,14 +96,55 @@ class Settings {
                 throw new Error(data.error || 'Failed to load settings');
             }
 
-            this.currentSettings = data.settings || {};
+            // Backend returns `{ globalSettings, siems, llmEndpoints }`.
+            this.currentSettings = data.globalSettings || data.settings || {};
             this.siems = data.siems || [];
-            this.llmEndpoints = data.llmEndpoints || [];
+
+            // Normalize endpoints and models to a frontend-friendly shape
+            this.llmEndpoints = (data.llmEndpoints || []).map((ep) => ({
+                id: ep.id,
+                name: ep.name || ep.id,
+                url: ep.url || '',
+                apiKey: ep.apiKey || ep.api_key || '',
+                updatedAt: ep.updatedAt || ep.updated_at || null,
+                models: (ep.models || []).map((m) => ({
+                    id: m.id,
+                    model_name: m.modelName || m.model_name || m.model || m.model_name,
+                    display_name: m.displayName || m.display_name || m.modelName || m.model_name,
+                    provider: m.provider || ''
+                }))
+            }));
+
             this.llmEndpointMap = Object.fromEntries(
                 this.llmEndpoints.map((ep) => [ep.id, { ...ep, models: [...(ep.models || [])] }])
             );
 
-            const activeEndpoint = this.currentSettings?.activeLlmEndpoint;
+            // Normalize possible global setting key variants for active endpoint/model
+            const gs = this.currentSettings || {};
+            const activeEndpoint = gs.activeLlmEndpoint || gs.activeLlmEndpointId || gs.active_llm_endpoint || gs.activeLlm || gs.active_llm || null;
+            const activeModel = gs.activeLlm || gs.active_llm || gs.activeLlmModelId || gs.active_llm_model_id || null;
+
+            // Ensure the canonical keys exist on currentSettings
+            if (activeEndpoint) this.currentSettings.activeLlmEndpoint = activeEndpoint;
+            if (activeModel) this.currentSettings.activeLlm = activeModel;
+            // If active endpoint value matches a name instead of id, resolve it to id
+            if (this.currentSettings.activeLlmEndpoint && !this.llmEndpointMap[this.currentSettings.activeLlmEndpoint]) {
+                const foundByName = this.llmEndpoints.find((e) => e.name === this.currentSettings.activeLlmEndpoint);
+                if (foundByName) {
+                    this.currentSettings.activeLlmEndpoint = foundByName.id;
+                }
+            }
+            // If there is no explicit active endpoint but an active model is configured,
+            // derive the endpoint from the model id so the UI can select the correct endpoint.
+            if (!this.currentSettings.activeLlmEndpoint && this.currentSettings.activeLlm) {
+                const modelId = this.currentSettings.activeLlm;
+                for (const ep of this.llmEndpoints) {
+                    if ((ep.models || []).some((m) => m.id === modelId)) {
+                        this.currentSettings.activeLlmEndpoint = ep.id;
+                        break;
+                    }
+                }
+            }
             if (activeEndpoint && this.llmEndpointMap[activeEndpoint]) {
                 this.selectedLlmEndpoint = activeEndpoint;
             } else if (!this.selectedLlmEndpoint && this.llmEndpoints.length) {
@@ -155,6 +196,10 @@ class Settings {
             this.currentSettings.activeLlmEndpoint,
             'Select endpoint...'
         );
+        // Ensure the select DOM reflects the active endpoint before populating models
+        if (this.currentSettings.activeLlmEndpoint) {
+            try { this.elements.activeLlmEndpoint.value = this.currentSettings.activeLlmEndpoint; } catch (e) { }
+        }
         this.handleActiveEndpointChange(true);
         this.renderLlmTabs();
     }
@@ -183,21 +228,49 @@ class Settings {
     }
 
     handleActiveEndpointChange(useCurrentValue = false) {
-        const endpointId = this.elements.activeLlmEndpoint?.value;
-        const endpoint = this.llmEndpointMap[endpointId];
+        // When requested, prefer the current settings values (useful during initial load)
+        const endpointId = useCurrentValue
+            ? (this.currentSettings?.activeLlmEndpoint || this.elements.activeLlmEndpoint?.value)
+            : this.elements.activeLlmEndpoint?.value;
+        // Ensure DOM select reflects chosen endpointId
+        if (this.elements.activeLlmEndpoint && endpointId !== undefined && endpointId !== null) {
+            try { this.elements.activeLlmEndpoint.value = endpointId; } catch (e) { }
+        }
+        // If endpointId is a name, resolve to id
+        let resolvedEndpointId = endpointId;
+        if (resolvedEndpointId && !this.llmEndpointMap[resolvedEndpointId]) {
+            const found = this.llmEndpoints.find((e) => e.name === resolvedEndpointId || e.id === resolvedEndpointId);
+            if (found) resolvedEndpointId = found.id;
+        }
+
+        const endpoint = this.llmEndpointMap[resolvedEndpointId];
         const models = endpoint?.models || [];
 
-        let selected = useCurrentValue ? this.currentSettings.activeLlm : this.elements.activeLlm?.value;
-        if (!models.includes(selected)) {
-            selected = models[0] || '';
+        let selectedModelId = useCurrentValue
+            ? (this.currentSettings?.activeLlm || this.currentSettings?.activeLlmModelId)
+            : this.elements.activeLlm?.value;
+
+        // If selectedModelId refers to a model_name or display_name, resolve to model.id
+        if (selectedModelId && !models.find((m) => m.id === selectedModelId)) {
+            const matched = models.find((m) => m.model_name === selectedModelId || m.display_name === selectedModelId);
+            if (matched) {
+                selectedModelId = matched.id;
+            } else {
+                // fallback to first model's id or empty
+                selectedModelId = models[0]?.id || '';
+            }
         }
 
         this.populateSelect(
             this.elements.activeLlm,
-            models.map((m) => ({ value: m, label: m })),
-            selected,
+            models.map((m) => ({ value: m.id, label: m.display_name || m.model_name })),
+            selectedModelId,
             'Select model...'
         );
+        // If using current value, ensure DOM select reflects chosen model
+        if (useCurrentValue && this.elements.activeLlm && selectedModelId) {
+            try { this.elements.activeLlm.value = selectedModelId; } catch (e) { }
+        }
     }
 
     renderLlmTabs() {
@@ -301,7 +374,7 @@ class Settings {
             const row = document.createElement('div');
             row.className = 'flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm';
             row.innerHTML = `
-                <span class="truncate">${model}</span>
+                <span class="truncate">${model.display_name || model.model_name}</span>
                 <div class="flex items-center gap-3">
                     <button type="button" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" title="Test model connection">
                         <i class="fas fa-plug"></i>
@@ -311,13 +384,11 @@ class Settings {
                     </button>
                 </div>
             `;
+            const [testBtn, deleteBtn] = row.querySelectorAll('button');
 
-            const buttons = row.querySelectorAll('button');
-            const testBtn = buttons[0];
-            const deleteBtn = buttons[1];
-
-            testBtn?.addEventListener('click', () => this.testLlmConnection(model, testBtn));
+            testBtn?.addEventListener('click', () => this.testLlmConnection(model.model_name, testBtn));
             deleteBtn?.addEventListener('click', () => this.removeModel(index));
+
             container.appendChild(row);
         });
     }
@@ -390,12 +461,15 @@ class Settings {
         const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
         if (!value || !ep) return;
 
-        if (ep.models.includes(value)) {
+        // Generate a unique ID for the model
+        const id = `model_${Date.now()}`;
+
+        if (ep.models.find((m) => m.model_name === value)) {
             this.toast('Model already exists for this endpoint', 'warning');
             return;
         }
 
-        ep.models.push(value);
+        ep.models.push({ id, model_name: value, display_name: value });
         this.markEndpointChanged(this.selectedLlmEndpoint);
         this.elements.newModelInput.value = '';
         this.renderModelList(ep.models);
@@ -408,6 +482,19 @@ class Settings {
         this.markEndpointChanged(this.selectedLlmEndpoint);
         this.renderModelList(ep.models);
         this.refreshActiveModelOptionsIfNeeded();
+    }
+
+    markEndpointChanged(endpointId) {
+        if (!endpointId) return;
+        const ep = this.llmEndpointMap[endpointId];
+        if (!ep) return;
+        this.newLlmEndpoints[endpointId] = {
+            id: endpointId,
+            name: ep.name || endpointId,
+            url: ep.url || '',
+            apiKey: ep.apiKey || '',
+            models: ep.models.map((m) => ({ ...m })) // include full model object
+        };
     }
 
     refreshActiveModelOptionsIfNeeded() {
@@ -474,8 +561,6 @@ class Settings {
     }
 
     async saveSettings() {
-        if (!this.elements.saveBtn) return;
-
         const payload = {
             ingestOn: this.elements.ingestOn?.checked ?? false,
             ingestAlgoVersion: this.elements.ingestAlgoVersion?.value || 'v1',
@@ -484,7 +569,7 @@ class Settings {
             similarityThreshold: Number(this.elements.similarityThreshold?.value) || 0,
             activeSiem: this.elements.activeSiem?.value || '',
             activeLlmEndpoint: this.elements.activeLlmEndpoint?.value || '',
-            activeLlm: this.elements.activeLlm?.value || '',
+            activeLlmModelId: this.elements.activeLlm?.value || '',
             fixCount: Number(this.elements.fixCount?.value) || 0
         };
 
@@ -495,17 +580,29 @@ class Settings {
             payload.searchQuery = this.elements.searchQuery?.value || '';
         }
 
-        if (this.selectedLlmEndpoint) {
-            const endpoint = this.llmEndpointMap[this.selectedLlmEndpoint];
-            payload.llmEndpoint = this.selectedLlmEndpoint;
-            payload.llmUrl = endpoint?.url || '';
-            payload.llmName = endpoint?.name || '';
-            payload.llmApiKey = endpoint?.apiKey || '';
-            payload.models = endpoint?.models || [];
-        }
-
         if (Object.keys(this.newLlmEndpoints).length) {
-            payload.llmEndpoints = this.newLlmEndpoints;
+            payload.llmEndpoints = this.newLlmEndpoints; // full object payload
+
+            // Prepare llmModels payload expected by backend: map of modelId -> model data
+            const llmModels = {};
+            Object.entries(this.newLlmEndpoints).forEach(([epId, epData]) => {
+                if (!epData || !epData.models) return;
+                epData.models.forEach((m) => {
+                    // Ensure model has an id
+                    let modelId = m.id || `model_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                    // Normalize fields expected by backend
+                    llmModels[modelId] = {
+                        model_name: m.model_name || m.modelName || m.model || m.display_name || modelId,
+                        display_name: m.display_name || m.displayName || m.model_name || m.modelName || modelId,
+                        endpoint_id: epId,
+                        provider: m.provider || ''
+                    };
+                });
+            });
+
+            if (Object.keys(llmModels).length) {
+                payload.llmModels = llmModels;
+            }
         }
 
         this.setSavingState(true);
@@ -518,15 +615,12 @@ class Settings {
             });
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to save settings');
-            }
+            if (!response.ok) throw new Error(data.error || 'Failed to save settings');
 
             this.toast('Settings saved successfully', 'success');
             this.newLlmEndpoints = {};
             await this.loadSettings();
         } catch (error) {
-            console.error('Error saving settings:', error);
             this.toast(error.message || 'Unable to save settings', 'error');
         } finally {
             this.setSavingState(false);
