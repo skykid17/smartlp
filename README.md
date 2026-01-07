@@ -71,7 +71,7 @@ SECRET_KEY=change-me
 
 4) Ensure MongoDB has the required collections/documents
 
-SmartLP expects MongoDB database **`soc_rag_db`** (hard-coded in the configuration) and uses these collections:
+SmartLP expects MongoDB database **`smartlp`** (hard-coded in the configuration) and uses these collections:
 
 - `logs` – ingested and curated log entries
 - `knowledge_base` – RAG knowledge store
@@ -97,7 +97,7 @@ Note: the ingestion thread is started on the first request (after the UI is load
 
 ## Configuration model (MongoDB)
 
-SmartLP reads most runtime configuration from MongoDB `soc_rag_db.settings`:
+SmartLP reads most runtime configuration from MongoDB `smartlp.settings`:
 
 - **Global settings** (ingestion, active SIEM, LLM selection)
   - `active_siem`, `ingest_on`, `ingest_frequency`, `similarity_check`, `similarity_threshold`, `fix_count`, `active_llm_endpoint`, `active_llm`

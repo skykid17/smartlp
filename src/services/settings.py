@@ -81,50 +81,52 @@ class SettingsService(BaseService):
         }
         """
         try:
+            self.log("Resolving active LLM model and endpoint")
             global_settings = self.get_global_settings()
-            active_model_id = global_settings.get("active_llm_model_id")
+            active_llm = global_settings.get('active_llm_model_id')
+            self.log_info("active_llm ", active_llm)
 
-            if not active_model_id:
-                self.log_warning("No active LLM model configured")
+            if not active_llm:
+                self.log_warning('No active LLM model or endpoint configured')
                 return None
-            
-            # Fetch model
+
+            # Try to resolve model by id first
             model = db_connection.find_one(
                 'settings',
-                {"category": "llm_model", "id": active_model_id},
-                projection={"_id": 0}
+                {'category': 'llm_model', 'id': active_llm},
+                projection={'_id': 0}
             )
 
             if not model:
-                self.log_warning(f"Active LLM model '{active_model_id}' not found")
+                self.log_warning(f"Active LLM model '{active_llm}' not found")
                 return None
-            
-            endpoint_id = model.get("endpoint_id")
+            self.log_info("found model  ", model)
+            # Endpoint id may be stored as 'endpoint_id' - be defensive
+            endpoint_id = model.get('endpoint_id')
 
             if not endpoint_id:
-                self.log_warning(f"Model '{active_model_id}' missing endpoint_id")
+                self.log_warning(f"Model '{model.get('id') or active_llm}' missing endpoint_id")
                 return None
-            
-            # Fetch endpoint
+
+            # Fetch endpoint by id
             endpoint = db_connection.find_one(
                 'settings',
-                {"category": "llm_endpoint", "id": endpoint_id},
-                projection={"_id": 0}
+                {'category': 'llm_endpoint', 'id': endpoint_id},
+                projection={'_id': 0}
             )
-
+            self.log_info("found endpoint ", endpoint)
             if not endpoint:
-                self.log_warning(f"Endpoint '{endpoint_id}' not found for model '{active_model_id}'")
+                self.log_warning(f"Endpoint '{endpoint_id}' not found for model '{model.get('id')}'")
                 return None
-            
+
             return {
-                "model": model,
-                "endpoint": endpoint
+                'model': model,
+                'endpoint': endpoint
             }
 
         except Exception as e:
-            self.log_error("Error resolving active LLM", e)
+            self.log_error('Error resolving active LLM', e)
             return None
-
 
     def get_prompts_settings(self, key) -> Any:
         """Return the value of a specific prompt field from settings (id='prompts')."""

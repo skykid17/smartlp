@@ -68,10 +68,10 @@ class EnvironmentManager:
         """Get database settings."""
         if self._database_settings is None:
             # Prefer explicit environment variable, but fall back to a sensible localhost default
-            mongo_url = os.getenv('MONGO_URL') or 'mongodb://localhost:27017/?directConnection=true'
+            mongo_url = os.getenv('MONGO_URL') or 'mongodb://admin:password@localhost:27017/?directConnection=true'
             self._database_settings = DatabaseSettings(
                 mongo_url=mongo_url,
-                db_name="soc_rag_db",
+                db_name="smartlp",
                 knowledge_collection="knowledge_base",
                 logs_collection="logs",
                 settings_collection="settings",
@@ -82,7 +82,7 @@ class EnvironmentManager:
     def splunk(self) -> SplunkSettings:
         """Get Splunk settings."""
         if self._splunk_settings is None:
-            db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
+            db = MongoClient(os.getenv('MONGO_URL')).get_database("smartlp")
             settings_collection = db.get_collection("settings")
             self._splunk_settings = SplunkSettings(
                 host=settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['host'],
@@ -96,7 +96,7 @@ class EnvironmentManager:
     def elastic(self) -> ElasticSettings:
         """Get Elasticsearch settings."""
         if self._elastic_settings is None:
-            db = MongoClient(os.getenv('MONGO_URL')).get_database("soc_rag_db")
+            db = MongoClient(os.getenv('MONGO_URL')).get_database("smartlp")
             settings_collection = db.get_collection("settings")
             self._elastic_settings = ElasticSettings(
                 host=settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['host'],

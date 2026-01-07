@@ -83,7 +83,7 @@ class RAG:
         self,
         # UPDATED: Added directConnection=true for local Docker compatibility
         mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
-        database: str = "soc_rag_db",
+        database: str = "smartlp",
         collection_name: str = "knowledge_base",
         embedding_dim: int = 384,
         embedding_provider: str = "all-MiniLM-L6-v2",

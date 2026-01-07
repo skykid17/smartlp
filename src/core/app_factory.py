@@ -8,15 +8,11 @@ import sys
 import threading
 from typing import Optional
 from flask import Flask
-from flask_caching import Cache
 
 from config.environment import env_manager
 from core.socketio_manager import socketio_manager
 from utils.logging import app_logger
 
-
-    
-cache = Cache(config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 30})
 
 class ApplicationFactory:
     """Factory class for creating and configuring Flask application."""
@@ -85,7 +81,6 @@ class ApplicationFactory:
             app: Flask application instance
         """
         # Initialize SocketIO
-        cache.init_app(app)
         socketio_instance = socketio_manager.initialize(app)
         print(f"SocketIO initialized: {socketio_instance is not None}")
         socketio_manager.register_handlers()
