@@ -6,7 +6,6 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from .base import BaseService
-from models.core import SIEMType
 from database.connection import db_connection
 from utils.formatters import convert_key_to_camel, convert_key_to_snake
 
@@ -25,18 +24,18 @@ class SettingsService(BaseService):
             Global settings as dictionary with camelCase keys
         """
         try:
+            # Ensure we return a single dict (not a cursor/list). Use find_one
             settings = db_connection.query(
                 'settings',
-                {"category": "global_settings"},
-                {"_id": 0, "amendments": 0},
-                limit=1
+                {"category": "global_settings", "id": "global"},
+                projection={"_id": 0, "amendments": 0},
+                limit = 1
             )
-            
+
             if settings:
                 return settings
-            else:
-                # Return default settings if none exist
-                return self._get_default_global_settings()
+            # Return default settings if none exist
+            return self._get_default_global_settings()
         except Exception as e:
             self.log_error("Failed to get global settings", e)
             return self._get_default_global_settings()
@@ -59,17 +58,45 @@ class SettingsService(BaseService):
             self.log_error("Failed to get SIEM settings", e)
             return []
     
-    def get_llm_endpoints(self):
+    def get_llm_endpoints(self, endpoint_id: Optional[str] = None):
+        """Get LLM endpoint settings.
+
+        Args:
+            endpoint_id: When provided, return a single endpoint document.
+
+        Returns:
+            If endpoint_id is provided: a single endpoint dict or None.
+            Otherwise: list of endpoint dicts.
+        """
+        filter_dict: Dict[str, Any] = {"category": "llm_endpoint"}
+        if endpoint_id:
+            filter_dict["id"] = endpoint_id
+            return db_connection.query('settings', filter_dict, projection={"_id": 0}, limit=1)
+
         return list(db_connection.query(
             'settings',
-            {"category": "llm_endpoint"},
+            filter_dict,
             projection={"_id": 0}
         ))
-    
-    def get_llm_models(self):
+
+    def get_llm_models(self, model_id: Optional[str] = None):
+        """Get LLM model settings.
+
+        Args:
+            model_id: When provided, return a single model document.
+
+        Returns:
+            If model_id is provided: a single model dict or None.
+            Otherwise: list of model dicts.
+        """
+        filter_dict: Dict[str, Any] = {"category": "llm_model"}
+        if model_id:
+            filter_dict["id"] = model_id
+            return db_connection.query('settings', filter_dict, projection={"_id": 0}, limit=1)
+
         return list(db_connection.query(
             'settings',
-            {"category": "llm_model"},
+            filter_dict,
             projection={"_id": 0}
         ))
 
@@ -81,26 +108,23 @@ class SettingsService(BaseService):
         }
         """
         try:
-            self.log("Resolving active LLM model and endpoint")
             global_settings = self.get_global_settings()
             active_llm = global_settings.get('active_llm_model_id')
-            self.log_info("active_llm ", active_llm)
-
             if not active_llm:
                 self.log_warning('No active LLM model or endpoint configured')
                 return None
 
             # Try to resolve model by id first
-            model = db_connection.find_one(
+            model = db_connection.query(
                 'settings',
                 {'category': 'llm_model', 'id': active_llm},
-                projection={'_id': 0}
+                projection={'_id': 0},
+                limit=1
             )
 
             if not model:
                 self.log_warning(f"Active LLM model '{active_llm}' not found")
                 return None
-            self.log_info("found model  ", model)
             # Endpoint id may be stored as 'endpoint_id' - be defensive
             endpoint_id = model.get('endpoint_id')
 
@@ -109,12 +133,12 @@ class SettingsService(BaseService):
                 return None
 
             # Fetch endpoint by id
-            endpoint = db_connection.find_one(
+            endpoint = db_connection.query(
                 'settings',
                 {'category': 'llm_endpoint', 'id': endpoint_id},
-                projection={'_id': 0}
+                projection={'_id': 0},
+                limit=1
             )
-            self.log_info("found endpoint ", endpoint)
             if not endpoint:
                 self.log_warning(f"Endpoint '{endpoint_id}' not found for model '{model.get('id')}'")
                 return None
@@ -405,7 +429,7 @@ class SettingsService(BaseService):
         """
         try:
             # Validate SIEM type
-            if siem_type not in [siem.value for siem in SIEMType]:
+            if siem_type not in ['elastic', 'splunk']:
                 self.log_error(f"Invalid SIEM type: {siem_type}")
                 return False
             
@@ -444,8 +468,7 @@ class SettingsService(BaseService):
             "similarity_threshold": 0.8,
             "fix_count": 3,
             "ingest_algo_version": "v1",
-            "active_llm_endpoint": "openai",
-            "active_llm": "gpt-3.5-turbo",
+            "active_llm_model_id": "openai-gpt-3.5-turbo",
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }

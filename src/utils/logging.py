@@ -44,11 +44,16 @@ class SmartLPLogger:
             try:
                 from core.socketio_manager import socketio_manager
                 if socketio_manager.socketio:
-                    socketio_manager.socketio.emit(channel, {
-                        "timestamp": ts,
-                        "message": message,
-                        "level": level
-                    })
+                    try:
+                        socketio_manager.socketio.emit(channel, {
+                            "timestamp": ts,
+                            "message": message,
+                            "level": level
+                        })
+                    except Exception:
+                        # Protect logging path from socket emit errors; do not
+                        # allow socketio failures to break request handling.
+                        pass
             except (ImportError, AttributeError):
                 pass
         

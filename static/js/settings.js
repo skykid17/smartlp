@@ -109,6 +109,7 @@ class Settings {
                 updatedAt: ep.updatedAt || ep.updated_at || null,
                 models: (ep.models || []).map((m) => ({
                     id: m.id,
+                    endpoint_id: ep.id,
                     model_name: m.modelName || m.model_name || m.model || m.model_name,
                     display_name: m.displayName || m.display_name || m.modelName || m.model_name,
                     provider: m.provider || ''
@@ -118,6 +119,14 @@ class Settings {
             this.llmEndpointMap = Object.fromEntries(
                 this.llmEndpoints.map((ep) => [ep.id, { ...ep, models: [...(ep.models || [])] }])
             );
+
+            // Snapshot original models so we can detect deletions on save
+            this.originalModelsById = {};
+            this.llmEndpoints.forEach((ep) => {
+                (ep.models || []).forEach((m) => {
+                    if (m && m.id) this.originalModelsById[m.id] = ep.id;
+                });
+            });
 
             // Normalize possible global setting key variants for active endpoint/model
             const gs = this.currentSettings || {};
@@ -386,7 +395,7 @@ class Settings {
             `;
             const [testBtn, deleteBtn] = row.querySelectorAll('button');
 
-            testBtn?.addEventListener('click', () => this.testLlmConnection(model.model_name, testBtn));
+            testBtn?.addEventListener('click', () => this.testLlmConnection(model, testBtn));
             deleteBtn?.addEventListener('click', () => this.removeModel(index));
 
             container.appendChild(row);
@@ -400,6 +409,21 @@ class Settings {
         const endpoint = this.llmEndpointMap[endpointId];
         const url = endpoint?.url || this.elements.llmUrl?.value || '';
         const apiKey = endpoint?.apiKey || this.elements.llmApiKey?.value || '';
+
+        const modelId = typeof model === 'string' ? null : model?.id;
+        if (!modelId) {
+            this.elements.modelLogger.innerHTML = '<span class="text-red-500">Save settings before testing this model.</span>';
+            return;
+        }
+
+        const pendingEndpoint = this.newLlmEndpoints?.[endpointId];
+        const isPendingModel = Array.isArray(pendingEndpoint?.models)
+            ? pendingEndpoint.models.some((m) => m?.id === modelId)
+            : false;
+        if (isPendingModel) {
+            this.elements.modelLogger.innerHTML = '<span class="text-red-500">Save settings before testing newly added models.</span>';
+            return;
+        }
 
         if (!endpointId || !url) {
             this.elements.modelLogger.innerHTML = '<span class="text-red-500">Select an endpoint and provide an API URL first.</span>';
@@ -417,10 +441,11 @@ class Settings {
         try {
             const payload = {
                 task: 'test',
-                model,
+                endpoint_id: endpointId,
+                model_id: modelId,
+                // Optional overrides for unsaved endpoint edits
                 url,
-                llmEndpoint: endpointId,
-                apiKey
+                api_key: apiKey
             };
 
             const response = await fetch('/api/test_llm_connection', {
@@ -461,15 +486,27 @@ class Settings {
         const ep = this.llmEndpointMap[this.selectedLlmEndpoint];
         if (!value || !ep) return;
 
-        // Generate a unique ID for the model
-        const id = `model_${Date.now()}`;
+        // Generate a stable ID tied to the endpoint (e.g. ollama-qwen3.0-coder)
+        const endpointId = this.selectedLlmEndpoint;
+        const safeName = value
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9._-]/g, '');
+        const id = `${endpointId}-${safeName || `model_${Date.now()}`}`;
 
         if (ep.models.find((m) => m.model_name === value)) {
             this.toast('Model already exists for this endpoint', 'warning');
             return;
         }
 
-        ep.models.push({ id, model_name: value, display_name: value });
+        ep.models.push({
+            id,
+            endpoint_id: endpointId,
+            model_name: value,
+            display_name: value,
+            provider: ep.name || ''
+        });
         this.markEndpointChanged(this.selectedLlmEndpoint);
         this.elements.newModelInput.value = '';
         this.renderModelList(ep.models);
@@ -495,6 +532,13 @@ class Settings {
             apiKey: ep.apiKey || '',
             models: ep.models.map((m) => ({ ...m })) // include full model object
         };
+        // Keep llmEndpoints array in sync so deletions/changes are detected reliably
+        const idx = this.llmEndpoints.findIndex((e) => e.id === endpointId);
+        if (idx !== -1) {
+            this.llmEndpoints[idx].models = ep.models.map((m) => ({ ...m }));
+        } else {
+            this.llmEndpoints.push({ id: endpointId, name: ep.name || endpointId, url: ep.url || '', apiKey: ep.apiKey || '', models: ep.models.map((m) => ({ ...m })) });
+        }
     }
 
     refreshActiveModelOptionsIfNeeded() {
@@ -580,16 +624,18 @@ class Settings {
             payload.searchQuery = this.elements.searchQuery?.value || '';
         }
 
+        // Always prepare llmModels map so we can include creations, updates and deletions
+        const llmModels = {};
+
+        // Include creations/updates from any endpoint changes the user made
         if (Object.keys(this.newLlmEndpoints).length) {
             payload.llmEndpoints = this.newLlmEndpoints; // full object payload
 
-            // Prepare llmModels payload expected by backend: map of modelId -> model data
-            const llmModels = {};
             Object.entries(this.newLlmEndpoints).forEach(([epId, epData]) => {
                 if (!epData || !epData.models) return;
                 epData.models.forEach((m) => {
                     // Ensure model has an id
-                    let modelId = m.id || `model_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                    const modelId = m.id || `model_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
                     // Normalize fields expected by backend
                     llmModels[modelId] = {
                         model_name: m.model_name || m.modelName || m.model || m.display_name || modelId,
@@ -599,10 +645,23 @@ class Settings {
                     };
                 });
             });
+        }
 
-            if (Object.keys(llmModels).length) {
-                payload.llmModels = llmModels;
+        // Detect deletions: any model that existed originally but is no longer present in current endpoints
+        const currentModelIds = new Set();
+        this.llmEndpoints.forEach((ep) => {
+            (ep.models || []).forEach((m) => { if (m && m.id) currentModelIds.add(m.id); });
+        });
+
+        (Object.keys(this.originalModelsById || {})).forEach((mid) => {
+            if (!currentModelIds.has(mid)) {
+                // mark for deletion (backend accepts null or {_delete: true})
+                llmModels[mid] = null;
             }
+        });
+
+        if (Object.keys(llmModels).length) {
+            payload.llmModels = llmModels;
         }
 
         this.setSavingState(true);

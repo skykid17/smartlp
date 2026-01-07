@@ -19,6 +19,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Any
+import spacy
 
 from utils.logging import app_logger
 from services.settings import settings_service
@@ -49,25 +50,22 @@ def batched(items: Sequence, batch_size: int) -> Iterable[Sequence]:
     for start in range(0, len(items), batch_size):
         yield items[start: start + batch_size]
 
-
 def filter_metadata(metadata: Dict, allowed_fields: Sequence[str]) -> Dict:
     allowed = set(allowed_fields)
     return {k: v for k, v in metadata.items() if k in allowed and v not in (None, "")}
 
-
-# --- RRF fusion ---
-
-def reciprocal_rank_fusion(runs: Sequence[List[Dict]], k: int, limit: int) -> List[Dict]:
-    scores: Dict[str, float] = defaultdict(float)
-    docs: Dict[str, Dict] = {}
-    for run in runs:
+# --- Weighted RRF fusion ---
+def reciprocal_rank_fusion(runs, k, limit, weights=None):
+    scores = defaultdict(float)
+    docs = {}
+    for i, run in enumerate(runs):
+        weight = 1 if not weights else weights[i]
         for rank, doc in enumerate(run):
-            doc_id = str(doc.get("_id")) if doc.get("_id") is not None else str(hash(json.dumps(doc, sort_keys=True)))
+            doc_id = ...
             docs[doc_id] = doc
-            scores[doc_id] += 1.0 / (k + rank + 1)
+            scores[doc_id] += weight * (1.0 / (k + rank + 1))
     ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     return [docs[doc_id] for doc_id, _ in ranked[:limit]]
-
 
 def format_docs(docs: Sequence[Document]) -> str:
     return "\n\n".join(
@@ -75,13 +73,154 @@ def format_docs(docs: Sequence[Document]) -> str:
         for i, d in enumerate(docs)
     )
 
+DOMAIN_TERMS = {"powershell","elasticsearch","splunk","elastic","log4j","base64","kibana","windows","logstash","wazuh","mitre","siem"}
+nlp = spacy.load("en_core_web_sm")
 
-# --- RAG class (single programmatic entrypoint) ---
+def extract_keywords(text: str, max_keywords: int = 15):
+        doc = nlp(text.lower())
+
+        keywords = []
+        seen = set()
+
+        for token in doc:
+            # Skip stopwords, punctuation, spaces, numbers
+            if token.is_stop or token.is_punct or token.like_num:
+                continue
+
+            lemma = token.lemma_.strip()
+
+            # Skip empty strings & 1-char words
+            if not lemma or len(lemma) < 2:
+                continue
+
+            # Keep nouns + adjectives + domain terms
+            if (
+                token.pos_ in {"NOUN", "PROPN", "ADJ", "VERB"}
+                or lemma in DOMAIN_TERMS
+            ):
+                if lemma not in seen:
+                    seen.add(lemma)
+                    keywords.append(lemma)
+
+            # Stop when we reach the limit
+            if len(keywords) >= max_keywords:
+                break
+
+        return " ".join(keywords) if keywords else ""
+
+# --- Retriever Class ---
+class MongoHybridRetriever:
+    def __init__(
+        self,
+        collection: Collection,
+        embedding_fn,
+        embedding_dim: int,
+        vector_index: str,
+        text_index: str,
+        top_k: int,
+        semantic_candidates: int,
+        keyword_candidates: int,
+        rrf_k: int,
+        allowed_text_paths: Sequence[str],
+        filter_category: Optional[str] = None
+    ) -> None:
+        self.collection = collection
+        self.embedding_fn = embedding_fn
+        self.embedding_dim = embedding_dim
+        self.vector_index = vector_index
+        self.text_index = text_index
+        self.top_k = top_k
+        self.semantic_candidates = semantic_candidates
+        self.keyword_candidates = keyword_candidates
+        self.rrf_k = rrf_k
+        self.allowed_text_paths = allowed_text_paths
+        self.filter_category = filter_category
+        self.parent: Optional["RAG"] = None
+
+    def invoke(self, query: str) -> List[Document]:
+        query_vector = self.embedding_fn([query])[0]
+        query_text = extract_keywords(query)
+
+        # --- Primary Path: Mongo RankFusion ---
+        try:
+            vector_pipeline = [
+                {"$vectorSearch": {
+                    "index": self.vector_index,
+                    "path": "embedding",
+                    "queryVector": query_vector,
+                    "numCandidates": self.semantic_candidates,
+                    "limit": self.top_k,
+                    **(
+                        {"filter": {"metadata.category": self.filter_category}}
+                        if self.filter_category else {}
+                    )
+                }}
+            ]
+
+            text_pipeline = [
+                {"$search": {
+                    "index": self.text_index,
+                    "phrase": {"query": query_text, "path": "content"}
+                }},
+                {"$limit": self.keyword_candidates}
+            ]
+
+            pipeline = [
+                {"$rankFusion": {
+                    "input": {"pipelines": {
+                        "vectorPipeline": vector_pipeline,
+                        "fullTextPipeline": text_pipeline
+                    }},
+                    "combination": {"weights": {
+                        "vectorPipeline": 0.5,
+                        "fullTextPipeline": 0.5
+                    }},
+                    "scoreDetails": True
+                }},
+                {"$project": {
+                    "_id": 1,
+                    "content": 1,
+                    "metadata": 1,
+                    "scoreDetails": {"$meta": "scoreDetails"}
+                }},
+                {"$limit": self.top_k}
+            ]
+
+            fused = list(self.collection.aggregate(pipeline))
+
+            if fused:
+                return [
+                    Document(
+                        page_content=d.get("content", ""),
+                        metadata={
+                            **d.get("metadata", {}),
+                            "scoreDetails": d.get("scoreDetails")
+                        }
+                    )
+                    for d in fused
+                ]
+
+        except Exception as exc:
+            app_logger.log_message("log", f"RankFusion failed: {exc}", "WARNING")
+
+        # --- Fallback Path ---
+        if self.parent:
+            return self.parent.fallback_retrieve(
+                query=query,
+                limit=self.top_k,
+                semantic_k=self.semantic_candidates,
+                keyword_k=self.keyword_candidates,
+                rrf_k=self.rrf_k,
+                filter_category=self.filter_category
+            )
+
+        return []
+
+# --- RAG Class ---
 
 class RAG:
     def __init__(
         self,
-        # UPDATED: Added directConnection=true for local Docker compatibility
         mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
         database: str = "smartlp",
         collection_name: str = "knowledge_base",
@@ -96,6 +235,7 @@ class RAG:
         embedding_batch_size: int = 512,
         batch_size: int = 128,
     ) -> None:
+        
         self.mongo_uri = mongo_uri
         self.database = database
         self.collection_name = collection_name
@@ -114,11 +254,39 @@ class RAG:
         self.collection: Optional[Collection] = None
         self._embedding_model: Optional[SentenceTransformer] = None
 
+
+    # --- Index Creation Helpers ---
+    def _ensure_index(
+        self,
+        collection: Collection,
+        index_name: str,
+        index_type: str,
+        definition: dict
+    ) -> None:
+        """
+        Ensure a search or vector index exists in the collection.
+        """
+        try:
+            existing = list(collection.list_search_indexes(index_name))
+            if existing:
+                app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' already exists.", "INFO")
+                return
+        except Exception:
+            pass
+
+        try:
+            collection.create_search_index(model={"definition": definition, "name": index_name, "type": index_type})
+            app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' creation initiated.", "INFO")
+        except OperationFailure as e:
+            if "already exists" in str(e):
+                app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' already exists.", "INFO")
+            else:
+                app_logger.log_message("log", f"Failed to create {index_type} index '{index_name}': {e}", "ERROR")
+
     # --- Connection / index helpers ---
     def connect(self) -> MongoClient:
         if self.client is None:
             try:
-                # serverSelectionTimeoutMS prevents hanging if Docker is down
                 client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
                 client.admin.command("ping")
                 self.client = client
@@ -135,8 +303,22 @@ class RAG:
 
     def init(self) -> None:
         coll = self._ensure_collection()
-        self.ensure_text_index(coll, self.text_index, self.text_paths, self.text_language)
-        self.ensure_vector_index(coll, self.vector_index, self.embedding_dim)
+
+        # --- Vector index definition ---
+        vector_def = {
+            "fields": [
+                {"type": "vector", "path": "embedding", "numDimensions": self.embedding_dim, "similarity": "cosine"},
+                {"type": "filter", "path": "metadata.category"}
+            ]
+        }
+
+        # --- Text index definition ---
+        text_def = {"mappings": {"dynamic": True}}
+
+        # --- Ensure both indexes ---
+        self._ensure_index(coll, self.vector_index, "vectorSearch", vector_def)
+        self._ensure_index(coll, self.text_index, "search", text_def)
+
         app_logger.log_message("log", "RAG initialization complete", "INFO")
 
     # --- Embeddings ---
@@ -151,7 +333,6 @@ class RAG:
         embeddings = embedder.encode(texts, show_progress_bar=show_progress)
         return np.asarray(embeddings).tolist()
 
-    # Cosine similarity for fallback
     def cosine(self, a, b):
         a = np.asarray(a, dtype=float)
         b = np.asarray(b, dtype=float)
@@ -289,116 +470,157 @@ class RAG:
         app_logger.log_message("log", f"Ingest complete. {inserted} chunks {'simulated' if dry_run else 'inserted'}", "INFO")
         return inserted
 
-    # --- Python-only fallback ---
-    def _py_fallback_retrieve(self, query: str, limit: int = 5, semantic_k: int = 50, keyword_k: int = 50, rrf_k: int = 60, filter_category: Optional[str] = None) -> List[Document]:
-        """Fallback retriever that runs locally using retrieved documents."""
+    def run_vector_search(
+        self,
+        query: str,
+        candidates: List[Dict],
+        semantic_k: int
+    ) -> List[Dict]:
+
+        q_emb = self.generate_embeddings([query], show_progress=False)[0]
+
+        for d in candidates:
+            emb = d.get("embedding")
+            d["_sim_score"] = self.cosine(q_emb, emb) if emb else 0.0
+
+        top = sorted(candidates, key=lambda x: x["_sim_score"], reverse=True)[:semantic_k]
+
+        return [
+            {
+                "_id": str(d["_id"]),
+                "content": d.get("content", ""),
+                "metadata": d.get("metadata", {}),
+                "score": d["_sim_score"]
+            }
+            for d in top
+        ]
+
+
+    # Helper: Mongo Text Search
+    def run_text_search(
+        self,
+        keyword_query: str,
+        keyword_k: int,
+        base_filter: Dict
+    ) -> List[Dict]:
+
+        coll = self._ensure_collection()
+
+        if not keyword_query:
+            return []
+
+        try:
+            results = list(
+                coll.aggregate([
+                    {"$search": {
+                        "index": self.text_index,
+                        "text": {
+                            "query": keyword_query,
+                            "path": list(self.text_paths)
+                        }
+                    }},
+                    {"$limit": keyword_k},
+                    {"$project": {
+                        "content": 1,
+                        "metadata": 1,
+                        "score": {"$meta": "searchScore"}
+                    }}
+                ])
+            )
+
+        except Exception:
+            text_filter = dict(base_filter)
+            text_filter["$text"] = {"$search": keyword_query}
+
+            results = list(
+                coll.find(
+                    text_filter,
+                    {
+                        "content": 1,
+                        "metadata": 1,
+                        "score": {"$meta": "textScore"}
+                    }
+                ).limit(keyword_k)
+            )
+
+        return [
+            {
+                "_id": str(d["_id"]),
+                "content": d.get("content", ""),
+                "metadata": d.get("metadata", {}),
+                "score": d.get("score", 0.0)
+            }
+            for d in results
+        ]
+    # --- Fallback Retriever ---
+    def fallback_retrieve(
+        self,
+        query: str,
+        limit: int = 5,
+        semantic_k: int = 50,
+        keyword_k: int = 50,
+        rrf_k: int = 60,
+        filter_category: Optional[str] = None
+    ) -> List[Document]:
+
         app_logger.log_message("log", "Using Python fallback retriever", "INFO")
         coll = self._ensure_collection()
 
-        query_filter = {}
+        # --- Category filter ---
+        base_filter = {}
         if filter_category:
-            query_filter["metadata.category"] = filter_category
+            base_filter["metadata.category"] = filter_category
 
-        # Fetch candidates
-        all_docs = list(coll.find(query_filter, {"content": 1, "metadata": 1, "embedding": 1, "_id": 1}).limit(10000))
-        if not all_docs:
+        # --- Extract keywords ---
+        keyword_query = extract_keywords(query, max_keywords=15)
+
+        # --- Candidate selection ---
+        candidate_filter = dict(base_filter)
+        if keyword_query:
+            candidate_filter["$text"] = {"$search": keyword_query}
+
+        candidates = list(
+            coll.find(
+                candidate_filter,
+                {"content": 1, "metadata": 1, "embedding": 1}
+            ).limit(5000)
+        )
+
+        if not candidates:
             return []
 
-        # 1. Semantic Score (Cosine)
-        q_emb = self.generate_embeddings([query], show_progress=False)[0]
-        for doc in all_docs:
-            doc["_sim_score"] = self.cosine(q_emb, doc.get("embedding", [])) if doc.get("embedding") else 0.0
+        # --- Run vector search ---
+        sem_run = self.run_vector_search(
+            query=query,
+            candidates=candidates,
+            semantic_k=semantic_k
+        )
 
-        semantic_top = sorted(all_docs, key=lambda x: x.get("_sim_score", 0.0), reverse=True)[:semantic_k]
+        # --- Run keyword search ---
+        kw_run = self.run_text_search(
+            keyword_query=keyword_query,
+            keyword_k=keyword_k,
+            base_filter=base_filter
+        )
 
-        # 2. Keyword Score (Exact Match)
-        tokens = set(pcre2.findall(r"\w+", query.lower()))
-        for doc in all_docs:
-            text = (doc.get("content") or "").lower()
-            doc["_kw_score"] = sum(1 for t in tokens if t in text)
+        # --- Fuse ---
+        fused = reciprocal_rank_fusion(
+            runs=[sem_run, kw_run],
+            k=rrf_k,
+            limit=limit,
+            weights=[0.5, 0.5]
+        )
 
-        keyword_top = sorted(all_docs, key=lambda x: x.get("_kw_score", 0), reverse=True)[:keyword_k]
-
-        # 3. Fuse
-        sem_run = [{"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_sim_score")} for d in semantic_top]
-        kw_run = [{"_id": d.get("_id"), "content": d.get("content", ""), "metadata": d.get("metadata", {}), "score": d.get("_kw_score")} for d in keyword_top]
-
-        fused = reciprocal_rank_fusion([sem_run, kw_run], rrf_k, limit)
-        return [Document(page_content=d.get("content", ""), metadata=d.get("metadata", {})) for d in fused]
-
-    # --- Retriever (Atlas + Fallback) ---
-    class _MongoHybridRetriever:
-        def __init__(self, collection: Collection, embedding_fn, embedding_dim: int, vector_index: str, text_index: str, top_k: int, semantic_candidates: int, keyword_candidates: int, rrf_k: int, allowed_text_paths: Sequence[str], filter_category: Optional[str] = None) -> None:
-            self.collection = collection
-            self.embedding_fn = embedding_fn
-            self.vector_index = vector_index
-            self.text_index = text_index
-            self.top_k = top_k
-            self.semantic_candidates = semantic_candidates
-            self.keyword_candidates = keyword_candidates
-            self.rrf_k = rrf_k
-            self.allowed_text_paths = allowed_text_paths
-            self.filter_category = filter_category
-            self.parent: Optional["RAG"] = None
-
-        def invoke(self, query: str) -> List[Document]:
-            qv = self.embedding_fn([query])[0]
-            
-            vector_results: List[Dict] = []
-            text_results: List[Dict] = []
-
-            # 1. Vector Search ($vectorSearch)
-            if self.semantic_candidates > 0:
-                vector_search_spec = {
-                    "index": self.vector_index,
-                    "path": "embedding",
-                    "queryVector": qv,
-                    "numCandidates": self.semantic_candidates,
-                    "limit": self.top_k,
-                }
-                if self.filter_category:
-                    vector_search_spec["filter"] = {"metadata.category": {"$eq": self.filter_category}}
-
-                pipeline = [
-                    {"$vectorSearch": vector_search_spec},
-                    {"$project": {"content": 1, "metadata": 1, "score": {"$meta": "vectorSearchScore"}}},
-                    {"$unset": "embedding"}
-                ]
-                try:
-                    vector_results = list(self.collection.aggregate(pipeline))
-                except Exception as exc:
-                    app_logger.log_message("log", f"Vector search failed: {exc}", "WARNING")
-
-            # 2. Text Search ($search)
-            if self.keyword_candidates > 0:
-                pipeline = [
-                    {"$search": {"index": self.text_index, "text": {"query": query, "path": list(self.allowed_text_paths)}}},
-                    {"$limit": self.keyword_candidates},
-                    {"$project": {"content": 1, "metadata": 1, "score": {"$meta": "searchScore"}}}
-                ]
-                try:
-                    text_results = list(self.collection.aggregate(pipeline))
-                except Exception:
-                    # Fallback to standard text index if Atlas Search fails
-                    try:
-                        text_filter = {"$text": {"$search": query}}
-                        if self.filter_category:
-                            text_filter["metadata.category"] = {"$eq": self.filter_category}
-                        text_results = list(self.collection.find(text_filter, {"content": 1, "metadata": 1, "score": {"$meta": "textScore"}}).limit(self.keyword_candidates))
-                    except Exception:
-                        pass
-
-            # 3. Fallback or Fuse
-            if not vector_results and not text_results:
-                if self.parent:
-                    return self.parent._py_fallback_retrieve(query, self.top_k, self.semantic_candidates, self.keyword_candidates, self.rrf_k, self.filter_category)
-                return []
-
-            fused = reciprocal_rank_fusion([vector_results, text_results], self.rrf_k, self.top_k)
-            return [Document(page_content=doc.get("content", ""), metadata={**doc.get("metadata", {}), "score": doc.get("score")}) for doc in fused]
+        return [
+            Document(
+                page_content=d.get("content", ""),
+                metadata=d.get("metadata", {})
+            )
+            for d in fused
+        ]
 
     # --- Chain builder ---
-    def _build_chain(self, retriever: _MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
+    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
 
         llm_settings = settings_service.get_active_llm()
         model_cfg = llm_settings["model"]
@@ -432,7 +654,7 @@ class RAG:
         start = time.time()
         try:
             coll = self._ensure_collection()
-            retriever = self._MongoHybridRetriever(
+            retriever = MongoHybridRetriever(
                 collection=coll,
                 embedding_fn=lambda texts: self.generate_embeddings(texts, show_progress=False),
                 embedding_dim=self.embedding_dim,
@@ -446,7 +668,7 @@ class RAG:
                 filter_category=kwargs.get("filter_category"),
             )
             retriever.parent = self
-
+            
             chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"))
             answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
 
@@ -455,72 +677,7 @@ class RAG:
         except Exception as e:
             return {"success": False, "error": str(e), "latency": round(time.time() - start, 3)}
 
-    # --- Index Creation Helpers ---
-
-    def ensure_vector_index(collection: Collection, index_name: str, embedding_dim: int) -> None:
-        # UPDATED: Matches the working configuration from mongosh
-        definition = {
-            "fields": [
-                {
-                    "type": "vector",
-                    "path": "embedding",
-                    "numDimensions": embedding_dim,
-                    "similarity": "cosine"
-                },
-                {
-                    "type": "filter",
-                    "path": "metadata.category"
-                }
-            ]
-        }
-        
-        try:
-            # Check if index exists via listSearchIndexes (Atlas only)
-            # We assume if it exists, it's correct.
-            existing = list(collection.list_search_indexes(index_name))
-            if existing:
-                app_logger.log_message("log", f"Vector index '{index_name}' already exists.", "INFO")
-                return
-        except Exception:
-            pass
-
-        app_logger.log_message("log", f"Creating vector search index '{index_name}'...", "INFO")
-        try:
-            collection.create_search_index(
-                model={"definition": definition, "name": index_name, "type": "vectorSearch"}
-            )
-            app_logger.log_message("log", "Index creation initiated. Check status in Atlas/Mongot.", "INFO")
-        except OperationFailure as e:
-            if "already exists" in str(e):
-                app_logger.log_message("log", f"Index '{index_name}' exists.", "INFO")
-            else:
-                app_logger.log_message("log", f"Failed to create vector index: {e}", "ERROR")
-
-    def ensure_text_index(collection: Collection, index_name: str) -> None:
-        definition = {
-            "mappings": {
-                "dynamic": True
-            }
-        }
-        try:
-            existing = list(collection.list_search_indexes(index_name))
-            if existing:
-                app_logger.log_message("log", f"search index '{index_name}' already exists.", "INFO")
-                return
-        except Exception:
-            pass
-
-        app_logger.log_message("log", f"Creating search index '{index_name}'...", "INFO")
-        try:
-            collection.create_search_index(
-                model={"definition": definition, "name": index_name, "type": "search"}
-            )
-            app_logger.log_message("log", f"search creation initiated. Check status in Atlas/Mongot.", "INFO")
-        except OperationFailure as e:
-            if "already exists" in str(e):
-                app_logger.log_message("log", f"Index '{index_name}' exists.", "INFO")
-            else:
-                app_logger.log_message("log", f"Failed to create search index: {e}", "ERROR")
+    
 
 rag_service = RAG()
 

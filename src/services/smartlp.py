@@ -16,10 +16,8 @@ import re
 import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, List
-from collections import defaultdict
 
-from .base import BaseService, CRUDService
-from models.core import LogEntry, RuleStatus
+from .base import CRUDService
 from .siem import SIEMServiceFactory, elasticsearch_service, splunk_service
 from .settings import settings_service
 from .regex_engine import regex_engine_service
@@ -294,7 +292,7 @@ class SmartLPService(CRUDService):
         try:
             count = db_connection.count_documents(
                 self.collection_name,
-                {"status": RuleStatus.UNMATCHED.value}
+                {"status": { "$in": ['unmatched', 'partially matched']}}
             )
             return count
         except Exception as e:
@@ -371,10 +369,8 @@ class SmartLPService(CRUDService):
             for entry in all_entries:
                 status_raw = entry.get('status', 'Unmatched')
                 status_norm = str(status_raw).strip().lower().replace('_', '-')
-                if status_norm == 'partially matched':
-                    status_norm = 'partially-matched'
 
-                is_unparsed = status_norm in {'unmatched', 'partially-matched'}
+                is_unparsed = status_norm in {'unmatched', 'partially matched'}
 
                 # Dashboard uses `entry.log_type`; keep backward-compatible fallbacks.
                 log_type = (
@@ -845,7 +841,7 @@ class SmartLPService(CRUDService):
         """Return { success, source_type, log_type, error }"""
 
         try:
-            self.log_info("Determining log type for entry")
+            self.log_info("Identifying log type for entry")
             
             system_prompt = settings_service.get_prompts_settings("identify_type")
             response = llm_service.query_llm(log, system_prompt)
@@ -862,6 +858,7 @@ class SmartLPService(CRUDService):
             # Parse JSON
             try:
                 result = json.loads(clean_response(response["content"]))
+                self.log_info(f"Identified log type: {str(result.get('log_type', 'unknown'))}, source type: {str(result.get('source_type', 'unknown'))}")
                 return {
                     "success": True,
                     "source_type": result.get("source_type", "unknown"),
@@ -881,6 +878,7 @@ class SmartLPService(CRUDService):
                 }
 
         except Exception as e:
+            self.log_error(f"Error identifying log type: {str(e)}", e)
             return {
                 "success": False,
                 "error": str(e),
@@ -962,14 +960,14 @@ class SmartLPService(CRUDService):
 
         # Parse LLM Result
         try:
-            content = clean_response(response["content"])
+            content = clean_response(response.get("content", ""))
             result = json.loads(content)
         except json.JSONDecodeError as e:
             return {
                 "success": False,
                 "found": False,
-                "context": response["context"],
-                "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response['content']}",
+                "context": response.get("context", []),
+                "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response.get('content')}",
                 "package_name": "", 
                 "package_url": ""
             }
@@ -981,7 +979,7 @@ class SmartLPService(CRUDService):
         return {
             "success": True,          # The operation completed successfully (no crashes)
             "found": is_found,        # Did we actually find the package?
-            "context": response["context"],
+            "context": response.get("context", []),
             "package_name": package_name,
             "package_url": result.get("package_url", ""),
             "error": None
@@ -1022,16 +1020,19 @@ class SmartLPService(CRUDService):
             top_k=5
         )
 
-        if not response["context"] or all(not c.get("content") for c in response["context"]):
+        context_docs = response.get("context", [])
+        if not context_docs or all(not (c and c.get("content")) for c in context_docs):
+            self.log_info("No relevant detection rules found in RAG context.")
             return {
                 "success": True,
                 "found": False,
                 "detection_rules": [],
-                "context": response.get("context", []),
+                "context": context_docs,
                 "error": None
             }
 
         if not response["success"]:
+            self.log_error(f"RAG service failure: {response.get('error')}")
             return {
                 "success": False,
                 "found": False,
@@ -1083,7 +1084,7 @@ class SmartLPService(CRUDService):
                     "title": siem_rule_doc.get("title") if siem_rule_doc else "",
                     "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else ""
                 })
-
+            self.log_info(f"Identified {len(detection_rules)} detection rules above confidence threshold {confidence_threshold}")
             return {
                 "success": True,
                 "found": len(detection_rules) > 0,
@@ -1093,6 +1094,7 @@ class SmartLPService(CRUDService):
             }
 
         except Exception as e:
+            self.log_error(f"Detection rule parsing failed: {str(e)}", e)
             return {
                 "success": False,
                 "found": False,

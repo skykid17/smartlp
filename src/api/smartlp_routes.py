@@ -462,6 +462,7 @@ def register_smartlp_routes(app: Flask) -> None:
     @app.route("/api/query", methods=['POST'])
     def query():
         data = request.get_json()
+        app_logger.log_message("log", f"Received query request: {data}", "INFO")
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
