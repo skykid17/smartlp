@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import pcre2
 import time
 from tqdm import tqdm 
@@ -20,9 +21,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Any
 import spacy
-
-from utils.logging import app_logger
 from services.settings import settings_service
+
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 from pymongo import MongoClient
@@ -54,18 +56,6 @@ def filter_metadata(metadata: Dict, allowed_fields: Sequence[str]) -> Dict:
     allowed = set(allowed_fields)
     return {k: v for k, v in metadata.items() if k in allowed and v not in (None, "")}
 
-# --- Weighted RRF fusion ---
-def reciprocal_rank_fusion(runs, k, limit, weights=None):
-    scores = defaultdict(float)
-    docs = {}
-    for i, run in enumerate(runs):
-        weight = 1 if not weights else weights[i]
-        for rank, doc in enumerate(run):
-            doc_id = ...
-            docs[doc_id] = doc
-            scores[doc_id] += weight * (1.0 / (k + rank + 1))
-    ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-    return [docs[doc_id] for doc_id, _ in ranked[:limit]]
 
 def format_docs(docs: Sequence[Document]) -> str:
     return "\n\n".join(
@@ -73,11 +63,24 @@ def format_docs(docs: Sequence[Document]) -> str:
         for i, d in enumerate(docs)
     )
 
+def cosine(self, a, b):
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    denom = (np.linalg.norm(a) * np.linalg.norm(b))
+    return float(a.dot(b) / denom) if denom > 0 else 0.0
+
+
 DOMAIN_TERMS = {"powershell","elasticsearch","splunk","elastic","log4j","base64","kibana","windows","logstash","wazuh","mitre","siem"}
-nlp = spacy.load("en_core_web_sm")
+
+_nlp = None
+def get_nlp(): # Lazy load spaCy model
+    global _nlp 
+    if _nlp is None:
+        _nlp = spacy.load("en_core_web_sm")
+    return _nlp
 
 def extract_keywords(text: str, max_keywords: int = 15):
-        doc = nlp(text.lower())
+        doc = get_nlp()(text.lower())
 
         keywords = []
         seen = set()
@@ -122,6 +125,7 @@ class MongoHybridRetriever:
         keyword_candidates: int,
         rrf_k: int,
         allowed_text_paths: Sequence[str],
+        fallback_engine: Optional[LocalRetriever] = None,
         filter_category: Optional[str] = None
     ) -> None:
         self.collection = collection
@@ -134,8 +138,8 @@ class MongoHybridRetriever:
         self.keyword_candidates = keyword_candidates
         self.rrf_k = rrf_k
         self.allowed_text_paths = allowed_text_paths
+        self.fallback_engine = fallback_engine
         self.filter_category = filter_category
-        self.parent: Optional["RAG"] = None
 
     def invoke(self, query: str) -> List[Document]:
         query_vector = self.embedding_fn([query])[0]
@@ -201,275 +205,18 @@ class MongoHybridRetriever:
                 ]
 
         except Exception as exc:
-            app_logger.log_message("log", f"RankFusion failed: {exc}", "WARNING")
-
-        # --- Fallback Path ---
-        if self.parent:
-            return self.parent.fallback_retrieve(
-                query=query,
-                limit=self.top_k,
-                semantic_k=self.semantic_candidates,
-                keyword_k=self.keyword_candidates,
-                rrf_k=self.rrf_k,
-                filter_category=self.filter_category
-            )
+            logger.warning("RankFusion failed: %s", exc)
 
         return []
 
-# --- RAG Class ---
 
-class RAG:
-    def __init__(
-        self,
-        mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
-        database: str = "smartlp",
-        collection_name: str = "knowledge_base",
-        embedding_dim: int = 384,
-        embedding_provider: str = "all-MiniLM-L6-v2",
-        vector_index: str = "vector_index",
-        text_index: str = "text_index",
-        text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
-        text_language: str = "english",
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        embedding_batch_size: int = 512,
-        batch_size: int = 128,
-    ) -> None:
-        
-        self.mongo_uri = mongo_uri
-        self.database = database
-        self.collection_name = collection_name
-        self.embedding_dim = embedding_dim
-        self.embedding_provider = embedding_provider
-        self.vector_index = vector_index
+class LocalRetriever:
+    def __init__(self, collection, embedding_fn,  text_index: str):
+        self.collection = collection
+        self.embedding_fn = embedding_fn
         self.text_index = text_index
-        self.text_paths = list(text_paths)
-        self.text_language = text_language
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.embedding_batch_size = embedding_batch_size
-        self.batch_size = batch_size
-
-        self.client: Optional[MongoClient] = None
-        self.collection: Optional[Collection] = None
-        self._embedding_model: Optional[SentenceTransformer] = None
-
-
-    # --- Index Creation Helpers ---
-    def _ensure_index(
-        self,
-        collection: Collection,
-        index_name: str,
-        index_type: str,
-        definition: dict
-    ) -> None:
-        """
-        Ensure a search or vector index exists in the collection.
-        """
-        try:
-            existing = list(collection.list_search_indexes(index_name))
-            if existing:
-                app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' already exists.", "INFO")
-                return
-        except Exception:
-            pass
-
-        try:
-            collection.create_search_index(model={"definition": definition, "name": index_name, "type": index_type})
-            app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' creation initiated.", "INFO")
-        except OperationFailure as e:
-            if "already exists" in str(e):
-                app_logger.log_message("log", f"{index_type.capitalize()} index '{index_name}' already exists.", "INFO")
-            else:
-                app_logger.log_message("log", f"Failed to create {index_type} index '{index_name}': {e}", "ERROR")
-
-    # --- Connection / index helpers ---
-    def connect(self) -> MongoClient:
-        if self.client is None:
-            try:
-                client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
-                client.admin.command("ping")
-                self.client = client
-            except ServerSelectionTimeoutError as exc:
-                app_logger.log_message("log", f"Unable to reach MongoDB at {self.mongo_uri}: {exc}", "ERROR")
-                raise
-        return self.client
-
-    def _ensure_collection(self) -> Collection:
-        if self.collection is None:
-            client = self.connect()
-            self.collection = client[self.database][self.collection_name]
-        return self.collection
-
-    def init(self) -> None:
-        coll = self._ensure_collection()
-
-        # --- Vector index definition ---
-        vector_def = {
-            "fields": [
-                {"type": "vector", "path": "embedding", "numDimensions": self.embedding_dim, "similarity": "cosine"},
-                {"type": "filter", "path": "metadata.category"}
-            ]
-        }
-
-        # --- Text index definition ---
-        text_def = {"mappings": {"dynamic": True}}
-
-        # --- Ensure both indexes ---
-        self._ensure_index(coll, self.vector_index, "vectorSearch", vector_def)
-        self._ensure_index(coll, self.text_index, "search", text_def)
-
-        app_logger.log_message("log", "RAG initialization complete", "INFO")
-
-    # --- Embeddings ---
-    def get_embedding_model(self) -> SentenceTransformer:
-        if self._embedding_model is None:
-            app_logger.log_message("log", f"Loading SentenceTransformer: {self.embedding_provider}", "INFO")
-            self._embedding_model = SentenceTransformer(self.embedding_provider)
-        return self._embedding_model
-
-    def generate_embeddings(self, texts: Sequence[str], show_progress: bool = False) -> List[List[float]]:
-        embedder = self.get_embedding_model()
-        embeddings = embedder.encode(texts, show_progress_bar=show_progress)
-        return np.asarray(embeddings).tolist()
-
-    def cosine(self, a, b):
-        a = np.asarray(a, dtype=float)
-        b = np.asarray(b, dtype=float)
-        denom = (np.linalg.norm(a) * np.linalg.norm(b))
-        return float(a.dot(b) / denom) if denom > 0 else 0.0
-
-    # --- Document loading / chunking ---
-    def load_documents(self, input_path: Path) -> List[Document]:
-        from langchain_community.document_loaders import JSONLoader, PyPDFLoader, TextLoader
-
-        def load_file(path: Path) -> List[Document]:
-            suffix = path.suffix.lower()
-            if suffix not in SUPPORTED_EXTENSIONS:
-                return []
-            
-            try:
-                if suffix in {".txt", ".md", ".yaml", ".yml"}:
-                    loader = TextLoader(str(path), encoding="utf-8")
-                    docs = loader.load()
-                elif suffix == ".json":
-                    loader = JSONLoader(str(path), jq_schema=".", text_content=False)
-                    docs = loader.load()
-                elif suffix == ".csv":
-                    content = path.read_text(encoding="utf-8")
-                    docs = [Document(page_content=content, metadata={})]
-                elif suffix == ".pdf":
-                    loader = PyPDFLoader(str(path))
-                    docs = loader.load()
-                else:
-                    docs = []
-            except Exception as e:
-                app_logger.log_message("log", f"Failed to load {path}: {e}", "WARNING")
-                return []
-
-            for doc in docs:
-                doc.metadata.setdefault("source", path.name)
-                doc.metadata.setdefault("file_path", str(path))
-                doc.metadata.setdefault("file_type", suffix.lstrip("."))
-            return docs
-
-        path = input_path
-        if path.is_file():
-            return load_file(path)
-        docs: List[Document] = []
-        for file_path in path.rglob("*"):
-            if file_path.is_file():
-                docs.extend(load_file(file_path))
-        return docs
-
-    def chunk_documents(self, docs: List[Document]) -> List[Document]:
-        splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
-        return splitter.split_documents(docs)
-
-    def chunk_to_record(self, chunk: Document, embedding: List[float], provider: str, allowed_metadata: Sequence[str]) -> Dict:
-        metadata = filter_metadata(dict(chunk.metadata or {}), allowed_metadata)
-        metadata.setdefault("source", chunk.metadata.get("source", "unknown"))
-        metadata.setdefault("file_type", chunk.metadata.get("file_type", "text"))
-        
-        content = chunk.page_content.strip()
-        content_hash = hashlib.sha1(content.encode("utf-8")).hexdigest()
-
-        return {
-            "_id": content_hash,
-            "chunk_id": content_hash,
-            "content": content,
-            "metadata": metadata,
-            "embedding": embedding,
-            "embedding_provider": provider,
-            "created_at": datetime.utcnow(),
-            "hash": content_hash,
-        }
-
-    # --- Ingest ---
-    def ingest(self, input_path: Path, category: Optional[str] = None, dry_run: bool = False, allowed_metadata: Sequence[str] = DEFAULT_ALLOWED_METADATA) -> int:
-        coll = self._ensure_collection()
-        docs = self.load_documents(input_path)
-        if not docs:
-            app_logger.log_message("log", f"No documents found under {input_path}", "WARNING")
-            return 0
-        chunks = self.chunk_documents(docs)
-        if not chunks:
-            app_logger.log_message("log", "No chunks produced", "WARNING")
-            return 0
-        app_logger.log_message("log", f"Loaded {len(docs)} docs -> {len(chunks)} chunks", "INFO")
-
-        # Delta check
-        content_hashes = [hashlib.sha1(c.page_content.encode("utf-8")).hexdigest() for c in chunks]
-        existing_ids: set[str] = set()
-        
-        # Check existence in batches
-        check_batch_size = 5000
-        for i in range(0, len(content_hashes), check_batch_size):
-            batch = content_hashes[i: i + check_batch_size]
-            if not batch: continue
-            for doc in coll.find({"_id": {"$in": batch}}, {"_id": 1}):
-                existing_ids.add(doc["_id"])
-        
-        chunks_to_embed = [chunk for chunk, h in zip(chunks, content_hashes) if h not in existing_ids]
-        if not chunks_to_embed:
-            app_logger.log_message("log", "All chunks already exist; skipping ingest", "INFO")
-            return 0
-
-        mongo_batch: List[Dict] = []
-        inserted = 0
-
-        for chunk_batch in tqdm(batched(chunks_to_embed, self.embedding_batch_size)):
-            texts = [c.page_content for c in chunk_batch]
-            embeddings = self.generate_embeddings(texts, show_progress=False)
-            
-            for chunk, embedding in zip(chunk_batch, embeddings):
-                if category:
-                    chunk.metadata["category"] = category
-                mongo_batch.append(self.chunk_to_record(chunk, embedding, self.embedding_provider, allowed_metadata))
-                
-                if len(mongo_batch) >= self.batch_size:
-                    if not dry_run:
-                        try:
-                            res = coll.insert_many(mongo_batch, ordered=False)
-                            inserted += len(res.inserted_ids)
-                        except BulkWriteError as exc:
-                            inserted += exc.details.get("nInserted", 0)
-                    else:
-                        inserted += len(mongo_batch)
-                    mongo_batch.clear()
-
-        if mongo_batch and not dry_run:
-            try:
-                res = coll.insert_many(mongo_batch, ordered=False)
-                inserted += len(res.inserted_ids)
-            except BulkWriteError as exc:
-                inserted += exc.details.get("nInserted", 0)
-        elif mongo_batch and dry_run:
-            inserted += len(mongo_batch)
-
-        app_logger.log_message("log", f"Ingest complete. {inserted} chunks {'simulated' if dry_run else 'inserted'}", "INFO")
-        return inserted
-
+        self.text_paths = DEFAULT_TEXT_PATHS
+    
     def run_vector_search(
         self,
         query: str,
@@ -477,11 +224,11 @@ class RAG:
         semantic_k: int
     ) -> List[Dict]:
 
-        q_emb = self.generate_embeddings([query], show_progress=False)[0]
+        q_emb = self.embedding_fn([query], show_progress=False)[0]
 
         for d in candidates:
             emb = d.get("embedding")
-            d["_sim_score"] = self.cosine(q_emb, emb) if emb else 0.0
+            d["_sim_score"] = cosine(q_emb, emb) if emb else 0.0
 
         top = sorted(candidates, key=lambda x: x["_sim_score"], reverse=True)[:semantic_k]
 
@@ -504,7 +251,7 @@ class RAG:
         base_filter: Dict
     ) -> List[Dict]:
 
-        coll = self._ensure_collection()
+        coll = self.collection()
 
         if not keyword_query:
             return []
@@ -552,8 +299,9 @@ class RAG:
             }
             for d in results
         ]
+
     # --- Fallback Retriever ---
-    def fallback_retrieve(
+    def run_hybrid_search(
         self,
         query: str,
         limit: int = 5,
@@ -563,8 +311,8 @@ class RAG:
         filter_category: Optional[str] = None
     ) -> List[Document]:
 
-        app_logger.log_message("log", "Using Python fallback retriever", "INFO")
-        coll = self._ensure_collection()
+        logger.info("Using Python fallback retriever")
+        coll = self.collection()
 
         # --- Category filter ---
         base_filter = {}
@@ -604,7 +352,7 @@ class RAG:
         )
 
         # --- Fuse ---
-        fused = reciprocal_rank_fusion(
+        fused = self.reciprocal_rank_fusion(
             runs=[sem_run, kw_run],
             k=rrf_k,
             limit=limit,
@@ -614,10 +362,279 @@ class RAG:
         return [
             Document(
                 page_content=d.get("content", ""),
-                metadata=d.get("metadata", {})
+                metadata=d.get("metadata", {}),
+                doc_id=d["_id"],
+                score=d.get("score", 0.0)
             )
             for d in fused
         ]
+
+    # --- Weighted RRF fusion ---
+    def reciprocal_rank_fusion(self, runs, k, limit, weights=None):
+        scores = defaultdict(float)
+        docs = {}
+        for i, run in enumerate(runs):
+            weight = 1 if not weights else weights[i]
+            for rank, doc in enumerate(run):
+                doc_id = doc["_id"]
+                docs[doc_id] = doc
+                scores[doc_id] += weight * (1.0 / (k + rank + 1))
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        return [docs[doc_id] for doc_id, _ in ranked[:limit]]
+
+# --- RAG Class ---
+
+class RAG:
+    def __init__(
+        self,
+        mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
+        database: str = "smartlp",
+        collection_name: str = "knowledge_base",
+        embedding_dim: int = 384,
+        embedding_provider: str = "all-MiniLM-L6-v2",
+        vector_index: str = "vector_index",
+        text_index: str = "text_index",
+        text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
+        text_language: str = "english",
+        chunk_size: int = 1000,
+        chunk_overlap: int = 200,
+        embedding_batch_size: int = 512,
+        batch_size: int = 128,
+    ) -> None:
+        
+        self.mongo_uri = mongo_uri
+        self.database = database
+        self.collection_name = collection_name
+        self.embedding_dim = embedding_dim
+        self.embedding_provider = embedding_provider
+        self.vector_index = vector_index
+        self.text_index = text_index
+        self.text_paths = list(text_paths)
+        self.text_language = text_language
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.embedding_batch_size = embedding_batch_size
+        self.batch_size = batch_size
+        self.collection: Optional[Collection] = None
+        self.client: Optional[MongoClient] = None
+        self._embedding_model: Optional[SentenceTransformer] = None
+        self.local_retriever = LocalRetriever(
+            collection=self._ensure_collection(),
+            embedding_fn=lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress),
+            text_index=self.text_index
+        )
+
+
+    # --- Index Creation Helpers ---
+    def _ensure_index(
+        self,
+        collection: Collection,
+        index_name: str,
+        index_type: str,
+        definition: dict
+    ) -> None:
+        """
+        Ensure a search or vector index exists in the collection.
+        """
+        try:
+            existing = list(collection.list_search_indexes(index_name))
+            if existing:
+                logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
+                return
+        except Exception:
+            pass
+
+        try:
+            collection.create_search_index(model={"definition": definition, "name": index_name, "type": index_type})
+            logger.info("%s index '%s' creation initiated.", index_type.capitalize(), index_name)
+        except OperationFailure as e:
+            if "already exists" in str(e):
+                logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
+            else:
+                logger.error("Failed to create %s index '%s': %s", index_type, index_name, e)
+
+    # --- Connection / index helpers ---
+    def connect(self) -> MongoClient:
+        if self.client is None:
+            try:
+                client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
+                client.admin.command("ping")
+                self.client = client
+            except ServerSelectionTimeoutError as exc:
+                logger.error("Unable to reach MongoDB at %s: %s", self.mongo_uri, exc)
+                raise
+        return self.client
+
+    def _ensure_collection(self) -> Collection:
+        if self.collection is None:
+            client = self.connect()
+            self.collection = client[self.database][self.collection_name]
+        return self.collection
+
+    def init(self) -> None:
+        coll = self._ensure_collection()
+
+        # --- Vector index definition ---
+        vector_def = {
+            "fields": [
+                {"type": "vector", "path": "embedding", "numDimensions": self.embedding_dim, "similarity": "cosine"},
+                {"type": "filter", "path": "metadata.category"}
+            ]
+        }
+
+        # --- Text index definition ---
+        text_def = {"mappings": {"dynamic": True}}
+
+        # --- Ensure both indexes ---
+        self._ensure_index(coll, self.vector_index, "vectorSearch", vector_def)
+        self._ensure_index(coll, self.text_index, "search", text_def)
+
+        logger.info("RAG initialization complete")
+
+    # --- Embeddings ---
+    def get_embedding_model(self) -> SentenceTransformer:
+        if self._embedding_model is None:
+            logger.info("Loading SentenceTransformer: %s", self.embedding_provider)
+            self._embedding_model = SentenceTransformer(self.embedding_provider)
+        return self._embedding_model
+
+    def generate_embeddings(self, texts: Sequence[str], show_progress: bool = False) -> List[List[float]]:
+        embedder = self.get_embedding_model()
+        embeddings = embedder.encode(texts, show_progress_bar=show_progress)
+        return np.asarray(embeddings).tolist()
+
+
+    # --- Document loading / chunking ---
+    def load_documents(self, input_path: Path) -> List[Document]:
+        from langchain_community.document_loaders import JSONLoader, PyPDFLoader, TextLoader
+
+        def load_file(path: Path) -> List[Document]:
+            suffix = path.suffix.lower()
+            if suffix not in SUPPORTED_EXTENSIONS:
+                return []
+            
+            try:
+                if suffix in {".txt", ".md", ".yaml", ".yml"}:
+                    loader = TextLoader(str(path), encoding="utf-8")
+                    docs = loader.load()
+                elif suffix == ".json":
+                    loader = JSONLoader(str(path), jq_schema=".", text_content=False)
+                    docs = loader.load()
+                elif suffix == ".csv":
+                    content = path.read_text(encoding="utf-8")
+                    docs = [Document(page_content=content, metadata={})]
+                elif suffix == ".pdf":
+                    loader = PyPDFLoader(str(path))
+                    docs = loader.load()
+                else:
+                    docs = []
+            except Exception as e:
+                logger.warning("Failed to load %s: %s", path, e)
+                return []
+
+            for doc in docs:
+                doc.metadata.setdefault("source", path.name)
+                doc.metadata.setdefault("file_path", str(path))
+                doc.metadata.setdefault("file_type", suffix.lstrip("."))
+            return docs
+
+        path = input_path
+        if path.is_file():
+            return load_file(path)
+        docs: List[Document] = []
+        for file_path in path.rglob("*"):
+            if file_path.is_file():
+                docs.extend(load_file(file_path))
+        return docs
+
+    def chunk_documents(self, docs: List[Document]) -> List[Document]:
+        splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+        return splitter.split_documents(docs)
+
+    def chunk_to_record(self, chunk: Document, embedding: List[float], provider: str, allowed_metadata: Sequence[str]) -> Dict:
+        metadata = filter_metadata(dict(chunk.metadata or {}), allowed_metadata)
+        metadata.setdefault("source", chunk.metadata.get("source", "unknown"))
+        metadata.setdefault("file_type", chunk.metadata.get("file_type", "text"))
+        
+        content = chunk.page_content.strip()
+        content_hash = hashlib.sha1(content.encode("utf-8")).hexdigest()
+
+        return {
+            "_id": content_hash,
+            "chunk_id": content_hash,
+            "content": content,
+            "metadata": metadata,
+            "embedding": embedding,
+            "embedding_provider": provider,
+            "created_at": datetime.utcnow(),
+            "hash": content_hash,
+        }
+
+    # --- Ingest ---
+    def ingest(self, input_path: Path, category: Optional[str] = None, dry_run: bool = False, allowed_metadata: Sequence[str] = DEFAULT_ALLOWED_METADATA) -> int:
+        coll = self._ensure_collection()
+        docs = self.load_documents(input_path)
+        if not docs:
+            logger.warning("No documents found under %s", input_path)
+            return 0
+        chunks = self.chunk_documents(docs)
+        if not chunks:
+            logger.warning("No chunks produced")
+            return 0
+        logger.info("Loaded %s docs -> %s chunks", len(docs), len(chunks))
+
+        # Delta check
+        content_hashes = [hashlib.sha1(c.page_content.encode("utf-8")).hexdigest() for c in chunks]
+        existing_ids: set[str] = set()
+        
+        # Check existence in batches
+        check_batch_size = 5000
+        for i in range(0, len(content_hashes), check_batch_size):
+            batch = content_hashes[i: i + check_batch_size]
+            if not batch: continue
+            for doc in coll.find({"_id": {"$in": batch}}, {"_id": 1}):
+                existing_ids.add(doc["_id"])
+        
+        chunks_to_embed = [chunk for chunk, h in zip(chunks, content_hashes) if h not in existing_ids]
+        if not chunks_to_embed:
+            logger.info("All chunks already exist; skipping ingest")
+            return 0
+
+        mongo_batch: List[Dict] = []
+        inserted = 0
+
+        for chunk_batch in tqdm(batched(chunks_to_embed, self.embedding_batch_size)):
+            texts = [c.page_content for c in chunk_batch]
+            embeddings = self.generate_embeddings(texts, show_progress=False)
+            
+            for chunk, embedding in zip(chunk_batch, embeddings):
+                if category:
+                    chunk.metadata["category"] = category
+                mongo_batch.append(self.chunk_to_record(chunk, embedding, self.embedding_provider, allowed_metadata))
+                
+                if len(mongo_batch) >= self.batch_size:
+                    if not dry_run:
+                        try:
+                            res = coll.insert_many(mongo_batch, ordered=False)
+                            inserted += len(res.inserted_ids)
+                        except BulkWriteError as exc:
+                            inserted += exc.details.get("nInserted", 0)
+                    else:
+                        inserted += len(mongo_batch)
+                    mongo_batch.clear()
+
+        if mongo_batch and not dry_run:
+            try:
+                res = coll.insert_many(mongo_batch, ordered=False)
+                inserted += len(res.inserted_ids)
+            except BulkWriteError as exc:
+                inserted += exc.details.get("nInserted", 0)
+        elif mongo_batch and dry_run:
+            inserted += len(mongo_batch)
+
+        logger.info("Ingest complete. %s chunks %s", inserted, "simulated" if dry_run else "inserted")
+        return inserted
+
 
     # --- Chain builder ---
     def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
@@ -656,7 +673,7 @@ class RAG:
             coll = self._ensure_collection()
             retriever = MongoHybridRetriever(
                 collection=coll,
-                embedding_fn=lambda texts: self.generate_embeddings(texts, show_progress=False),
+                embedding_fn=self.embedding_fn,
                 embedding_dim=self.embedding_dim,
                 vector_index=self.vector_index,
                 text_index=self.text_index,
@@ -665,9 +682,9 @@ class RAG:
                 keyword_candidates=kwargs.get("keyword_candidates", 30),
                 rrf_k=kwargs.get("rrf_k", 60),
                 allowed_text_paths=kwargs.get("allowed_text_paths", DEFAULT_TEXT_PATHS),
+                fallback_engine=self.local_retriever,
                 filter_category=kwargs.get("filter_category"),
             )
-            retriever.parent = self
             
             chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"))
             answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
@@ -676,8 +693,6 @@ class RAG:
 
         except Exception as e:
             return {"success": False, "error": str(e), "latency": round(time.time() - start, 3)}
-
-    
 
 rag_service = RAG()
 
@@ -696,7 +711,7 @@ def main() -> None:
     elif args.mode == "ingest" and args.input_path:
         rag.ingest(args.input_path)
     elif args.mode == "query":
-        print(rag.query_rag(args.query_text))
+        logger.info("%s", rag.query_rag(args.query_text))
 
 if __name__ == "__main__":
     main()

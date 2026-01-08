@@ -3,34 +3,10 @@ Base service classes for SmartSOC application.
 """
 
 from abc import ABC, abstractmethod
+import logging
 from typing import Dict, Any, List, Optional, Tuple
 
 from database.connection import db_connection
-from utils.logging import app_logger
-
-
-class LoggerProxy:
-    """Minimal logger proxy that forwards to the centralized app_logger.
-
-    Provides the subset of API used across the codebase: debug/info/warning/error
-    and a `propagate` attribute so existing code that toggles propagation works.
-    """
-
-    def __init__(self, service_name: str):
-        self.service_name = service_name
-        self.propagate = False
-
-    def debug(self, msg: str) -> None:
-        app_logger.log_message('log', f"DEBUG [{self.service_name}] {msg}")
-
-    def info(self, msg: str) -> None:
-        app_logger.log_message('log', f"{msg}")
-
-    def warning(self, msg: str) -> None:
-        app_logger.log_message('log', f"WARNING [{self.service_name}] {msg}")
-
-    def error(self, msg: str) -> None:
-        app_logger.log_message('log', f"ERROR [{self.service_name}] {msg}")
 
 
 class BaseService(ABC):
@@ -43,34 +19,7 @@ class BaseService(ABC):
             service_name: Name of the service for logging
         """
         self.service_name = service_name
-        # Use a logger proxy that forwards to the app-wide `app_logger` so we avoid
-        # depending on the stdlib `logging` configuration across modules.
-        self.logger = LoggerProxy(service_name)
-    
-    def log_info(self, message: str) -> None:
-        """Log info message.
-        
-        Args:
-            message: Message to log
-        """
-        app_logger.log_message('log', message)
-    
-    def log_error(self, message: str, exception: Optional[Exception] = None) -> None:
-        """Log error message.
-        
-        Args:
-            message: Error message
-            exception: Optional exception object
-        """
-        app_logger.log_message('log', f"ERROR: {message}")
-    
-    def log_warning(self, message: str) -> None:
-        """Log warning message.
-        
-        Args:
-            message: Warning message
-        """
-        app_logger.log_message('log', f"WARNING: {message}")
+        self.logger = logging.getLogger(service_name)
 
 
 class CRUDService(BaseService):
@@ -100,10 +49,10 @@ class CRUDService(BaseService):
         """
         try:
             record_id = db_connection.insert_one(self.collection_name, data)
-            self.log_info(f"Created record with ID: {record_id}")
+            self.logger.info("Created record with ID: %s", record_id)
             return record_id
         except Exception as e:
-            self.log_error(f"Failed to create record", e)
+            self.logger.exception("Failed to create record")
             raise ServiceError(f"Creation failed: {e}")
     
     def get_by_id(self, record_id: str, projection: Optional[Dict] = None) -> Optional[Dict]:
@@ -124,7 +73,7 @@ class CRUDService(BaseService):
                 limit=1
             )
         except Exception as e:
-            self.log_error(f"Failed to get record by ID: {record_id}", e)
+            self.logger.exception("Failed to get record by ID: %s", record_id)
             return None
     
     def get_all(self, filter_dict: Optional[Dict] = None, 
@@ -152,7 +101,7 @@ class CRUDService(BaseService):
                 sort=sort
             )
         except Exception as e:
-            self.log_error(f"Failed to get records", e)
+            self.logger.exception("Failed to get records")
             return []
     
     def update(self, record_id: str, update_data: Dict[str, Any]) -> bool:
@@ -172,10 +121,10 @@ class CRUDService(BaseService):
                 {'$set': update_data}
             )
             if success:
-                self.log_info(f"Updated record with ID: {record_id}")
+                self.logger.info("Updated record with ID: %s", record_id)
             return success
         except Exception as e:
-            self.log_error(f"Failed to update record: {record_id}", e)
+            self.logger.exception("Failed to update record: %s", record_id)
             return False
     
     def delete(self, record_id: str) -> bool:
@@ -193,10 +142,10 @@ class CRUDService(BaseService):
                 {'id': record_id}
             )
             if success:
-                self.log_info(f"Deleted record with ID: {record_id}")
+                self.logger.info("Deleted record with ID: %s", record_id)
             return success
         except Exception as e:
-            self.log_error(f"Failed to delete record: {record_id}", e)
+            self.logger.exception("Failed to delete record: %s", record_id)
             return False
     
     def count(self, filter_dict: Optional[Dict] = None) -> int:
@@ -211,7 +160,7 @@ class CRUDService(BaseService):
         try:
             return db_connection.count_documents(self.collection_name, filter_dict)
         except Exception as e:
-            self.log_error(f"Failed to count records", e)
+            self.logger.exception("Failed to count records")
             return 0
     
     def get_paginated(self, page: int = 1, per_page: int = 20, 
@@ -242,7 +191,7 @@ class CRUDService(BaseService):
             total = self.count(filter_dict)
             return records, total
         except Exception as e:
-            self.log_error(f"Failed to get paginated records", e)
+            self.logger.exception("Failed to get paginated records")
             return [], 0
 
 

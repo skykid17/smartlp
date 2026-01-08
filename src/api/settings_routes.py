@@ -2,11 +2,14 @@
 Settings API routes for SmartSOC.
 """
 
+import logging
 from flask import Flask, request, jsonify, redirect
 
 from services.settings import settings_service
-from utils.logging import app_logger
 from services.llm import llm_service
+
+
+logger = logging.getLogger(__name__)
 
 def register_settings_routes(app: Flask) -> None:
     """Register settings routes.
@@ -79,10 +82,16 @@ def register_settings_routes(app: Flask) -> None:
             llm_model = settings_service.get_llm_models(data['model_id'])
 
             if not llm_endpoint:
-                return jsonify({"status_code": 404, "error": {"error": f"LLM endpoint '{data['endpoint_id']}' not found"}}), 404
-            if not llm_model:
-                return jsonify({"status_code": 404, "error": {"error": f"LLM model '{data['model_id']}' not found"}}), 404
+                return jsonify({
+                    "status_code": 404,
+                    "error": {"error": f"LLM endpoint '{data['endpoint_id']}' not found"}
+                }), 404
 
+            if not llm_model:
+                return jsonify({
+                    "status_code": 404,
+                    "error": {"error": f"LLM model '{data['model_id']}' not found"}
+                }), 404
             # OVERRIDE the model + URL + API key being used.
             result = llm_service.query_llm(
                 user_prompt=user_prompt,
@@ -94,6 +103,7 @@ def register_settings_routes(app: Flask) -> None:
             return jsonify(result), (result.get("status_code") or 500)
 
         except Exception as e:
+            logger.exception("LLM test failed")
             return jsonify({
                 "status_code": 500,
                 "error": {"error": f"LLM test failed: {str(e)}"}
@@ -152,7 +162,7 @@ def register_settings_routes(app: Flask) -> None:
                                     info['host'] = getattr(siem_service.config, 'host', 'Unknown')
                                     info['port'] = getattr(siem_service.config, 'port', 'Unknown')
                         except Exception as e:
-                            app_logger.log_message("log", f"Failed to get {siem} info: {str(e)}", "WARNING")
+                            logger.warning("Failed to get %s info: %s", siem, str(e))
                             info['info_error'] = str(e)
                         
                         results[siem] = {
@@ -180,7 +190,7 @@ def register_settings_routes(app: Flask) -> None:
                         }
                         
                 except Exception as e:
-                    app_logger.log_message("log", f"Connection test failed for {siem}: {str(e)}", "ERROR")
+                    logger.exception("Connection test failed for %s", siem)
                     results[siem] = {
                         "status": "error", 
                         "message": f"Error testing {siem.upper()} connection: {str(e)}",
@@ -197,7 +207,7 @@ def register_settings_routes(app: Flask) -> None:
                 })), 200
                 
         except Exception as e:
-            app_logger.log_message("log", f"Connection test failed: {str(e)}", "ERROR")
+            logger.exception("Connection test failed")
             return jsonify({
                 "status": "error", 
                 "message": f"Connection test failed: {str(e)}"

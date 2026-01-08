@@ -8,6 +8,7 @@ This module provides REST API endpoints for:
 - Background ingestion control
 """
 
+import logging
 import pcre2
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect
@@ -19,8 +20,10 @@ from services.settings import settings_service
 from services.llm import llm_service
 from services.rag import rag_service
 from services.regex_engine import regex_engine_service
-from utils.logging import app_logger
 from database.connection import db_connection
+
+
+logger = logging.getLogger(__name__)
 
 
 def register_smartlp_routes(app: Flask) -> None:
@@ -122,7 +125,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 "requested": len(ids)
             }), 200
         except Exception as e:
-            app_logger.log_message("log", f"Bulk delete failed: {str(e)}", "ERROR")
+            logger.exception("Bulk delete failed")
             return jsonify({"success": False, "message": str(e)}), 500
 
     @app.route("/api/entries/oldest", methods=["GET"])
@@ -133,7 +136,7 @@ def register_smartlp_routes(app: Flask) -> None:
             JSON response with entry data or error message
         """
         try:
-            app_logger.log_message("log", "API request for oldest unmatched entry", "INFO")
+            logger.info("API request for oldest unmatched entry")
             
             entry = smartlp_service.get_oldest_unmatched_entry()
             if entry:
@@ -144,10 +147,10 @@ def register_smartlp_routes(app: Flask) -> None:
                     "retrieved_at": datetime.utcnow().isoformat()
                 }
                 
-                app_logger.log_message("log", f"Returned oldest unmatched entry: {entry.get('id', 'unknown')}", "INFO")
+                logger.info("Returned oldest unmatched entry: %s", entry.get('id', 'unknown'))
                 return jsonify(response_data), 200
             else:
-                app_logger.log_message("log", "No unmatched entries found in database", "INFO")
+                logger.info("No unmatched entries found in database")
                 return jsonify({
                     "message": "No unmatched entries found", 
                     "total_unmatched": 0,
@@ -155,7 +158,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 }), 404
                 
         except Exception as e:
-            app_logger.log_message("log", f"Error retrieving oldest entry: {str(e)}", "ERROR")
+            logger.exception("Error retrieving oldest entry")
             return jsonify({
                 "message": f"Failed to retrieve oldest entry: {str(e)}",
                 "error_at": datetime.utcnow().isoformat()
@@ -221,7 +224,7 @@ def register_smartlp_routes(app: Flask) -> None:
             return jsonify(statistics), 200
             
         except Exception as e:
-            app_logger.log_message("log", f"Error getting entry statistics: {str(e)}", "ERROR")
+            logger.exception("Error getting entry statistics")
             return jsonify({"message": f"Failed to get statistics: {str(e)}"}), 500
 
     @app.route("/api/report/smartlp", methods=["GET"])
@@ -231,7 +234,7 @@ def register_smartlp_routes(app: Flask) -> None:
             data = smartlp_service.get_report_data()
             return jsonify({"data": data, "logger": "Report generated successfully."}), 200
         except Exception as e:
-            app_logger.log_message("log", f"Error generating SmartLP report: {str(e)}", "ERROR")
+            logger.exception("Error generating SmartLP report")
             return jsonify({"logger": f"Internal server error: {str(e)}"}), 500
     
     @app.route('/api/smartlp/ingestion/status', methods=['GET'])
@@ -261,7 +264,7 @@ def register_smartlp_routes(app: Flask) -> None:
             return jsonify(status_info)
             
         except Exception as e:
-            app_logger.log_message("log", f"Error getting ingestion status: {str(e)}", "ERROR")
+            logger.exception("Error getting ingestion status")
             return jsonify({"error": f"Failed to get ingestion status: {str(e)}"}), 500
     
     @app.route('/api/smartlp/ingestion/start', methods=['POST'])
@@ -271,7 +274,7 @@ def register_smartlp_routes(app: Flask) -> None:
             smartlp_service.start_log_ingestion()
             return jsonify({"message": "Log ingestion started", "status": "success"})
         except Exception as e:
-            app_logger.log_message("log", f"Error starting ingestion: {str(e)}", "ERROR")
+            logger.exception("Error starting ingestion")
             return jsonify({"error": f"Failed to start ingestion: {str(e)}"}), 500
     
     @app.route('/api/smartlp/ingestion/stop', methods=['POST'])
@@ -281,7 +284,7 @@ def register_smartlp_routes(app: Flask) -> None:
             smartlp_service.stop_log_ingestion()
             return jsonify({"message": "Log ingestion stopped", "status": "success"})
         except Exception as e:
-            app_logger.log_message("log", f"Error stopping ingestion: {str(e)}", "ERROR")
+            logger.exception("Error stopping ingestion")
             return jsonify({"error": f"Failed to stop ingestion: {str(e)}"}), 500
     
     @app.route('/api/smartlp/generate_config', methods=['POST'])
@@ -314,7 +317,7 @@ def register_smartlp_routes(app: Flask) -> None:
             })
             
         except Exception as e:
-            app_logger.log_message("log", f"Error generating SmartLP config: {str(e)}", "ERROR")
+            logger.exception("Error generating SmartLP config")
             return jsonify({"error": f"Failed to generate config: {str(e)}"}), 500
     
     @app.route('/api/check_deployable', methods=['POST'])
@@ -353,7 +356,7 @@ def register_smartlp_routes(app: Flask) -> None:
             return jsonify({"logger": "Entries are ready for deployment."}), 200
             
         except Exception as e:
-            app_logger.log_message("log", f"Error checking deployable status: {str(e)}", "ERROR")
+            logger.exception("Error checking deployable status")
             return jsonify({"message": f"Failed to check deployable status: {str(e)}"}), 500
     
     @app.route('/api/smartlp/deploy_config', methods=['POST'])
@@ -383,7 +386,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 success, message = elasticsearch_service.deploy_config_elastic(config)
             
             if success:
-                app_logger.log_message("log", f"SIEM deployment successful: {message}", "INFO")
+                logger.info("SIEM deployment successful: %s", message)
                 # # update status of entries to 'Deployed'
                 for entry_id in entry_ids:
                     smartlp_service.update(entry_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
@@ -394,7 +397,7 @@ def register_smartlp_routes(app: Flask) -> None:
                     "entries_deployed": len(entry_ids)
                 }), 200
             else:
-                app_logger.log_message("log", f"SIEM deployment failed: {message}", "ERROR")
+                logger.error("SIEM deployment failed: %s", message)
                 return jsonify({
                     "success": False,
                     "error": message
@@ -402,7 +405,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 
         except Exception as e:
             error_msg = f"Deployment error: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
+            logger.exception("%s", error_msg)
             return jsonify({"error": error_msg}), 500
     
     @app.route('/api/smartlp/deploy_rule', methods=['POST'])
@@ -438,7 +441,7 @@ def register_smartlp_routes(app: Flask) -> None:
                 success, message = elasticsearch_service.deploy_rule_elastic(rule)
             
             if success:
-                app_logger.log_message("log", f"SIEM rule deployment successful: {message}", "INFO")
+                logger.info("SIEM rule deployment successful: %s", message)
                 # update status of entry to 'Deployed'
                 smartlp_service.update(entry_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
                 return jsonify({
@@ -448,7 +451,7 @@ def register_smartlp_routes(app: Flask) -> None:
                     "rule_deployed": rule.get("rule_id")
                 }), 200
             else:
-                app_logger.log_message("log", f"SIEM rule deployment failed: {message}", "ERROR")
+                logger.error("SIEM rule deployment failed: %s", message)
                 return jsonify({
                     "success": False,
                     "error": message
@@ -456,13 +459,13 @@ def register_smartlp_routes(app: Flask) -> None:
                 
         except Exception as e:
             error_msg = f"Rule deployment error: {str(e)}"
-            app_logger.log_message("log", error_msg, "ERROR")
+            logger.exception("%s", error_msg)
             return jsonify({"error": error_msg}), 500
         
     @app.route("/api/query", methods=['POST'])
     def query():
         data = request.get_json()
-        app_logger.log_message("log", f"Received query request: {data}", "INFO")
+        logger.info("Received query request: %s", data)
         if not data:
             return jsonify({"error": "No data provided"}), 400
         

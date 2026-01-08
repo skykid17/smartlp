@@ -89,11 +89,19 @@ class LoggerPanel {
 
         this.socket.on('log', (data) => {
             const message = data?.message || '';
-            const timestamp = data?.timestamp
-                ? new Date(data.timestamp).toLocaleTimeString()
+            const rawTs = data?.ts || data?.timestamp;
+            const timestamp = rawTs
+                ? new Date(rawTs).toLocaleTimeString()
                 : new Date().toLocaleTimeString();
 
-            const type = this.detectType(message);
+            const level = (data?.level || '').toUpperCase();
+            const levelToType = {
+                ERROR: 'error',
+                WARNING: 'warning',
+                INFO: 'info',
+                DEBUG: 'info'
+            };
+            const type = levelToType[level] || this.detectType(message);
             this.log({ message, timestamp, type }, { persist: true });
         });
 

@@ -1,9 +1,11 @@
-"""
-SocketIO management for SmartSOC application.
-"""
+"""SocketIO management for SmartLP application."""
 
+import logging
 from typing import Optional
 from flask_socketio import SocketIO
+
+
+logger = logging.getLogger(__name__)
 
 
 class SocketIOManager:
@@ -54,11 +56,11 @@ class SocketIOManager:
         
         @self._socketio.on('connect')
         def handle_connect():
-            print("Client connected")
+            logger.info("Client connected")
         
         @self._socketio.on('disconnect')
         def handle_disconnect():
-            print("Client disconnected")
+            logger.info("Client disconnected")
 
 
 # Global SocketIO manager instance

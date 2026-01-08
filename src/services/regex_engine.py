@@ -1,5 +1,11 @@
 import pcre2
+import logging
+from services.settings import settings_service
+from services.rag import rag_service
+from utils.formatters import clean_response
+from typing import Dict, Any
 
+logger = logging.getLogger(__name__)
 
 class RegexEngineService:
     def __init__(self):
@@ -9,7 +15,7 @@ class RegexEngineService:
 
     def run_regex_match(self, log: str, pattern: str):
         """
-        Unified regex engine returning one standard dictionary for all regex use cases.
+        Returns one standard dictionary for all regex use cases.
 
         Returns:
             {
@@ -121,7 +127,10 @@ class RegexEngineService:
         }
         """
         if not isinstance(regex, str):
-            self.log_warning(f"Expected regex to be a string, got {type(regex)}. Converting to string.")
+            logger.warning(
+                "Expected regex to be a string, got %s. Converting to string.",
+                type(regex),
+            )
             regex = str(regex)
         
         best = {
@@ -178,5 +187,181 @@ class RegexEngineService:
             "start": best["start"],
             "end": best["end"],
         }
+    
+    def generate_regex_v1(self, log: str) -> Dict[str, Any]:
+        logger.info("Generating regex (v1)...")
+
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
+
+        result = rag_service.query_rag(
+            user_prompt=log, 
+            system_prompt=system_prompt
+        )
+
+        if not result["success"]:
+            return {
+                "success": False,
+                "regex": None,
+                "error": result["error"],
+                "latency": result["latency"]
+            }
+
+        # Clean
+        regex = clean_response(result["content"])
+        if not regex.endswith("$"):
+            regex += "$"
+
+        return {
+            "success": True,
+            "regex": regex,
+            "error": None,
+            "latency": result["latency"]
+        }
+    
+    
+    def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:
+        logger.info("Generating regex (v2)...")
+
+        system_prompt = settings_service.get_prompts_settings("generate_regex")
+
+        remaining = log
+        final_regex = ""
+        total_latency = 0.0
+        failure_count = 0
+
+        for i in range(fix_count):
+            remaining_stripped = remaining.strip()
+            if not remaining_stripped:
+                logger.info("Remaining log empty, stopping.")
+                break
+
+            logger.info("Generating regex round %s...", i + 1)
+            result = rag_service.query_rag(
+                user_prompt=remaining, 
+                system_prompt=system_prompt
+            )
+            total_latency += result.get("latency", 0)
+
+            if not result["success"]:
+                return {
+                    "success": False,
+                    "regex": final_regex or None,
+                    "error": result["error"],
+                    "latency": total_latency
+                }
+
+            raw = clean_response(result["content"])
+            if not raw.endswith("$"):
+                raw += "$"
+
+            # reduce to longest valid partial match
+            reduced = regex_engine_service.run_reduce_regex(remaining, raw)["regex"]
+            logger.info(f"Reduced regex: {reduced}")
+
+            # match it
+            match_info = regex_engine_service.run_regex_match(remaining, reduced)
+            matched_value = match_info["full"]["value"]
+            end = match_info["full"]["end"]
+
+            # check if regex failed to advance
+            if match_info["status"] == "Unmatched" or end == 0:
+                failure_count += 1
+                logger.warning(f"Regex failed to match or advance. Failure count: {failure_count}")
+                if failure_count >= 3:
+                    final_regex += r"\s?.*"
+                    logger.warning("Too many failures, appending wildcard and stopping.")
+                    break
+                continue  # try next round without updating remaining
+
+            failure_count = 0  # reset on success
+
+            # append to final regex
+            if final_regex:
+                if reduced:
+                    final_regex += r"\s?" + reduced
+                else:
+                    final_regex += reduced
+            else:
+                final_regex = reduced
+
+            # move forward
+            remaining = remaining[end:]
+            logger.info(f"Remaining log for next round: {remaining}")
+
+        # post-process result
+        final_regex = self.resolve_duplicate_capture_groups(final_regex)
+
+        return {
+            "success": True,
+            "regex": final_regex,
+            "error": None,
+            "latency": total_latency
+        }
+
+
+    def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
+        system_prompt = settings_service.get_prompts_settings("fix_regex")
+
+        # shrink to longest matching core
+        longest = regex_engine_service.run_reduce_regex(log, regex)
+        longest = longest["regex"]
+
+        result = rag_service.query_rag(
+            user_prompt=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}", 
+            system_prompt=system_prompt
+        )
+
+        if not result["success"]:
+            return {
+                "success": False,
+                "regex": None,
+                "error": result["error"],
+                "latency": result["latency"]
+            }
+
+        fixed = clean_response(result["content"])
+        if not fixed.endswith("$"):
+            fixed += "$"
+
+        return {
+            "success": True,
+            "regex": fixed,
+            "error": None,
+            "latency": result["latency"]
+        }
+    
+    
+    def resolve_duplicate_capture_groups(self, regex: str) -> str:
+        """Resolve duplicate named capture groups by appending incremental numbers.
+        
+        Args:
+            regex: The regex pattern to process
+            
+        Returns:
+            Processed regex with unique capture group names
+        """
+        # Pattern to match named capture groups like (?P<name> or (?<name>
+        pattern = pcre2.compile(r'(\(\?(?:P?<|<))(\w+)(>)')
+        seen = {}
+        offset = 0
+
+        # Iterate over matches
+        for match in list(pattern.finditer(regex)):
+            group_name = match.group(2)
+            if group_name in seen:
+                # Increment counter for duplicate names
+                seen[group_name] += 1
+                new_name = f"{group_name}_{seen[group_name]}"
+                
+                # Replace the duplicate name
+                start, end = match.span(2)
+                regex = regex[:start + offset] + new_name + regex[end + offset:]
+                offset += len(new_name) - len(group_name)
+            else:
+                seen[group_name] = 0
+        
+        logger.info(f"Resolved duplicate capture groups: {seen}")
+        return regex
+
 
 regex_engine_service = RegexEngineService()

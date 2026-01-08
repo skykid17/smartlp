@@ -2,16 +2,21 @@
 Application factory for SmartSOC Flask application.
 """
 
+import logging
 import os
 import signal
 import sys
 import threading
 from typing import Optional
+
 from flask import Flask
 
 from config.environment import env_manager
 from core.socketio_manager import socketio_manager
-from utils.logging import app_logger
+from utils.logging import configure_logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApplicationFactory:
@@ -38,11 +43,15 @@ class ApplicationFactory:
                    static_folder=static_path, 
                    template_folder=template_path)
         
+        # Initialize SocketIO early so logging can forward events to the UI.
+        socketio_manager.initialize(app)
+        socketio_manager.register_handlers()
+
+        # Configure logging once, globally (console + optional SocketIO handler)
+        configure_logging(socketio_manager.socketio)
+
         # Configure app
         ApplicationFactory._configure_app(app)
-        
-        # Initialize extensions
-        ApplicationFactory._initialize_extensions(app)
         
         # Register blueprints/routes
         ApplicationFactory._register_routes(app)
@@ -70,22 +79,17 @@ class ApplicationFactory:
         app.config['JSON_SORT_KEYS'] = False
         app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
         
-        print("Flask application configured")  # Use print instead of logger initially
+        logger.info("Flask application configured")
 
 
     @staticmethod
     def _initialize_extensions(app: Flask) -> None:
         """Initialize Flask extensions.
-        
-        Args:
-            app: Flask application instance
+
+        SocketIO is initialized in create_app() before configure_logging().
+        This method remains for future extensions.
         """
-        # Initialize SocketIO
-        socketio_instance = socketio_manager.initialize(app)
-        print(f"SocketIO initialized: {socketio_instance is not None}")
-        socketio_manager.register_handlers()
-        
-        print("Flask extensions initialized")  # Use print initially, then we can use logger
+        logger.info("Flask extensions initialized")
     
     @staticmethod
     def _register_routes(app: Flask) -> None:
@@ -101,15 +105,15 @@ class ApplicationFactory:
 
             # Register all route modules
             register_main_routes(app)
-            print("Main routes registered")
+            logger.info("Main routes registered")
             register_smartlp_routes(app)
-            print("SmartLP routes registered")
+            logger.info("SmartLP routes registered")
             register_settings_routes(app)
-            print("Settings routes registered")
+            logger.info("Settings routes registered")
             
-            print("All application routes registered")
+            logger.info("All application routes registered")
         except Exception as e:
-            print(f"Error registering routes: {e}")
+            logger.exception("Error registering routes")
             raise
     
     @staticmethod
@@ -145,16 +149,16 @@ class ApplicationFactory:
                 # Import here to avoid circular imports
                 from services.smartlp import smartlp_service
                 
-                app_logger.log_message('log', 'Graceful shutdown initiated')
+                logger.info("Graceful shutdown initiated")
                 smartlp_service.stop_log_ingestion()
                 
                 # Close database connections
                 from database.connection import db_connection
                 db_connection.close()
                 
-                app_logger.log_message('log', 'Shutdown complete')
+                logger.info("Shutdown complete")
             except Exception as e:
-                print(f"Error during shutdown: {e}")
+                logger.exception("Error during shutdown")
             finally:
                 sys.exit(0)
         
@@ -177,11 +181,7 @@ class ApplicationFactory:
         run_port = port or env_manager.app.port
         run_debug = debug if debug is not None else env_manager.app.debug
         
-        print(f'Starting SmartSOC server on {run_host}:{run_port}')
-        
-        # Debug SocketIO state
-        print(f"SocketIO instance: {socketio_manager.socketio}")
-        print(f"SocketIO type: {type(socketio_manager.socketio)}")
+        logger.info("Starting SmartSOC server on %s:%s", run_host, run_port)
         
         # Run with SocketIO
         if socketio_manager.socketio is not None:
@@ -194,9 +194,8 @@ class ApplicationFactory:
                     # use_reloader=False  # Disable reloader to avoid double threads
                 )
             except Exception as e:
-                print(f"SocketIO run error: {e}")
-                print(f"SocketIO instance details: {dir(socketio_manager.socketio) if socketio_manager.socketio else 'None'}")
+                logger.exception("SocketIO run error")
                 raise
         else:
-            print("Error: SocketIO not initialized")
+            logger.error("SocketIO not initialized")
             raise RuntimeError("SocketIO not initialized")

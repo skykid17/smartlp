@@ -37,7 +37,7 @@ class SettingsService(BaseService):
             # Return default settings if none exist
             return self._get_default_global_settings()
         except Exception as e:
-            self.log_error("Failed to get global settings", e)
+            self.logger.exception("Failed to get global settings")
             return self._get_default_global_settings()
     
     def get_siem_settings(self) -> List[Dict[str, Any]]:
@@ -55,7 +55,7 @@ class SettingsService(BaseService):
             
             return siems
         except Exception as e:
-            self.log_error("Failed to get SIEM settings", e)
+            self.logger.exception("Failed to get SIEM settings")
             return []
     
     def get_llm_endpoints(self, endpoint_id: Optional[str] = None):
@@ -111,7 +111,7 @@ class SettingsService(BaseService):
             global_settings = self.get_global_settings()
             active_llm = global_settings.get('active_llm_model_id')
             if not active_llm:
-                self.log_warning('No active LLM model or endpoint configured')
+                self.logger.warning('No active LLM model or endpoint configured')
                 return None
 
             # Try to resolve model by id first
@@ -123,13 +123,16 @@ class SettingsService(BaseService):
             )
 
             if not model:
-                self.log_warning(f"Active LLM model '{active_llm}' not found")
+                self.logger.warning("Active LLM model '%s' not found", active_llm)
                 return None
             # Endpoint id may be stored as 'endpoint_id' - be defensive
             endpoint_id = model.get('endpoint_id')
 
             if not endpoint_id:
-                self.log_warning(f"Model '{model.get('id') or active_llm}' missing endpoint_id")
+                self.logger.warning(
+                    "Model '%s' missing endpoint_id",
+                    model.get('id') or active_llm,
+                )
                 return None
 
             # Fetch endpoint by id
@@ -140,7 +143,11 @@ class SettingsService(BaseService):
                 limit=1
             )
             if not endpoint:
-                self.log_warning(f"Endpoint '{endpoint_id}' not found for model '{model.get('id')}'")
+                self.logger.warning(
+                    "Endpoint '%s' not found for model '%s'",
+                    endpoint_id,
+                    model.get('id'),
+                )
                 return None
 
             return {
@@ -149,7 +156,7 @@ class SettingsService(BaseService):
             }
 
         except Exception as e:
-            self.log_error('Error resolving active LLM', e)
+            self.logger.exception('Error resolving active LLM')
             return None
 
     def get_prompts_settings(self, key) -> Any:
@@ -169,7 +176,7 @@ class SettingsService(BaseService):
             return doc.get(key)
 
         except Exception as e:
-            self.log_error("Failed to get prompts doc", e)
+            self.logger.exception("Failed to get prompts doc")
             return None
 
     def get_all_settings(self) -> Dict[str, Any]:
@@ -218,7 +225,7 @@ class SettingsService(BaseService):
             }
 
         except Exception as e:
-            self.log_error("Failed to prepare frontend settings response", e)
+            self.logger.exception("Failed to prepare frontend settings response")
             return {"globalSettings": {}, "siems": [], "llmEndpoints": []}
 
     
@@ -405,7 +412,7 @@ class SettingsService(BaseService):
             return changes
 
         except Exception as e:
-            self.log_error("Failed to update settings", e)
+            self.logger.exception("Failed to update settings")
             return [f"Error updating settings: {str(e)}"]
     
     def get_active_siem(self) -> Optional[str]:
@@ -430,7 +437,7 @@ class SettingsService(BaseService):
         try:
             # Validate SIEM type
             if siem_type not in ['elastic', 'splunk']:
-                self.log_error(f"Invalid SIEM type: {siem_type}")
+                self.logger.error("Invalid SIEM type: %s", siem_type)
                 return False
             
             result = db_connection.update_one(
@@ -443,14 +450,14 @@ class SettingsService(BaseService):
             )
             
             if result:
-                self.log_info(f"Active SIEM set to: {siem_type}")
+                self.logger.info("Active SIEM set to: %s", siem_type)
                 return True
             else:
-                self.log_error(f"Failed to set active SIEM to: {siem_type}")
+                self.logger.error("Failed to set active SIEM to: %s", siem_type)
                 return False
                 
         except Exception as e:
-            self.log_error(f"Error setting active SIEM to {siem_type}", e)
+            self.logger.exception("Error setting active SIEM to %s", siem_type)
             return False
     
     def _get_default_global_settings(self) -> Dict[str, Any]:

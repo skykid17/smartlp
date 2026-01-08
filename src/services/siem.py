@@ -35,9 +35,6 @@ class BaseSIEMService(BaseService, ABC):
         avoids mixing in the stdlib logging module directly.
         """
         super().__init__(service_name)
-        # Keep propagation disabled for the underlying logger proxy to avoid
-        # duplicate messages when other log sinks are configured.
-        self.logger.propagate = False
         self._connection = None
     
     @abstractmethod
@@ -79,9 +76,9 @@ class BaseSIEMService(BaseService, ABC):
                 if hasattr(self._connection, 'close'):
                     self._connection.close()
                 self._connection = None
-                self.log_info(f"Disconnected from {self.service_name}")
+                self.logger.info("Disconnected from %s", self.service_name)
             except Exception as e:
-                self.log_error(f"Error disconnecting from {self.service_name}: {e}")
+                self.logger.error("Error disconnecting from %s: %s", self.service_name, e)
 
 
 class SplunkService(BaseSIEMService):
@@ -105,10 +102,10 @@ class SplunkService(BaseSIEMService):
                 username=self.settings.username,
                 password=self.settings.password
             )
-            self.log_info("Successfully connected to Splunk")
+            self.logger.info("Successfully connected to Splunk")
             return True
         except Exception as e:
-            self.log_error(f"Failed to connect to Splunk: {e}")
+            self.logger.error("Failed to connect to Splunk: %s", e)
             self._connection = None
             return False
     
@@ -126,7 +123,7 @@ class SplunkService(BaseSIEMService):
             self._connection.info()
             return True
         except Exception as e:
-            self.log_error(f"Splunk connection test failed: {e}")
+            self.logger.error("Splunk connection test failed: %s", e)
             return False
     
     def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
@@ -160,12 +157,12 @@ class SplunkService(BaseSIEMService):
                 if isinstance(result, dict):
                     results.append(result)
             
-            self.log_info(f"Splunk search returned {len(results)} results")
+            self.logger.info("Splunk search returned %s results", len(results))
             return results, None
             
         except Exception as e:
             error_msg = f"Splunk search failed: {e}"
-            self.log_error(error_msg)
+            self.logger.error("%s", error_msg)
             return [], error_msg
     
     def get_indexes(self) -> List[str]:
@@ -183,7 +180,7 @@ class SplunkService(BaseSIEMService):
                 indexes.append(index.name)
             return indexes
         except Exception as e:
-            self.log_error(f"Failed to get Splunk indexes: {e}")
+            self.logger.error("Failed to get Splunk indexes: %s", e)
             return []
         
     def get_splunk_settings(self) -> Dict[str, Any]:
@@ -200,7 +197,7 @@ class SplunkService(BaseSIEMService):
                 Splunk configuration string
             """
             try:
-                self.log_info(f"Creating Splunk config for {len(entry_ids)} entries")
+                self.logger.info("Creating Splunk config for %s entries", len(entry_ids))
                 
                 # Get entries from database
                 entries = []
@@ -214,10 +211,10 @@ class SplunkService(BaseSIEMService):
                     if entry:
                         entries.append(entry)
                     else:
-                        self.log_warning(f"Entry not found: {entry_id}")
+                        self.logger.warning("Entry not found: %s", entry_id)
                 
                 if not entries:
-                    self.log_warning("No valid entries found for config generation")
+                    self.logger.warning("No valid entries found for config generation")
                     return "# No valid entries found"
                 
                 # Prepare configuration components
@@ -281,11 +278,11 @@ class SplunkService(BaseSIEMService):
                 config_blocks.append("")  # Optional: Blank line at end
                 
                 config = "\n".join(config_blocks)
-                self.log_info(f"Generated Splunk config with {len(entries)} entries")
+                self.logger.info("Generated Splunk config with %s entries", len(entries))
                 return config
                 
             except Exception as e:
-                self.log_error(f"Error creating Splunk config: {str(e)}", e)
+                self.logger.exception("Error creating Splunk config")
                 return f"# Error creating Splunk configuration: {str(e)}"
     
 
@@ -346,17 +343,21 @@ class ElasticsearchService(BaseSIEMService):
             # Test connection
             if self._connection.ping():
                 self.ssl_verified = True
-                self.log_info("Successfully connected to Elasticsearch with certificate verification")
+                self.logger.info(
+                    "Successfully connected to Elasticsearch with certificate verification"
+                )
                 return True
             else:
-                self.log_warning("Elasticsearch ping failed with certificate verification")
+                self.logger.warning(
+                    "Elasticsearch ping failed with certificate verification"
+                )
                 
         except Exception as e:
-            self.log_warning(f"Certificate verification failed: {e}")
+            self.logger.warning("Certificate verification failed: %s", e)
             
         # If certificate verification fails, try without it (for self-signed certificates)
         try:
-            self.log_info("Attempting connection without certificate verification")
+            self.logger.info("Attempting connection without certificate verification")
             self._connection = Elasticsearch(
                 self.settings.host,
                 verify_certs=False,
@@ -366,14 +367,18 @@ class ElasticsearchService(BaseSIEMService):
             # Test connection
             if self._connection.ping():
                 self.ssl_verified = False
-                self.log_info("Successfully connected to Elasticsearch without certificate verification")
+                self.logger.info(
+                    "Successfully connected to Elasticsearch without certificate verification"
+                )
                 return True
             else:
-                self.log_error("Elasticsearch ping failed even without certificate verification")
+                self.logger.error(
+                    "Elasticsearch ping failed even without certificate verification"
+                )
                 return False
                 
         except Exception as e:
-            self.log_error(f"Failed to connect to Elasticsearch: {e}")
+            self.logger.error("Failed to connect to Elasticsearch: %s", e)
             self._connection = None
             self.ssl_verified = False
             return False
@@ -390,7 +395,7 @@ class ElasticsearchService(BaseSIEMService):
         try:
             return self._connection.ping()
         except Exception as e:
-            self.log_error(f"Elasticsearch connection test failed: {e}")
+            self.logger.error("Elasticsearch connection test failed: %s", e)
             return False
     
     def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
@@ -450,18 +455,18 @@ class ElasticsearchService(BaseSIEMService):
                     })
                     results.append(result)
             except Exception as e:
-                self.log_error(f"Failed to parse ES response hits: {e}")
+                self.logger.error("Failed to parse ES response hits: %s", e)
 
             # If no results, log raw response for debugging
             if not results:
                 self.logger.debug(f"Elasticsearch empty result. Raw response: {response}")
 
-            self.log_info(f"Elasticsearch search returned {len(results)} results")
+            self.logger.info("Elasticsearch search returned %s results", len(results))
             return results, None
             
         except Exception as e:
             error_msg = f"Elasticsearch search failed: {e}"
-            self.log_error(error_msg)
+            self.logger.error("%s", error_msg)
             return [], error_msg
     
     def get_indices(self) -> List[str]:
@@ -477,7 +482,7 @@ class ElasticsearchService(BaseSIEMService):
             indices_info = self._connection.cat.indices(format='json')
             return [idx['index'] for idx in indices_info]
         except Exception as e:
-            self.log_error(f"Failed to get Elasticsearch indices: {e}")
+            self.logger.error("Failed to get Elasticsearch indices: %s", e)
             return []
         
     def get_elastic_settings(self) -> Dict[str, Any]:
@@ -487,7 +492,7 @@ class ElasticsearchService(BaseSIEMService):
     def create_config_elastic(self, entry_ids: List[str]) -> str:
         """Create Elasticsearch Logstash configuration for SmartLP entries."""
         try:
-            self.log_info(f"Creating Elastic config for {len(entry_ids)} entries")
+            self.logger.info("Creating Elastic config for %s entries", len(entry_ids))
             
             # Fetch selected entries
             selected_entries = db_connection.query(
@@ -510,7 +515,7 @@ class ElasticsearchService(BaseSIEMService):
             }.values())
 
             if not all_entries:
-                self.log_warning("No valid entries found for config generation")
+                self.logger.warning("No valid entries found for config generation")
                 return "No valid entries found"
 
             # Build Logstash pipeline
@@ -597,11 +602,11 @@ output {{
 }}''')
             
             config = "".join(pipeline)
-            self.log_info(f"Generated Elastic config with {len(all_entries)} entries")
+            self.logger.info("Generated Elastic config with %s entries", len(all_entries))
             return config
 
         except Exception as e:
-            self.log_error(f"Error generating Elastic config: {str(e)}")
+            self.logger.exception("Error generating Elastic config")
             return f"# Error: {str(e)}"
     
     def _format_regex_for_logstash(self, regex: str) -> str:
@@ -691,7 +696,7 @@ output {{
             return True, f"SmartLP pipeline '{pipeline_id}' deployed successfully"
 
         except Exception as e:
-            self.log_error("Elasticsearch deployment failed", e)
+            self.logger.exception("Elasticsearch deployment failed")
             return False, f"Failed to deploy Logstash pipeline: {e}"
 
     def create_rule_elastic(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -705,7 +710,7 @@ output {{
             'description': sigma_rule.get('description'),
             'severity': data.get('severity', 'medium'),
             'risk_score': data.get('risk_score', 50),
-            'from': f"{data.get('dispatch_latest_time', "now")}{data.get('dispatch_earliest_time', "-15m")}",
+            'from': f"{data.get('dispatch_latest_time', 'now')}{data.get('dispatch_earliest_time', '-15m')}",
             'interval': data.get('interval', "5m"),
             'deployed': True,
             'type': "esql",
@@ -741,7 +746,7 @@ output {{
         
         except Exception as e:
             error_msg = f"Failed to deploy rule to Elasticsearch: {e}"
-            self.log_error(error_msg)
+            self.logger.error("%s", error_msg)
             return {"success": False, "message": error_msg}
 
 class SIEMServiceFactory:

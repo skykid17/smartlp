@@ -21,7 +21,7 @@ from .base import CRUDService
 from .siem import SIEMServiceFactory, elasticsearch_service, splunk_service
 from .settings import settings_service
 from .regex_engine import regex_engine_service
-from .rag import rag_service
+from .rag import rag_service, cosine
 from .llm import llm_service
 from database.connection import db_connection
 from utils.formatters import generate_alphanumeric_id, clean_response
@@ -36,19 +36,18 @@ class SmartLPService(CRUDService):
         self._ingestion_thread: Optional[threading.Thread] = None
         self._stop_ingestion = threading.Event()
         self._ingestion_running = False
-        self.logger.propagate = False  # Prevent double logging
     
     def start_log_ingestion(self) -> None:
         """Start background log ingestion."""
         if self._ingestion_running:
-            self.log_warning("Log ingestion already running")
+            self.logger.warning("Log ingestion already running")
             return
         
         self._stop_ingestion.clear()
         self._ingestion_thread = threading.Thread(target=self.ingestion_loop, daemon=True)
         self._ingestion_thread.start()
         self._ingestion_running = True
-        self.log_info("[INGESTION] Background log ingestion started")
+        self.logger.info("[INGESTION] Background log ingestion started")
     
     def stop_log_ingestion(self) -> None:
         """Stop background log ingestion."""
@@ -60,7 +59,7 @@ class SmartLPService(CRUDService):
             self._ingestion_thread.join(timeout=5)
         
         self._ingestion_running = False
-        self.log_info("[INGESTION] Background log ingestion stopped")
+        self.logger.info("[INGESTION] Background log ingestion stopped")
     
     def ingestion_loop(self) -> None:
         """Main ingestion loop running in background thread."""
@@ -74,7 +73,7 @@ class SmartLPService(CRUDService):
             try:
                 self.perform_ingestion()
             except Exception as e:
-                self.log_error("[INGESTION] Error during log ingestion", e)
+                self.logger.exception("[INGESTION] Error during log ingestion")
 
             # Sleep with exit awareness
             if self._stop_ingestion.wait(timeout=interval):
@@ -98,14 +97,14 @@ class SmartLPService(CRUDService):
             similarity_threshold = float(settings.get('similarity_threshold', 0.8))
             fix_count = int(settings.get('fix_count', 3))
             
-            self.log_info(f"[INGESTION] Starting ingestion cycle for SIEM: {active_siem}")
+            self.logger.info("[INGESTION] Starting ingestion cycle for SIEM: %s", active_siem)
             
             # Get SIEM-specific search configuration
             siem_settings = settings_service.get_siem_settings()
             siem_settings = next((s for s in siem_settings if s['id'] == active_siem), None)
             
             if not siem_settings:
-                self.log_error(f"[INGESTION] No configuration found for SIEM: {active_siem}")
+                self.logger.error("[INGESTION] No configuration found for SIEM: %s", active_siem)
                 return
 
             logs, error = self.ingest_from_siem(
@@ -116,11 +115,11 @@ class SmartLPService(CRUDService):
             )
             
             if error:
-                self.log_error(f"[INGESTION] SIEM ingestion failed: {error}")
+                self.logger.error("[INGESTION] SIEM ingestion failed: %s", error)
                 return
             
             if not logs:
-                self.log_info(f"[INGESTION] No new logs retrieved from {active_siem}")
+                self.logger.info("[INGESTION] No new logs retrieved from %s", active_siem)
                 return
             
             # Process each ingested log
@@ -132,7 +131,7 @@ class SmartLPService(CRUDService):
 
                     # Check for similarity if enabled
                     if similarity_check and self.check_log_similarity(log, similarity_threshold):
-                        self.log_info(f"[INGESTION] Skipped similar log: {log[:50]}...")
+                        self.logger.info("[INGESTION] Skipped similar log: %s...", log[:50])
                         continue
                     
                     # Determine log type and source type
@@ -160,8 +159,9 @@ class SmartLPService(CRUDService):
                     
                     results = self.identify_detection_rules(description, active_siem)
                     if not results.get("success"):
-                        self.log_error(
-                            f"[INGESTION] Detection rule identification failed: {results.get('error')}"
+                        self.logger.error(
+                            "[INGESTION] Detection rule identification failed: %s",
+                            results.get("error"),
                         )
 
                     detection_rules = results.get('detection_rules', [])
@@ -192,16 +192,20 @@ class SmartLPService(CRUDService):
                     entry_id = self.create(entry_data)
                     if entry_id:
                         processed_count += 1
-                        self.log_info(f"[INGESTION] Processed log entry: {entry_id}")
+                        self.logger.info("[INGESTION] Processed log entry: %s", entry_id)
                     
                 except Exception as e:
-                    self.log_error(f"[INGESTION] Failed to process log entry: {str(e)}", e)
+                    self.logger.exception("[INGESTION] Failed to process log entry")
                     continue
             
-            self.log_info(f"[INGESTION] Cycle completed: {processed_count} logs processed from {active_siem}")
+            self.logger.info(
+                "[INGESTION] Cycle completed: %s logs processed from %s",
+                processed_count,
+                active_siem,
+            )
             
         except Exception as e:
-            self.log_error(f"[INGESTION] Error during ingestion cycle: {str(e)}", e)
+            self.logger.exception("[INGESTION] Error during ingestion cycle")
     
     def get_entries(self, page: int = 1, per_page: int = 15, 
                    search_filters: Optional[Dict[str, str]] = None) -> Tuple[List[Dict], int]:
@@ -245,11 +249,16 @@ class SmartLPService(CRUDService):
                 projection={"_id": 0}
             )
             
-            self.log_info(f"Retrieved {len(entries)} entries (page {page}, {per_page} per page)")
+            self.logger.info(
+                "Retrieved %s entries (page %s, %s per page)",
+                len(entries),
+                page,
+                per_page,
+            )
             return entries, total
             
         except Exception as e:
-            self.log_error("Failed to get entries", e)
+            self.logger.exception("Failed to get entries")
             return [], 0
     
     def get_oldest_unmatched_entry(self) -> Optional[Dict[str, Any]]:
@@ -262,7 +271,7 @@ class SmartLPService(CRUDService):
             Dictionary containing entry data (id, log, regex) or None if not found
         """
         try:
-            self.log_info("Searching for oldest unmatched entry")
+            self.logger.info("Searching for oldest unmatched entry")
             
             entry = db_connection.query(
                 self.collection_name,
@@ -273,14 +282,17 @@ class SmartLPService(CRUDService):
             )
             
             if entry:
-                self.log_info(f"Found oldest unmatched entry: {entry.get('id', 'unknown')}")
+                self.logger.info(
+                    "Found oldest unmatched entry: %s",
+                    entry.get('id', 'unknown'),
+                )
                 return entry
             else:
-                self.log_info("No unmatched entries found in database")
+                self.logger.info("No unmatched entries found in database")
                 return None
                 
         except Exception as e:
-            self.log_error(f"Failed to get oldest unmatched entry: {str(e)}", e)
+            self.logger.exception("Failed to get oldest unmatched entry")
             return None
 
     def get_unmatched_entries_count(self) -> int:
@@ -296,7 +308,7 @@ class SmartLPService(CRUDService):
             )
             return count
         except Exception as e:
-            self.log_error(f"Failed to count unmatched entries: {str(e)}", e)
+            self.logger.exception("Failed to count unmatched entries")
             return 0
 
     def get_all_statuses(self) -> List[str]:
@@ -309,7 +321,7 @@ class SmartLPService(CRUDService):
             statuses = db_connection.get_distinct_values(self.collection_name, "status")
             return statuses
         except Exception as e:
-            self.log_error(f"Failed to get all statuses: {str(e)}", e)
+            self.logger.exception("Failed to get all statuses")
             return []
     
     def get_entry_status(self, ids: List[str]) -> Dict[str, str]:
@@ -338,11 +350,11 @@ class SmartLPService(CRUDService):
             for entry in entries:
                 status_map[entry['id']] = entry.get('status', 'Unknown')
             
-            self.log_info(f"Retrieved statuses for {len(status_map)} entries")
+            self.logger.info("Retrieved statuses for %s entries", len(status_map))
             return status_map
             
         except Exception as e:
-            self.log_error(f"Failed to get entry statuses: {str(e)}", e)
+            self.logger.exception("Failed to get entry statuses")
             return {}
 
     def get_report_data(self) -> Dict[str, Any]:
@@ -352,7 +364,7 @@ class SmartLPService(CRUDService):
             Dictionary containing report statistics compatible with frontend
         """
         try:
-            self.log_info("Generating SmartLP report data")
+            self.logger.info("Generating SmartLP report data")
             
             # Get all entries
             all_entries = db_connection.query(self.collection_name, {})
@@ -482,11 +494,15 @@ class SmartLPService(CRUDService):
                 'generated_at': datetime.utcnow().isoformat()
             }
             
-            self.log_info(f"Report generated successfully: {parsed_count} parsed, {unparsed_count} unparsed entries")
+            self.logger.info(
+                "Report generated successfully: %s parsed, %s unparsed entries",
+                parsed_count,
+                unparsed_count,
+            )
             return report_data
             
         except Exception as e:
-            self.log_error(f"Failed to generate report data: {str(e)}", e)
+            self.logger.exception("Failed to generate report data")
             return {
                 'parsed': 0,
                 'unparsed': 0,
@@ -509,13 +525,13 @@ class SmartLPService(CRUDService):
             Tuple of (response, error) - one will be None
         """
         try:
-            self.log_info(f"Testing SIEM query: {siem_type}")
+            self.logger.info("Testing SIEM query: %s", siem_type)
             
             # Get SIEM service
             siem_service = SIEMServiceFactory.get_service(siem_type)
             if not siem_service:
                 error = f"Unsupported SIEM type: {siem_type}"
-                self.log_error(error)
+                self.logger.error("%s", error)
                 return None, error
             
             # Test the query
@@ -532,7 +548,7 @@ class SmartLPService(CRUDService):
                 
                 if error:
                     error_msg = f"SIEM query failed: {error}"
-                    self.log_error(error_msg)
+                    self.logger.error("%s", error_msg)
                     return None, error_msg
                 
                 if results:
@@ -541,21 +557,21 @@ class SmartLPService(CRUDService):
                         "count": len(results),
                         "sample": results[:3]  # Return first 3 results as sample
                     }
-                    self.log_info(f"SIEM query test successful: {len(results)} results")
+                    self.logger.info("SIEM query test successful: %s results", len(results))
                     return response, None
                 else:
                     error = "Query returned no results"
-                    self.log_warning(f"SIEM query test: {error}")
+                    self.logger.warning("SIEM query test: %s", error)
                     return None, error
                     
             except ValueError as e:
                 error = f"Invalid entries count: {entries_count}"
-                self.log_error(error)
+                self.logger.error("%s", error)
                 return None, error
                 
         except Exception as e:
             error_msg = f"SIEM query test failed: {str(e)}"
-            self.log_error(error_msg, e)
+            self.logger.exception("SIEM query test failed")
             return None, error_msg
 
     def ingest_from_siem(self, siem_type: str, search_index: str, search_query: str, entry_count: int) -> Tuple[Optional[List[str]], Optional[str]]:
@@ -601,12 +617,12 @@ class SmartLPService(CRUDService):
                 if raw_log and raw_log.strip():
                     logs.append(raw_log.strip())
             
-            self.log_info(f"[INGESTION] Retrieved {len(logs)} logs from {siem_type}")
+            self.logger.info("[INGESTION] Retrieved %s logs from %s", len(logs), siem_type)
             return logs, None
             
         except Exception as e:
             error_msg = f"[INGESTION] Failed to ingest from {siem_type}: {str(e)}"
-            self.log_error(error_msg, e)
+            self.logger.exception("[INGESTION] Failed to ingest from %s", siem_type)
             return None, error_msg
 
     def check_log_similarity(self, log: str, threshold: float) -> bool:
@@ -641,22 +657,24 @@ class SmartLPService(CRUDService):
 
                 # ---- Semantic similarity ----
                 existing_emb = rag_service.generate_embeddings([masked_existing])[0]
-                semantic_sim = rag_service.cosine(semantic_log_emb, existing_emb)
+                semantic_sim = cosine(semantic_log_emb, existing_emb)
 
                 # ---- Final combined similarity ----
                 final_sim = (text_sim + semantic_sim) / 2.0
 
                 if final_sim >= threshold:
-                    self.log_info(
-                        f"Similar log found (text={text_sim:.2f}, "
-                        f"semantic={semantic_sim:.2f}, avg={final_sim:.2f})"
+                    self.logger.info(
+                        "Similar log found (text=%.2f, semantic=%.2f, avg=%.2f)",
+                        text_sim,
+                        semantic_sim,
+                        final_sim,
                     )
                     return True
 
             return False
 
         except Exception as e:
-            self.log_error(f"Error checking log similarity: {str(e)}", e)
+            self.logger.exception("Error checking log similarity")
             return False
 
     def mask_log_entry(self, log: str) -> str:
@@ -684,7 +702,6 @@ class SmartLPService(CRUDService):
         
         return masked
 
-    
 
     def generate_regex(self, log: str, fix_count: int = 3) -> Dict[str, Any]:
         """Unified entrypoint for regex generation."""
@@ -692,156 +709,15 @@ class SmartLPService(CRUDService):
         algo = settings.get("ingest_algo_version", "v2")
 
         if algo == "v2":
-            return self.generate_regex_v2(log, fix_count)
-        return self.generate_regex_v1(log)
+            return regex_engine_service.generate_regex_v2(log, fix_count)
+        return regex_engine_service.generate_regex_v1(log)
 
-    def generate_regex_v1(self, log: str) -> Dict[str, Any]:
-        self.log_info("Generating regex (v1)...")
-
-        system_prompt = settings_service.get_prompts_settings("generate_regex")
-
-        result = rag_service.query_rag(
-            user_prompt=log, 
-            system_prompt=system_prompt
-        )
-
-        if not result["success"]:
-            return {
-                "success": False,
-                "regex": None,
-                "error": result["error"],
-                "latency": result["latency"]
-            }
-
-        # Clean
-        regex = clean_response(result["content"])
-        if not regex.endswith("$"):
-            regex += "$"
-
-        return {
-            "success": True,
-            "regex": regex,
-            "error": None,
-            "latency": result["latency"]
-        }
-    
-    
-    def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:
-        self.log_info("Generating regex (v2)...")
-
-        system_prompt = settings_service.get_prompts_settings("generate_regex")
-
-        remaining = log
-        final_regex = ""
-        total_latency = 0.0
-        failure_count = 0
-
-        for i in range(fix_count):
-            remaining_stripped = remaining.strip()
-            if not remaining_stripped:
-                self.log_info("Remaining log empty, stopping.")
-                break
-
-            self.log_info(f"Generating regex round {i+1}...")
-            result = rag_service.query_rag(
-                user_prompt=remaining, 
-                system_prompt=system_prompt
-            )
-            total_latency += result.get("latency", 0)
-
-            if not result["success"]:
-                return {
-                    "success": False,
-                    "regex": final_regex or None,
-                    "error": result["error"],
-                    "latency": total_latency
-                }
-
-            raw = clean_response(result["content"])
-            if not raw.endswith("$"):
-                raw += "$"
-
-            # reduce to longest valid partial match
-            reduced = regex_engine_service.run_reduce_regex(remaining, raw)["regex"]
-            self.log_info(f"Reduced regex: {reduced}")
-
-            # match it
-            match_info = regex_engine_service.run_regex_match(remaining, reduced)
-            matched_value = match_info["full"]["value"]
-            end = match_info["full"]["end"]
-
-            # check if regex failed to advance
-            if match_info["status"] == "Unmatched" or end == 0:
-                failure_count += 1
-                self.log_warning(f"Regex failed to match or advance. Failure count: {failure_count}")
-                if failure_count >= 3:
-                    final_regex += r"\s?.*"
-                    self.log_warning("Too many failures, appending wildcard and stopping.")
-                    break
-                continue  # try next round without updating remaining
-
-            failure_count = 0  # reset on success
-
-            # append to final regex
-            if final_regex:
-                if reduced:
-                    final_regex += r"\s?" + reduced
-                else:
-                    final_regex += reduced
-            else:
-                final_regex = reduced
-
-            # move forward
-            remaining = remaining[end:]
-            self.log_info(f"Remaining log for next round: {remaining}")
-
-        # post-process result
-        final_regex = self.resolve_duplicate_capture_groups(final_regex)
-
-        return {
-            "success": True,
-            "regex": final_regex,
-            "error": None,
-            "latency": total_latency
-        }
-
-
-    def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
-        system_prompt = settings_service.get_prompts_settings("fix_regex")
-
-        # shrink to longest matching core
-        longest = regex_engine_service.run_reduce_regex(log, regex)
-        longest = longest["regex"]
-
-        result = rag_service.query_rag(
-            user_prompt=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}", 
-            system_prompt=system_prompt
-        )
-
-        if not result["success"]:
-            return {
-                "success": False,
-                "regex": None,
-                "error": result["error"],
-                "latency": result["latency"]
-            }
-
-        fixed = clean_response(result["content"])
-        if not fixed.endswith("$"):
-            fixed += "$"
-
-        return {
-            "success": True,
-            "regex": fixed,
-            "error": None,
-            "latency": result["latency"]
-        }
 
     def identify_log_type(self, log: str) -> Dict[str, Any]:
         """Return { success, source_type, log_type, error }"""
 
         try:
-            self.log_info("Identifying log type for entry")
+            self.logger.info("Identifying log type for entry")
             
             system_prompt = settings_service.get_prompts_settings("identify_type")
             response = llm_service.query_llm(log, system_prompt)
@@ -858,7 +734,11 @@ class SmartLPService(CRUDService):
             # Parse JSON
             try:
                 result = json.loads(clean_response(response["content"]))
-                self.log_info(f"Identified log type: {str(result.get('log_type', 'unknown'))}, source type: {str(result.get('source_type', 'unknown'))}")
+                self.logger.info(
+                    "Identified log type: %s, source type: %s",
+                    result.get('log_type', 'unknown'),
+                    result.get('source_type', 'unknown'),
+                )
                 return {
                     "success": True,
                     "source_type": result.get("source_type", "unknown"),
@@ -868,7 +748,7 @@ class SmartLPService(CRUDService):
                 }
 
             except Exception as e:
-                self.log_warning(f"LLM returned invalid JSON: {response['content']}")
+                self.logger.warning("LLM returned invalid JSON: %s", response["content"])
                 return {
                     "success": False,
                     "error": f"Invalid JSON from LLM: {str(e)}",
@@ -878,7 +758,7 @@ class SmartLPService(CRUDService):
                 }
 
         except Exception as e:
-            self.log_error(f"Error identifying log type: {str(e)}", e)
+            self.logger.exception("Error identifying log type")
             return {
                 "success": False,
                 "error": str(e),
@@ -936,7 +816,7 @@ class SmartLPService(CRUDService):
         """Identify package for the log based on log_type and source_type."""
         if not active_siem:
             active_siem = settings_service.get_global_settings().get("active_siem")
-        self.log_info(f"Identifying {active_siem} package for log entry...")
+        self.logger.info("Identifying %s package for log entry...", active_siem)
         
         # Fetch Settings
         system_prompt = settings_service.get_prompts_settings("identify_package")
@@ -1001,7 +881,10 @@ class SmartLPService(CRUDService):
         if not active_siem:
             active_siem = settings_service.get_global_settings().get("active_siem")
 
-        self.log_info(f"Identifying {active_siem} detection rules from log description...")
+        self.logger.info(
+            "Identifying %s detection rules from log description...",
+            active_siem,
+        )
 
         # Prepare RAG prompts
         system_prompt = settings_service.get_prompts_settings("identify_detection_rules")
@@ -1022,7 +905,7 @@ class SmartLPService(CRUDService):
 
         context_docs = response.get("context", [])
         if not context_docs or all(not (c and c.get("content")) for c in context_docs):
-            self.log_info("No relevant detection rules found in RAG context.")
+            self.logger.info("No relevant detection rules found in RAG context.")
             return {
                 "success": True,
                 "found": False,
@@ -1032,7 +915,7 @@ class SmartLPService(CRUDService):
             }
 
         if not response["success"]:
-            self.log_error(f"RAG service failure: {response.get('error')}")
+            self.logger.error("RAG service failure: %s", response.get('error'))
             return {
                 "success": False,
                 "found": False,
@@ -1084,7 +967,11 @@ class SmartLPService(CRUDService):
                     "title": siem_rule_doc.get("title") if siem_rule_doc else "",
                     "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else ""
                 })
-            self.log_info(f"Identified {len(detection_rules)} detection rules above confidence threshold {confidence_threshold}")
+            self.logger.info(
+                "Identified %s detection rules above confidence threshold %s",
+                len(detection_rules),
+                confidence_threshold,
+            )
             return {
                 "success": True,
                 "found": len(detection_rules) > 0,
@@ -1094,7 +981,7 @@ class SmartLPService(CRUDService):
             }
 
         except Exception as e:
-            self.log_error(f"Detection rule parsing failed: {str(e)}", e)
+            self.logger.exception("Detection rule parsing failed")
             return {
                 "success": False,
                 "found": False,
@@ -1102,38 +989,6 @@ class SmartLPService(CRUDService):
                 "context": response.get("context", []),
                 "error": f"Detection rule parsing failed: {str(e)} | Raw: {response.get('content')}"
             }
-
-    def resolve_duplicate_capture_groups(self, regex: str) -> str:
-        """Resolve duplicate named capture groups by appending incremental numbers.
-        
-        Args:
-            regex: The regex pattern to process
-            
-        Returns:
-            Processed regex with unique capture group names
-        """
-        # Pattern to match named capture groups like (?P<name> or (?<name>
-        pattern = pcre2.compile(r'(\(\?(?:P?<|<))(\w+)(>)')
-        seen = {}
-        offset = 0
-
-        # Iterate over matches
-        for match in list(pattern.finditer(regex)):
-            group_name = match.group(2)
-            if group_name in seen:
-                # Increment counter for duplicate names
-                seen[group_name] += 1
-                new_name = f"{group_name}_{seen[group_name]}"
-                
-                # Replace the duplicate name
-                start, end = match.span(2)
-                regex = regex[:start + offset] + new_name + regex[end + offset:]
-                offset += len(new_name) - len(group_name)
-            else:
-                seen[group_name] = 0
-        
-        self.log_info(f"Resolved duplicate capture groups: {seen}")
-        return regex
     
     def create_config(self, entry_ids: List[str]) -> str:
         """Create configuration for SmartLP entries based on active SIEM.
@@ -1145,25 +1000,25 @@ class SmartLPService(CRUDService):
             Configuration string for the active SIEM
         """
         try:
-            self.log_info(f"Creating SmartLP config for {len(entry_ids)} entries")
+            self.logger.info("Creating SmartLP config for %s entries", len(entry_ids))
             
             # Get active SIEM from settings (snake_case)
             from .settings import settings_service
             settings = settings_service.get_global_settings()
             active_siem = settings.get('active_siem', 'elastic')
             
-            self.log_info(f"Active SIEM: {active_siem}")
+            self.logger.info("Active SIEM: %s", active_siem)
             
             if active_siem == "splunk":
                 return splunk_service.create_config_splunk(entry_ids)
             elif active_siem == "elastic":
                 return elasticsearch_service.create_config_elastic(entry_ids)
             else:
-                self.log_error(f"Unsupported SIEM type: {active_siem}")
+                self.logger.error("Unsupported SIEM type: %s", active_siem)
                 return "# Unsupported SIEM type"
                 
         except Exception as e:
-            self.log_error(f"Error creating SmartLP config: {str(e)}", e)
+            self.logger.exception("Error creating SmartLP config")
             return f"# Error creating configuration: {str(e)}"
         
     def add_context_to_prompt(self, prompt: str):

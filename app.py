@@ -6,11 +6,15 @@ Main application entry point using the refactored architecture.
 
 import sys
 import os
+import logging
 
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from core.app_factory import ApplicationFactory
+
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -23,10 +27,10 @@ def main():
         ApplicationFactory.run_app(app)
         
     except KeyboardInterrupt:
-        print("\nApplication interrupted by user")
+        logger.info("Application interrupted by user")
         sys.exit(0)
     except Exception as e:
-        print(f"Failed to start application: {e}")
+        logger.exception("Failed to start application")
         sys.exit(1)
 
 

@@ -11,7 +11,6 @@ import json
 from typing import Dict, Any, Tuple, Optional
 from .base import BaseService
 from .settings import settings_service
-from utils.logging import app_logger
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
@@ -91,8 +90,8 @@ class LLMService(BaseService):
         except Exception as e:
             latency = round(time.time() - start_time, 4)
             status = getattr(e, "status_code", 500)
-            
-            app_logger.log_message("llm", f"LLM query failed: {str(e)}", "ERROR")
+
+            self.logger.exception("LLM query failed")
             
             return {
                 "success": False,

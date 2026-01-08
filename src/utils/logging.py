@@ -1,61 +1,53 @@
+"""Logging utilities for SmartLP application.
+
+This module intentionally uses Python stdlib logging as the single source of truth.
 """
-Logging utilities for SmartSOC application.
-"""
+
+from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 
-class SmartLPLogger:
-    """Custom logger for SmartLP with SocketIO integration."""
-    
-    def __init__(self, name: str = "smartlp"):
-        """Initialize logger.
-        
-        Args:
-            name: Logger name
-        """
-        self.logger = logging.getLogger(name)
-        self._setup_logging()
-    
-    def _setup_logging(self) -> None:
-        """Setup logging configuration."""
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s'
-            )
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
-        # Prevent messages from being propagated to the root logger
-        # which can cause duplicate output if a root handler exists.
-        self.logger.propagate = False
-    
-    def log_message(self, channel: str, message: str, level: str = "INFO") -> None:
-        ts = datetime.now(timezone.utc).isoformat()
+class SocketIOLogHandler(logging.Handler):
+    """Logging handler that forwards log records to Socket.IO.
 
-        # Backend logging (for terminal / files / journald)
-        self.logger.log(getattr(logging, level.upper(), logging.INFO), message)
+    Emits a single event: "log" with a structured payload:
+    {"ts": ..., "level": ..., "logger": ..., "message": ...}
+    """
 
-        # UI event stream (structured, no formatting)
-        if channel in ("log", "notification"):
-            try:
-                from core.socketio_manager import socketio_manager
-                if socketio_manager.socketio:
-                    try:
-                        socketio_manager.socketio.emit(channel, {
-                            "timestamp": ts,
-                            "message": message,
-                            "level": level
-                        })
-                    except Exception:
-                        # Protect logging path from socket emit errors; do not
-                        # allow socketio failures to break request handling.
-                        pass
-            except (ImportError, AttributeError):
-                pass
-        
-# Global logger instance
-app_logger = SmartLPLogger()
+    def __init__(self, socketio: Any):
+        super().__init__()
+        self._socketio = socketio
+        self.setFormatter(logging.Formatter("%(message)s"))
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            payload = {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "level": record.levelname,
+                "logger": record.name,
+                "message": self.format(record),
+            }
+            self._socketio.emit("log", payload)
+        except Exception:
+            # Never let logging failures break request handling.
+            pass
+
+
+def configure_logging(socketio: Optional[Any] = None) -> None:
+    """Configure stdlib logging once for the entire application."""
+
+    logging.basicConfig(
+        level=os.getenv("APP_LOG_LEVEL", "INFO"),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+
+    if socketio:
+        root_logger = logging.getLogger()
+        if not any(isinstance(h, SocketIOLogHandler) for h in root_logger.handlers):
+            handler = SocketIOLogHandler(socketio)
+            handler.setLevel(logging.INFO)
+            root_logger.addHandler(handler)

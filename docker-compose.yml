@@ -16,6 +16,7 @@ services:
       - ./rag/data:/data/rag:ro # <-- Mount your JSON files
     networks:
       - search-community
+    restart: unless-stopped
 
   mongot:
     # image: mongodb/mongodb-community-search:latest
@@ -34,6 +35,7 @@ services:
     ports:
       - 27028:27028 # Query server port from config
       - 9946:9946 # Metrics port from config
+    restart: unless-stopped
 
 volumes:
   mongod_data:
