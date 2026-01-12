@@ -27,6 +27,7 @@ import numpy as np
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError, OperationFailure, ServerSelectionTimeoutError
+from services.settings import settings_service
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -663,11 +664,24 @@ class RAG:
 
     # --- Chain builder ---
     def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
-        
+        llm_settings = settings_service.get_active_llm()
+
+        if not llm_settings:
+            return None, {
+                "success": False,
+                "content": None,
+                "status_code": 500,
+                "error": "No active LLM endpoint configured",
+                "latency": 0
+            }
+
+        model_cfg = llm_settings["model"]
+        endpoint_cfg = llm_settings["endpoint"]
+
         llm = ChatOpenAI(
-            model=model_override or "qwen25-coder-32b-awq",
-            base_url=url_override or "https://192.168.125.31:8000/v1",
-            api_key=api_key_override or "testing",
+            model=model_override or model_cfg.get("model_name", "qwen25-coder-32b-awq"),
+            base_url=url_override or endpoint_cfg.get("url", "http://192.168.125.31:8000/v1"),
+            api_key=api_key_override or endpoint_cfg.get("api_key", "testing"),
             temperature=0
         )
 
