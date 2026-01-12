@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refactored MongoDB RAG toolkit with Python-only fallback retriever.
+"""MongoDB RAG toolkit with Python-only fallback retriever.
 
 This version is updated to support:
 - MongoDB Atlas Local (Docker) with 'vectorSearch' type indexes.
@@ -13,18 +13,15 @@ import argparse
 import hashlib
 import json
 import logging
-import pcre2
+from enum import Enum
 import time
+from dataclasses import dataclass
 from tqdm import tqdm 
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Any
 import spacy
-from services.settings import settings_service
-
-
-logger = logging.getLogger(__name__)
 
 import numpy as np
 from pymongo import MongoClient
@@ -38,6 +35,8 @@ from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer
+
+logger = logging.getLogger(__name__)
 
 # --- Defaults ---
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".json", ".yaml", ".yml", ".csv", ".pdf"}
@@ -63,11 +62,24 @@ def format_docs(docs: Sequence[Document]) -> str:
         for i, d in enumerate(docs)
     )
 
-def cosine(self, a, b):
+def cosine(a, b):
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
     denom = (np.linalg.norm(a) * np.linalg.norm(b))
     return float(a.dot(b) / denom) if denom > 0 else 0.0
+
+
+@dataclass(frozen=True)
+class ScoredDoc:
+    id: str
+    content: str
+    metadata: Dict[str, Any]
+    score: float
+
+class RetrievalMode(str, Enum):
+    VECTOR = "vector"
+    TEXT = "text"
+    HYBRID = "hybrid"
 
 
 DOMAIN_TERMS = {"powershell","elasticsearch","splunk","elastic","log4j","base64","kibana","windows","logstash","wazuh","mitre","siem"}
@@ -205,181 +217,193 @@ class MongoHybridRetriever:
                 ]
 
         except Exception as exc:
-            logger.warning("RankFusion failed: %s", exc)
+            logger.error("RankFusion failed: %s", exc)
 
         return []
 
 
 class LocalRetriever:
-    def __init__(self, collection, embedding_fn,  text_index: str):
+    """
+    Python-only fallback retriever.
+
+    Used when MongoDB Atlas RankFusion or vectorSearch is unavailable.
+    Performs:
+    - Candidate selection via MongoDB
+    - In-memory vector similarity
+    - Keyword search
+    - Reciprocal Rank Fusion
+    """
+
+    def __init__(
+        self,
+        collection: Collection,
+        embedding_fn,
+        text_index: str,
+        text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
+    ):
         self.collection = collection
         self.embedding_fn = embedding_fn
         self.text_index = text_index
-        self.text_paths = DEFAULT_TEXT_PATHS
+        self.text_paths = list(text_paths)
+
+    # -------------------------
+    # Public API
+    # -------------------------
+    def retrieve(
+        self,
+        query: str,
+        mode: RetrievalMode = RetrievalMode.HYBRID,
+        limit: int = 5,
+        **kwargs,
+    ) -> List[Document]:
+
+        base_filter = self._build_base_filter(kwargs.get("filter_category"))
+        keyword_query = extract_keywords(query)
+        candidates = self._fetch_candidates(base_filter, keyword_query)
+
+        if not candidates:
+            return []
+
+        if mode == RetrievalMode.VECTOR:
+            results = self._semantic_search(query, candidates, limit)
+
+        elif mode == RetrievalMode.TEXT:
+            results = self._keyword_search(keyword_query, limit, base_filter)
+
+        else:  # HYBRID
+            sem = self._semantic_search(query, candidates, kwargs.get("semantic_k", 50))
+            txt = self._keyword_search(keyword_query, kwargs.get("keyword_k", 50), base_filter)
+            results = self._rrf_fuse([sem, txt], k=kwargs.get("rrf_k", 60), limit=limit)
+
+        return self._to_documents(results)
+
+    def _build_base_filter(self, category: Optional[str]) -> Dict:
+        base_filter = {}
+        if category:
+            base_filter["metadata.category"] = category
+        return base_filter
     
-    def run_vector_search(
+    def _to_documents(self, scored_docs: List[ScoredDoc]) -> List[Document]:
+        return [
+            Document(
+                page_content=d.content,
+                metadata={**d.metadata, "score": d.score}
+            )
+            for d in scored_docs
+        ]
+
+    def _fetch_candidates(
+        self,
+        base_filter: Dict,
+        keyword_query: str,
+        max_docs: int = 5000,
+    ) -> List[Dict]:
+
+        query = dict(base_filter)
+        if keyword_query:
+            query["$text"] = {"$search": keyword_query}
+
+        return list(
+            self.collection.find(
+                query,
+                {"content": 1, "metadata": 1, "embedding": 1},
+            ).limit(max_docs)
+        )
+
+    # Helper: Vector Search
+    def _semantic_search(
         self,
         query: str,
         candidates: List[Dict],
-        semantic_k: int
-    ) -> List[Dict]:
+        top_k: int,
+    ) -> List[ScoredDoc]:
 
-        q_emb = self.embedding_fn([query], show_progress=False)[0]
+        query_vec = self.embedding_fn([query], show_progress=False)[0]
 
-        for d in candidates:
-            emb = d.get("embedding")
-            d["_sim_score"] = cosine(q_emb, emb) if emb else 0.0
+        scored = []
+        for doc in candidates:
+            emb = doc.get("embedding")
+            if not emb:
+                continue
 
-        top = sorted(candidates, key=lambda x: x["_sim_score"], reverse=True)[:semantic_k]
+            score = cosine(query_vec, emb)
+            scored.append(
+                ScoredDoc(
+                    id=str(doc["_id"]),
+                    content=doc.get("content", ""),
+                    metadata=doc.get("metadata", {}),
+                    score=score,
+                )
+            )
 
-        return [
-            {
-                "_id": str(d["_id"]),
-                "content": d.get("content", ""),
-                "metadata": d.get("metadata", {}),
-                "score": d["_sim_score"]
-            }
-            for d in top
-        ]
+        return sorted(scored, key=lambda d: d.score, reverse=True)[:top_k]
 
 
-    # Helper: Mongo Text Search
-    def run_text_search(
+    # Helper: Text Search
+    def _keyword_search(
         self,
         keyword_query: str,
-        keyword_k: int,
-        base_filter: Dict
-    ) -> List[Dict]:
-
-        coll = self.collection()
+        top_k: int,
+        base_filter: Dict,
+    ) -> List[ScoredDoc]:
 
         if not keyword_query:
             return []
 
         try:
-            results = list(
-                coll.aggregate([
-                    {"$search": {
-                        "index": self.text_index,
-                        "text": {
-                            "query": keyword_query,
-                            "path": list(self.text_paths)
-                        }
-                    }},
-                    {"$limit": keyword_k},
-                    {"$project": {
-                        "content": 1,
-                        "metadata": 1,
-                        "score": {"$meta": "searchScore"}
-                    }}
-                ])
-            )
-
-        except Exception:
-            text_filter = dict(base_filter)
-            text_filter["$text"] = {"$search": keyword_query}
-
-            results = list(
-                coll.find(
-                    text_filter,
-                    {
-                        "content": 1,
-                        "metadata": 1,
-                        "score": {"$meta": "textScore"}
+            results = self.collection.aggregate([
+                {"$search": {
+                    "index": self.text_index,
+                    "text": {
+                        "query": keyword_query,
+                        "path": self.text_paths,
                     }
-                ).limit(keyword_k)
-            )
+                }},
+                {"$limit": top_k},
+                {"$project": {
+                    "content": 1,
+                    "metadata": 1,
+                    "score": {"$meta": "searchScore"},
+                }},
+            ])
+        except Exception:
+            logger.warning("Text index unavailable; falling back to $text")
+            query = dict(base_filter)
+            query["$text"] = {"$search": keyword_query}
+            results = self.collection.find(
+                query,
+                {"content": 1, "metadata": 1, "score": {"$meta": "textScore"}},
+            ).limit(top_k)
 
         return [
-            {
-                "_id": str(d["_id"]),
-                "content": d.get("content", ""),
-                "metadata": d.get("metadata", {}),
-                "score": d.get("score", 0.0)
-            }
+            ScoredDoc(
+                id=str(d["_id"]),
+                content=d.get("content", ""),
+                metadata=d.get("metadata", {}),
+                score=d.get("score", 0.0),
+            )
             for d in results
         ]
 
-    # --- Fallback Retriever ---
-    def run_hybrid_search(
-        self,
-        query: str,
-        limit: int = 5,
-        semantic_k: int = 50,
-        keyword_k: int = 50,
-        rrf_k: int = 60,
-        filter_category: Optional[str] = None
-    ) -> List[Document]:
+    # Reciprocal Rank Fusion
+    @staticmethod
+    def _rrf_fuse(
+        runs: List[List[ScoredDoc]],
+        k: int,
+        limit: int,
+        weights: Optional[List[float]] = None,
+    ) -> List[ScoredDoc]:
 
-        logger.info("Using Python fallback retriever")
-        coll = self.collection()
-
-        # --- Category filter ---
-        base_filter = {}
-        if filter_category:
-            base_filter["metadata.category"] = filter_category
-
-        # --- Extract keywords ---
-        keyword_query = extract_keywords(query, max_keywords=15)
-
-        # --- Candidate selection ---
-        candidate_filter = dict(base_filter)
-        if keyword_query:
-            candidate_filter["$text"] = {"$search": keyword_query}
-
-        candidates = list(
-            coll.find(
-                candidate_filter,
-                {"content": 1, "metadata": 1, "embedding": 1}
-            ).limit(5000)
-        )
-
-        if not candidates:
-            return []
-
-        # --- Run vector search ---
-        sem_run = self.run_vector_search(
-            query=query,
-            candidates=candidates,
-            semantic_k=semantic_k
-        )
-
-        # --- Run keyword search ---
-        kw_run = self.run_text_search(
-            keyword_query=keyword_query,
-            keyword_k=keyword_k,
-            base_filter=base_filter
-        )
-
-        # --- Fuse ---
-        fused = self.reciprocal_rank_fusion(
-            runs=[sem_run, kw_run],
-            k=rrf_k,
-            limit=limit,
-            weights=[0.5, 0.5]
-        )
-
-        return [
-            Document(
-                page_content=d.get("content", ""),
-                metadata=d.get("metadata", {}),
-                doc_id=d["_id"],
-                score=d.get("score", 0.0)
-            )
-            for d in fused
-        ]
-
-    # --- Weighted RRF fusion ---
-    def reciprocal_rank_fusion(self, runs, k, limit, weights=None):
         scores = defaultdict(float)
-        docs = {}
+        docs: Dict[str, ScoredDoc] = {}
+
         for i, run in enumerate(runs):
-            weight = 1 if not weights else weights[i]
+            weight = weights[i] if weights else 1.0
             for rank, doc in enumerate(run):
-                doc_id = doc["_id"]
-                docs[doc_id] = doc
-                scores[doc_id] += weight * (1.0 / (k + rank + 1))
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+                docs[doc.id] = doc
+                scores[doc.id] += weight / (k + rank + 1)
+
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return [docs[doc_id] for doc_id, _ in ranked[:limit]]
 
 # --- RAG Class ---
@@ -418,10 +442,11 @@ class RAG:
         self.collection: Optional[Collection] = None
         self.client: Optional[MongoClient] = None
         self._embedding_model: Optional[SentenceTransformer] = None
+        self.embedding_fn = lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress)
         self.local_retriever = LocalRetriever(
             collection=self._ensure_collection(),
-            embedding_fn=lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress),
-            text_index=self.text_index
+            embedding_fn=self.embedding_fn,
+            text_index=self.text_index,
         )
 
 
@@ -441,8 +466,8 @@ class RAG:
             if existing:
                 logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
                 return
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Index existence check failed: %s", exc)
 
         try:
             collection.create_search_index(model={"definition": definition, "name": index_name, "type": index_type})
@@ -529,7 +554,7 @@ class RAG:
                 else:
                     docs = []
             except Exception as e:
-                logger.warning("Failed to load %s: %s", path, e)
+                logger.error("Failed to load %s: %s", path, e)
                 return []
 
             for doc in docs:
@@ -575,11 +600,11 @@ class RAG:
         coll = self._ensure_collection()
         docs = self.load_documents(input_path)
         if not docs:
-            logger.warning("No documents found under %s", input_path)
+            logger.info("No documents found under %s", input_path)
             return 0
         chunks = self.chunk_documents(docs)
         if not chunks:
-            logger.warning("No chunks produced")
+            logger.info("No chunks produced")
             return 0
         logger.info("Loaded %s docs -> %s chunks", len(docs), len(chunks))
 
@@ -638,15 +663,11 @@ class RAG:
 
     # --- Chain builder ---
     def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
-
-        llm_settings = settings_service.get_active_llm()
-        model_cfg = llm_settings["model"]
-        endpoint_cfg = llm_settings["endpoint"]
         
         llm = ChatOpenAI(
-            model=model_override or model_cfg["model_name"],
-            base_url=url_override or endpoint_cfg["url"],
-            api_key=api_key_override or endpoint_cfg.get("api_key", ""),
+            model=model_override or "qwen25-coder-32b-awq",
+            base_url=url_override or "https://192.168.125.31:8000/v1",
+            api_key=api_key_override or "testing",
             temperature=0
         )
 
