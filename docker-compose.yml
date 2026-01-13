@@ -11,7 +11,6 @@ services:
     volumes:
       - mongod_data:/data/db
       - ./mongod.conf:/etc/mongod.conf:ro
-      - ./sampledata.archive:/sampledata.archive
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     networks:
       - search-community
@@ -34,6 +33,33 @@ services:
     ports:
       - 27028:27028 # Query server port from config
       - 9946:9946 # Metrics port from config
+    restart: unless-stopped
+
+  smartlp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartlp
+    depends_on:
+      - mongod
+      - mongot
+    environment:
+      # App reads MongoDB URI from MONGO_URL; setup.py uses MONGODB_URI.
+      - MONGO_URL=mongodb://mongod:27017/?directConnection=true
+      - MONGODB_URI=mongodb://mongod:27017/?directConnection=true
+      - SMARTLP_ARCHIVE=/smartlp.archive
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8800
+      - APP_DEBUG=False
+      # Ensure clean container logs even if env isn't set in Dockerfile.
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./smartlp.archive:/smartlp.archive:ro
+    ports:
+      - 8800:8800
+    networks:
+      - search-community
     restart: unless-stopped
 
 volumes:
