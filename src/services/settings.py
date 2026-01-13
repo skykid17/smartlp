@@ -33,9 +33,37 @@ class SettingsService(BaseService):
             )
 
             if settings:
+                # Backfill initialized flag for older DBs
+                if "initialized" not in settings:
+                    try:
+                        db_connection.get_collection('settings').update_one(
+                            {"category": "global_settings", "id": "global"},
+                            {"$set": {"initialized": False, "updated_at": datetime.now().isoformat()}},
+                            upsert=False,
+                        )
+                    except Exception:
+                        pass
+                    settings["initialized"] = False
+
                 return settings
-            # Return default settings if none exist
-            return self._get_default_global_settings()
+
+            # Persist default settings if none exist
+            default_settings = self._get_default_global_settings()
+            try:
+                db_connection.get_collection('settings').update_one(
+                    {"category": "global_settings", "id": "global"},
+                    {"$setOnInsert": default_settings},
+                    upsert=True,
+                )
+                created = db_connection.query(
+                    'settings',
+                    {"category": "global_settings", "id": "global"},
+                    projection={"_id": 0, "amendments": 0},
+                    limit=1,
+                )
+                return created or default_settings
+            except Exception:
+                return default_settings
         except Exception as e:
             self.logger.exception("Failed to get global settings")
             return self._get_default_global_settings()
@@ -307,7 +335,11 @@ class SettingsService(BaseService):
                         changes.append(f"Global setting '{field}' updated to '{new_value}'")
             if global_updates:
                 global_updates['updated_at'] = datetime.now().isoformat()
-                db_connection.update_one('settings', {"id": "global"}, {"$set": global_updates})
+                db_connection.update_one(
+                    'settings',
+                    {"category": "global_settings", "id": "global"},
+                    {"$set": global_updates},
+                )
 
             # --- Update SIEM settings ---
             if 'siem' in settings_data:
@@ -468,14 +500,17 @@ class SettingsService(BaseService):
         """
         return {
             "id": "global",
+            "category": "global_settings",
+            "db_seeded": True,
+            "initialized": False,
             "active_siem": "splunk",
             "ingest_on": True,
             "ingest_frequency": 30,
-            "similarity_check": False,
+            "similarity_check": True,
             "similarity_threshold": 0.8,
             "fix_count": 3,
             "ingest_algo_version": "v1",
-            "active_llm_model_id": "openai-gpt-3.5-turbo",
+            "active_llm_model_id": "vllm-qwen25-coder-32b-awq",
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }

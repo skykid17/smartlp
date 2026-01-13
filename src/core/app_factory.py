@@ -9,7 +9,7 @@ import sys
 import threading
 from typing import Optional
 
-from flask import Flask
+from flask import Flask, request, redirect, jsonify
 
 from config.environment import env_manager
 from core.socketio_manager import socketio_manager
@@ -79,6 +79,47 @@ class ApplicationFactory:
         app.config['JSON_SORT_KEYS'] = False
         app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
         
+        # --- First-run initialization gate ---
+        # If global settings are not marked initialized, force all routes to /init
+        # and allow only init APIs + static assets.
+        from services.settings import settings_service
+
+        ALLOWED_PREFIXES = (
+            "/init",
+            "/api/init",
+            "/api/settings/global",
+            "/socket.io",
+        )
+        STATIC_PREFIXES = (
+            "/css/",
+            "/js/",
+            "/logos/",
+            "/webfonts/",
+            "/favicon",
+            "/static/",
+        )
+
+        @app.before_request
+        def initialization_guard():
+            try:
+                global_settings = settings_service.get_global_settings() or {}
+                initialized = bool(global_settings.get("initialized"))
+            except Exception:
+                initialized = False
+
+            if initialized:
+                return None
+
+            path = request.path or "/"
+            if path.startswith(ALLOWED_PREFIXES) or path.startswith(STATIC_PREFIXES):
+                return None
+
+            # Avoid redirecting API calls (fetch/XHR) into HTML.
+            if path.startswith("/api/"):
+                return jsonify({"error": "Initialization required"}), 403
+
+            return redirect("/init")
+
         logger.info("Flask application configured")
 
 
@@ -99,17 +140,38 @@ class ApplicationFactory:
             app: Flask application instance
         """
         try:
-            from api.main_routes import register_main_routes
-            from api.smartlp_routes import register_smartlp_routes
+            from api.init_routes import register_init_routes
             from api.settings_routes import register_settings_routes
+            from api.main_routes import register_main_routes
+            from services.settings import settings_service
 
             # Register all route modules
-            register_main_routes(app)
-            logger.info("Main routes registered")
-            register_smartlp_routes(app)
-            logger.info("SmartLP routes registered")
+            register_init_routes(app)
+            logger.info("Init routes registered")
             register_settings_routes(app)
             logger.info("Settings routes registered")
+
+            # Always register the dashboard route(s).
+            # The heavy imports happen inside the view function, and the
+            # initialization_guard blocks access before setup is complete.
+            register_main_routes(app)
+            logger.info("Main routes registered")
+
+            # Only register SmartLP routes once initialization is complete.
+            # This prevents import-time side effects (SIEM service instantiation)
+            # from crashing the app when the settings collection is empty.
+            try:
+                global_settings = settings_service.get_global_settings() or {}
+                initialized = bool(global_settings.get("initialized"))
+            except Exception:
+                initialized = False
+
+            if initialized:
+                from api.smartlp_routes import register_smartlp_routes
+                register_smartlp_routes(app)
+                logger.info("SmartLP routes registered")
+            else:
+                logger.info("Initialization not complete; skipping SmartLP routes registration")
             
             logger.info("All application routes registered")
         except Exception as e:
@@ -125,10 +187,18 @@ class ApplicationFactory:
         """
         # Import here to avoid circular imports
         from services.smartlp import smartlp_service
+        from services.settings import settings_service
         
         @app.before_request
         def start_background_ingester():
             """Start background log ingestion on first request."""
+            try:
+                global_settings = settings_service.get_global_settings() or {}
+                if not bool(global_settings.get("initialized")):
+                    return None
+            except Exception:
+                return None
+
             # Remove this function after first execution
             if start_background_ingester in app.before_request_funcs[None]:
                 app.before_request_funcs[None].remove(start_background_ingester)

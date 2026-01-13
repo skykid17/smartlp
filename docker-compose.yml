@@ -13,7 +13,6 @@ services:
       - ./mongod.conf:/etc/mongod.conf:ro
       - ./sampledata.archive:/sampledata.archive
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
-      - ./rag/data:/data/rag:ro # <-- Mount your JSON files
     networks:
       - search-community
     restart: unless-stopped

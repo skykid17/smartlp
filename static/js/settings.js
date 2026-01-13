@@ -13,6 +13,8 @@ class Settings {
         this.selectedLlmEndpoint = null;
         this.section = document.getElementById('settings-section');
 
+        this.addSiemTestPassed = false;
+
         if (!this.section) return;
 
         this.cacheElements();
@@ -49,7 +51,18 @@ class Settings {
             modelLogger: document.getElementById('testModelLogger'),
             testConnectionBtn: document.getElementById('testConnectionBtn'),
             testQueryBtn: document.getElementById('testQueryBtn'),
-            llmEndpointTabs: document.getElementById('llmEndpointTabs')
+            llmEndpointTabs: document.getElementById('llmEndpointTabs'),
+
+            // Add SIEM modal
+            addSiemBtn: document.getElementById('addSiemBtn'),
+            addSiemModal: document.getElementById('addSiemModal'),
+            addSiemClose: document.getElementById('addSiemClose'),
+            addSiemType: document.getElementById('addSiemType'),
+            addElasticFields: document.getElementById('addElasticFields'),
+            addSplunkFields: document.getElementById('addSplunkFields'),
+            addSiemAlert: document.getElementById('addSiemAlert'),
+            addSiemTestBtn: document.getElementById('addSiemTestBtn'),
+            addSiemSaveBtn: document.getElementById('addSiemSaveBtn')
         };
     }
 
@@ -81,6 +94,30 @@ class Settings {
         this.elements.saveBtn?.addEventListener('click', () => this.saveSettings());
         this.elements.testConnectionBtn?.addEventListener('click', () => this.testSiemConnection());
         this.elements.testQueryBtn?.addEventListener('click', () => this.testSiemQuery());
+
+        this.elements.addSiemBtn?.addEventListener('click', () => this.openAddSiemModal());
+        this.elements.addSiemClose?.addEventListener('click', () => this.closeAddSiemModal());
+        this.elements.addSiemType?.addEventListener('change', () => this.onAddSiemTypeChange());
+        this.elements.addSiemTestBtn?.addEventListener('click', () => this.testAddSiemConnection());
+        this.elements.addSiemSaveBtn?.addEventListener('click', () => this.saveAddSiem());
+
+        // Reset test state whenever add-SIEM fields change
+        const addFields = [
+            'addElasticHost', 'addElasticApiKey', 'addElasticKibanaUrl', 'addElasticUser', 'addElasticPassword',
+            'addElasticSearchIndex', 'addElasticPipelineId', 'addElasticCertPath',
+            'addSplunkHost', 'addSplunkPort', 'addSplunkUser', 'addSplunkPassword',
+            'addSplunkSearchIndex', 'addSplunkSearchQuery', 'addSplunkSearchEntryCount'
+        ];
+        addFields.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => this.resetAddSiemTestState());
+        });
+
+        this.elements.addSiemModal?.addEventListener('click', (e) => {
+            const isBackdrop = e.target === this.elements.addSiemModal
+                || (e.target?.classList && e.target.classList.contains('bg-opacity-50'));
+            if (isBackdrop) this.closeAddSiemModal();
+        });
 
         ['searchIndex', 'searchEntryCount', 'searchQuery'].forEach((field) => {
             this.elements[field]?.addEventListener('input', () => this.persistSiemField(field));
@@ -195,6 +232,215 @@ class Settings {
             'Select SIEM...'
         );
         this.handleSiemChange();
+
+        this.updateAddSiemButtonVisibility();
+    }
+
+    updateAddSiemButtonVisibility() {
+        if (!this.elements.addSiemBtn) return;
+
+        // Keep the button visible so users can understand what's available,
+        // but disable it when there is no eligible SIEM to add.
+        const hasElastic = this.siems.some((s) => (s.id || '').toLowerCase() === 'elastic');
+        const hasSplunk = this.siems.some((s) => (s.id || '').toLowerCase() === 'splunk');
+        const canAdd = (hasElastic && !hasSplunk) || (!hasElastic && hasSplunk);
+
+        this.elements.addSiemBtn.disabled = !canAdd;
+        this.elements.addSiemBtn.classList.toggle('opacity-50', !canAdd);
+        this.elements.addSiemBtn.classList.toggle('cursor-not-allowed', !canAdd);
+        this.elements.addSiemBtn.title = canAdd
+            ? 'Add the missing SIEM configuration'
+            : 'Both SIEMs are already configured (or none exist yet)';
+    }
+
+    rebuildAddSiemTypeOptions() {
+        if (!this.elements.addSiemType) return;
+
+        const existing = new Set(this.siems.map((s) => (s.id || '').toLowerCase()));
+        const allowed = [];
+        if (!existing.has('elastic')) allowed.push({ value: 'elastic', label: 'Elastic' });
+        if (!existing.has('splunk')) allowed.push({ value: 'splunk', label: 'Splunk' });
+
+        // Rebuild select
+        this.elements.addSiemType.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = allowed.length ? 'Select…' : 'No SIEMs to add';
+        this.elements.addSiemType.appendChild(placeholder);
+        allowed.forEach(({ value, label }) => {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            this.elements.addSiemType.appendChild(opt);
+        });
+
+        this.elements.addSiemType.disabled = allowed.length === 0;
+    }
+
+    getMissingSiemType() {
+        const hasElastic = this.siems.some((s) => (s.id || '').toLowerCase() === 'elastic');
+        const hasSplunk = this.siems.some((s) => (s.id || '').toLowerCase() === 'splunk');
+        if (hasElastic && !hasSplunk) return 'splunk';
+        if (!hasElastic && hasSplunk) return 'elastic';
+        return null;
+    }
+
+    openAddSiemModal() {
+        if (!this.elements.addSiemModal) return;
+
+        this.rebuildAddSiemTypeOptions();
+
+        const missing = this.getMissingSiemType();
+        if (this.elements.addSiemType) {
+            this.elements.addSiemType.value = missing || '';
+        }
+        this.onAddSiemTypeChange();
+        this.resetAddSiemTestState();
+        this.hideAddSiemAlert();
+
+        if (this.elements.addSiemType?.disabled) {
+            this.showAddSiemAlert('Both SIEMs are already configured.', 'error');
+        }
+
+        this.elements.addSiemModal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    closeAddSiemModal() {
+        if (!this.elements.addSiemModal) return;
+        this.elements.addSiemModal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        this.hideAddSiemAlert();
+    }
+
+    onAddSiemTypeChange() {
+        const type = (this.elements.addSiemType?.value || '').toLowerCase();
+        this.elements.addElasticFields?.classList.toggle('hidden', type !== 'elastic');
+        this.elements.addSplunkFields?.classList.toggle('hidden', type !== 'splunk');
+        this.resetAddSiemTestState();
+    }
+
+    resetAddSiemTestState() {
+        this.addSiemTestPassed = false;
+        if (this.elements.addSiemSaveBtn) this.elements.addSiemSaveBtn.disabled = true;
+    }
+
+    showAddSiemAlert(message, type = 'error') {
+        const el = this.elements.addSiemAlert;
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.textContent = message;
+        el.className = 'text-sm mb-4 px-4 py-2 rounded-lg ' +
+            (type === 'success'
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:bg-opacity-40 dark:text-green-200'
+                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:bg-opacity-40 dark:text-red-200');
+    }
+
+    hideAddSiemAlert() {
+        const el = this.elements.addSiemAlert;
+        if (!el) return;
+        el.classList.add('hidden');
+        el.textContent = '';
+    }
+
+    getAddSiemPayload() {
+        const siemType = (this.elements.addSiemType?.value || '').toLowerCase();
+        if (!siemType) return null;
+
+        if (siemType === 'elastic') {
+            return {
+                siem_type: 'elastic',
+                elastic: {
+                    host: document.getElementById('addElasticHost')?.value?.trim() || '',
+                    api_key: document.getElementById('addElasticApiKey')?.value?.trim() || '',
+                    kibana_url: document.getElementById('addElasticKibanaUrl')?.value?.trim() || '',
+                    user: document.getElementById('addElasticUser')?.value?.trim() || '',
+                    password: document.getElementById('addElasticPassword')?.value || '',
+                    search_index: document.getElementById('addElasticSearchIndex')?.value?.trim() || '',
+                    pipeline_id: document.getElementById('addElasticPipelineId')?.value?.trim() || '',
+                    cert_path: document.getElementById('addElasticCertPath')?.value?.trim() || ''
+                }
+            };
+        }
+
+        if (siemType === 'splunk') {
+            return {
+                siem_type: 'splunk',
+                splunk: {
+                    host: document.getElementById('addSplunkHost')?.value?.trim() || '',
+                    port: document.getElementById('addSplunkPort')?.value?.trim() || '',
+                    user: document.getElementById('addSplunkUser')?.value?.trim() || '',
+                    password: document.getElementById('addSplunkPassword')?.value || '',
+                    search_index: document.getElementById('addSplunkSearchIndex')?.value?.trim() || '',
+                    search_query: document.getElementById('addSplunkSearchQuery')?.value?.trim() || '',
+                    search_entry_count: document.getElementById('addSplunkSearchEntryCount')?.value || ''
+                }
+            };
+        }
+
+        return null;
+    }
+
+    async testAddSiemConnection() {
+        this.hideAddSiemAlert();
+        this.resetAddSiemTestState();
+
+        const payload = this.getAddSiemPayload();
+        if (!payload) {
+            this.showAddSiemAlert('Please select a SIEM type.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/settings/siem/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                this.showAddSiemAlert(data.error || 'Connection test failed.', 'error');
+                return;
+            }
+
+            this.addSiemTestPassed = true;
+            if (this.elements.addSiemSaveBtn) this.elements.addSiemSaveBtn.disabled = false;
+            this.showAddSiemAlert('Connection successful.', 'success');
+        } catch (error) {
+            this.showAddSiemAlert('Connection test failed. Please check settings and try again.', 'error');
+        }
+    }
+
+    async saveAddSiem() {
+        if (!this.addSiemTestPassed) {
+            this.showAddSiemAlert('Please test the connection before saving.', 'error');
+            return;
+        }
+
+        const payload = this.getAddSiemPayload();
+        if (!payload) {
+            this.showAddSiemAlert('Please select a SIEM type.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/settings/siem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                this.showAddSiemAlert(data.error || 'Failed to save SIEM settings.', 'error');
+                return;
+            }
+
+            await this.loadSettings();
+            this.closeAddSiemModal();
+            this.toast('SIEM added successfully', 'success');
+        } catch (error) {
+            this.showAddSiemAlert('Failed to save SIEM settings.', 'error');
+        }
     }
 
     renderLlmControls() {

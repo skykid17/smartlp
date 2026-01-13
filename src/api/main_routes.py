@@ -13,6 +13,7 @@ def register_main_routes(app: Flask) -> None:
     """
     
     @app.route("/")
+    @app.route("/dashboard")
     def dashboard():
         """Main dashboard page - now serves unified SmartLP interface."""
         # Get entries and statuses for dashboard section

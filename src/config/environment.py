@@ -36,7 +36,9 @@ class ElasticSettings:
     host: str
     username: str
     password: str
+    api_key: str
     cert_path: str
+    kibana_url: str
     
 
 @dataclass
@@ -62,6 +64,14 @@ class EnvironmentManager:
         self._splunk_settings: Optional[SplunkSettings] = None
         self._elastic_settings: Optional[ElasticSettings] = None
         self._app_settings: Optional[AppSettings] = None
+
+    def _mongo_url(self) -> str:
+        """Return MongoDB connection string with a safe default."""
+        return os.getenv('MONGO_URL') or 'mongodb://admin:password@localhost:27017/?directConnection=true'
+
+    def _settings_collection(self):
+        db = MongoClient(self._mongo_url()).get_database("smartlp")
+        return db.get_collection("settings")
     
     @property
     def database(self) -> DatabaseSettings:
@@ -82,13 +92,13 @@ class EnvironmentManager:
     def splunk(self) -> SplunkSettings:
         """Get Splunk settings."""
         if self._splunk_settings is None:
-            db = MongoClient(os.getenv('MONGO_URL')).get_database("smartlp")
-            settings_collection = db.get_collection("settings")
+            settings_collection = self._settings_collection()
+            doc = settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'}) or {}
             self._splunk_settings = SplunkSettings(
-                host=settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['host'],
-                port=settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['port'],
-                username=settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['user'],
-                password=settings_collection.find_one({'category': 'siem_settings', 'id': 'splunk'})['password'],
+                host=str(doc.get('host') or ''),
+                port=str(doc.get('port') or '8089'),
+                username=str(doc.get('user') or ''),
+                password=str(doc.get('password') or ''),
             )
         return self._splunk_settings
     
@@ -96,13 +106,15 @@ class EnvironmentManager:
     def elastic(self) -> ElasticSettings:
         """Get Elasticsearch settings."""
         if self._elastic_settings is None:
-            db = MongoClient(os.getenv('MONGO_URL')).get_database("smartlp")
-            settings_collection = db.get_collection("settings")
+            settings_collection = self._settings_collection()
+            doc = settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'}) or {}
             self._elastic_settings = ElasticSettings(
-                host=settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['host'],
-                username=settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['user'],
-                password=settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['password'],
-                cert_path=settings_collection.find_one({'category': 'siem_settings', 'id': 'elastic'})['cert_path'],
+                host=str(doc.get('host') or ''),
+                username=str(doc.get('user') or ''),
+                password=str(doc.get('password') or ''),
+                api_key=str(doc.get('api_key') or ''),
+                cert_path=str(doc.get('cert_path') or ''),
+                kibana_url=str(doc.get('kibana_url') or ''),
             )
         return self._elastic_settings
     

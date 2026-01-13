@@ -11,3 +11,5 @@ rag/rag_setup.log
 rag/repos/elastic_repo/
 tools/
 rag/data/knowledge_base.json
+smartlp_dumpdocker/
+smartlp.archive*

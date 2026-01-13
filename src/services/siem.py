@@ -331,14 +331,32 @@ class ElasticsearchService(BaseSIEMService):
         Returns:
             True if connection successful, False otherwise
         """
+        def _auth_kwargs() -> Dict[str, Any]:
+            api_key = (getattr(self.settings, 'api_key', '') or '').strip()
+            if api_key:
+                return {"api_key": api_key}
+
+            username = (getattr(self.settings, 'username', '') or '').strip()
+            password = getattr(self.settings, 'password', '') or ''
+            if username and password:
+                return {"basic_auth": (username, password)}
+            return {}
+
         try:
             # First try with certificate verification
-            self._connection = Elasticsearch(
-                self.settings.host,
-                ca_certs=self.settings.cert_path,
-                verify_certs=True,
-                basic_auth=(self.settings.username, self.settings.password)
-            )
+            cert_path = (getattr(self.settings, 'cert_path', '') or '').strip()
+            auth_kwargs = _auth_kwargs()
+
+            if cert_path:
+                self._connection = Elasticsearch(
+                    self.settings.host,
+                    ca_certs=cert_path,
+                    verify_certs=True,
+                    **auth_kwargs,
+                )
+            else:
+                # No cert configured; treat this as "no verification" path.
+                raise ValueError("No cert_path configured")
             
             # Test connection
             if self._connection.ping():
@@ -358,10 +376,11 @@ class ElasticsearchService(BaseSIEMService):
         # If certificate verification fails, try without it (for self-signed certificates)
         try:
             self.logger.info("Attempting connection without certificate verification")
+            auth_kwargs = _auth_kwargs()
             self._connection = Elasticsearch(
                 self.settings.host,
                 verify_certs=False,
-                basic_auth=(self.settings.username, self.settings.password)
+                **auth_kwargs,
             )
             
             # Test connection
