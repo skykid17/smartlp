@@ -49,7 +49,6 @@ def _slugify(text: str) -> str:
 def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
     try:
         import splunklib.client as splunk_client
-        import splunklib.results as splunk_results
         import time
 
         conn = splunk_client.connect(
@@ -86,14 +85,13 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
             # Wait for search to complete with timeout protection
             max_wait_time = 30  # seconds
             poll_interval = 0.1
-            elapsed_time = 0
+            start_time = time.time()
             
             while not job.is_done():
-                if elapsed_time >= max_wait_time:
+                if time.time() - start_time >= max_wait_time:
                     job.cancel()
                     return False, "Query validation timed out after 30 seconds", {}
                 time.sleep(poll_interval)
-                elapsed_time += poll_interval
             
             # Get result count efficiently without iterating through all results
             result_count = int(job["resultCount"])
