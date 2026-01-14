@@ -111,7 +111,7 @@ class SmartLPService(CRUDService):
                 active_siem,
                 siem_settings.get('search_index', ''),
                 siem_settings.get('search_query', ''),
-                int(siem_settings.get('search_entry_count', 10) or 10)
+                int(siem_settings.get('search_entry_count', 1) or 1)
             )
             
             if error:

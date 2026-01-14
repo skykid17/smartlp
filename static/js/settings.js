@@ -629,7 +629,7 @@ class Settings {
             const row = document.createElement('div');
             row.className = 'flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm';
             row.innerHTML = `
-                <span class="truncate">${model.display_name || model.model_name}</span>
+                <span class="truncate text-gray-900 dark:text-white">${model.display_name || model.model_name}</span>
                 <div class="flex items-center gap-3">
                     <button type="button" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300" title="Test model connection">
                         <i class="fas fa-plug"></i>
