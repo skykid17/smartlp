@@ -50,6 +50,10 @@ function setStep(step) {
   });
 }
 
+function pluralize(count, singular, plural) {
+  return count === 1 ? singular : plural || singular + 's';
+}
+
 function jsonOrThrow(resp) {
   return resp
     .json()
@@ -156,7 +160,7 @@ document.getElementById('btnSiemTest').addEventListener('click', async () => {
       if (resultCount === 0) {
         successMessage = `SIEM connection verified. Query executed successfully (0 results found).`;
       } else {
-        successMessage = `SIEM connection verified. Query executed successfully (${resultCount} result${resultCount !== 1 ? 's' : ''}).`;
+        successMessage = `SIEM connection verified. Query executed successfully (${resultCount} ${pluralize(resultCount, 'result')}).`;
       }
     }
     

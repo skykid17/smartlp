@@ -83,15 +83,20 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
             # Execute search
             job = conn.jobs.create(search_string)
             
-            # Wait for search to complete with a small sleep to reduce CPU usage
-            while not job.is_done():
-                time.sleep(0.1)
+            # Wait for search to complete with timeout protection
+            max_wait_time = 30  # seconds
+            poll_interval = 0.1
+            elapsed_time = 0
             
-            # Get results and count
-            result_count = 0
-            for result in splunk_results.ResultsReader(job.results()):
-                if isinstance(result, dict):
-                    result_count += 1
+            while not job.is_done():
+                if elapsed_time >= max_wait_time:
+                    job.cancel()
+                    return False, "Query validation timed out after 30 seconds", {}
+                time.sleep(poll_interval)
+                elapsed_time += poll_interval
+            
+            # Get result count efficiently without iterating through all results
+            result_count = int(job["resultCount"])
 
             return True, "Connected and query executed successfully", {
                 "version": version,
