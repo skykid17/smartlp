@@ -100,6 +100,37 @@ class LLMService(BaseService):
                 "error": str(e),
                 "latency": latency
             }
+    
+    def test_connection(self, endpoint_url: str, model_name: str, api_key: str, test_prompt: str) -> Tuple[bool, str, Dict[str, Any]]:
+        """Test LLM connection with provided configuration.
+        
+        Args:
+            endpoint_url: The LLM endpoint URL
+            model_name: The model name to test
+            api_key: The API key (can be empty for some providers)
+            test_prompt: The test prompt to send
+        
+        Returns:
+            Tuple of (success, message, details)
+        """
+        try:
+            # Some OpenAI-compatible servers require a non-empty key even if they ignore it.
+            client_key = api_key if api_key is not None and str(api_key).strip() else "not-needed"
+
+            llm = ChatOpenAI(
+                model=model_name,
+                base_url=endpoint_url,
+                api_key=client_key,
+                temperature=0,
+                timeout=20,
+            )
+
+            resp = llm.invoke(test_prompt)
+            content = getattr(resp, "content", "")
+            return True, "LLM test succeeded", {"sample": (content or "").strip()[:200]}
+
+        except Exception as e:
+            return False, f"LLM test failed: {str(e)}", {}
 
 # Create service instance
 llm_service = LLMService()
