@@ -36,8 +36,11 @@ class BaseSIEMService(BaseService, ABC):
         self._connection = None
     
     @abstractmethod
-    def connect(self) -> bool:
+    def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
         """Establish connection to SIEM.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
         
         Returns:
             True if connection successful, False otherwise
@@ -45,22 +48,26 @@ class BaseSIEMService(BaseService, ABC):
         pass
     
     @abstractmethod
-    def test_connection(self) -> bool:
+    def test_connection(self, config_override: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """Test SIEM connection.
         
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
         Returns:
-            True if connection is working, False otherwise
+            Tuple of (success, message, details)
         """
         pass
     
     @abstractmethod
-    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100, config_override: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict], Optional[str]]:
         """Execute search query.
         
         Args:
             query: Search query
             index: Index/sourcetype to search
             max_results: Maximum number of results
+            config_override: Optional configuration to use instead of self.settings
             
         Returns:
             Tuple of (results, error_message)
@@ -98,9 +105,16 @@ class SplunkService(BaseSIEMService):
         """
         try:
             if config_override:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
                 self._connection = splunk_client.connect(
                     host=config_override.get("host"),
-                    port=str(config_override.get("port")),
+                    port=port,
                     username=config_override.get("user"),
                     password=config_override.get("password")
                 )
@@ -132,9 +146,16 @@ class SplunkService(BaseSIEMService):
         try:
             # If config_override is provided, create a temporary connection
             if config_override:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
                 conn = splunk_client.connect(
                     host=config_override.get("host"),
-                    port=str(config_override.get("port")),
+                    port=port,
                     username=config_override.get("user"),
                     password=config_override.get("password")
                 )
@@ -212,9 +233,16 @@ class SplunkService(BaseSIEMService):
         # If config_override is provided, create a temporary connection
         if config_override:
             try:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
                 conn = splunk_client.connect(
                     host=config_override.get("host"),
-                    port=str(config_override.get("port")),
+                    port=port,
                     username=config_override.get("user"),
                     password=config_override.get("password")
                 )
@@ -412,6 +440,36 @@ class ElasticsearchService(BaseSIEMService):
         self.settings = env_manager.elastic
         self.ssl_verified = False  # Track whether SSL verification is being used
     
+    def _build_auth_kwargs(self, config_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Build authentication kwargs for Elasticsearch connection.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
+        Returns:
+            Dictionary with authentication parameters
+        """
+        if config_override:
+            api_key = (config_override.get('api_key', '') or '').strip()
+            if api_key:
+                return {"api_key": api_key}
+            
+            username = (config_override.get('user', '') or '').strip()
+            password = config_override.get('password', '') or ''
+            if username and password:
+                return {"basic_auth": (username, password)}
+            return {}
+        else:
+            api_key = (getattr(self.settings, 'api_key', '') or '').strip()
+            if api_key:
+                return {"api_key": api_key}
+
+            username = (getattr(self.settings, 'username', '') or '').strip()
+            password = getattr(self.settings, 'password', '') or ''
+            if username and password:
+                return {"basic_auth": (username, password)}
+            return {}
+    
     def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
         """Connect to Elasticsearch.
         
@@ -421,28 +479,6 @@ class ElasticsearchService(BaseSIEMService):
         Returns:
             True if connection successful, False otherwise
         """
-        def _auth_kwargs(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-            if cfg:
-                api_key = (cfg.get('api_key', '') or '').strip()
-                if api_key:
-                    return {"api_key": api_key}
-                
-                username = (cfg.get('user', '') or '').strip()
-                password = cfg.get('password', '') or ''
-                if username and password:
-                    return {"basic_auth": (username, password)}
-                return {}
-            else:
-                api_key = (getattr(self.settings, 'api_key', '') or '').strip()
-                if api_key:
-                    return {"api_key": api_key}
-
-                username = (getattr(self.settings, 'username', '') or '').strip()
-                password = getattr(self.settings, 'password', '') or ''
-                if username and password:
-                    return {"basic_auth": (username, password)}
-                return {}
-
         try:
             # First try with certificate verification
             if config_override:
@@ -452,7 +488,7 @@ class ElasticsearchService(BaseSIEMService):
                 host = self.settings.host
                 cert_path = (getattr(self.settings, 'cert_path', '') or '').strip()
             
-            auth_kwargs = _auth_kwargs(config_override)
+            auth_kwargs = self._build_auth_kwargs(config_override)
 
             if cert_path:
                 self._connection = Elasticsearch(
@@ -488,7 +524,7 @@ class ElasticsearchService(BaseSIEMService):
             else:
                 host = self.settings.host
             
-            auth_kwargs = _auth_kwargs(config_override)
+            auth_kwargs = self._build_auth_kwargs(config_override)
             self._connection = Elasticsearch(
                 host,
                 verify_certs=False,
@@ -526,47 +562,44 @@ class ElasticsearchService(BaseSIEMService):
         import json
         
         try:
-            # Build auth kwargs from config_override or settings
-            def _auth_kwargs(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-                if cfg:
-                    api_key = (cfg.get('api_key', '') or '').strip()
-                    if api_key:
-                        return {"api_key": api_key}
-                    
-                    username = (cfg.get('user', '') or '').strip()
-                    password = cfg.get('password', '') or ''
-                    if username and password:
-                        return {"basic_auth": (username, password)}
-                    return {}
-                else:
-                    api_key = (getattr(self.settings, 'api_key', '') or '').strip()
-                    if api_key:
-                        return {"api_key": api_key}
-
-                    username = (getattr(self.settings, 'username', '') or '').strip()
-                    password = getattr(self.settings, 'password', '') or ''
-                    if username and password:
-                        return {"basic_auth": (username, password)}
-                    return {}
-            
             # If config_override is provided, create a temporary connection
             if config_override:
-                api_key = (config_override.get("api_key") or "").strip()
-                if not api_key:
-                    return False, "Missing required field: api_key", {}
-                
+                # Use relaxed validation - allow connection attempt without strict requirements
+                # This matches the behavior of the connect() method
+                host = config_override.get("host")
                 cert_path = (config_override.get("cert_path") or "").strip()
-                if not cert_path:
-                    return False, "Missing required field: cert_path", {}
+                auth_kwargs = self._build_auth_kwargs(config_override)
                 
-                es_kwargs: Dict[str, Any] = {
-                    "request_timeout": 10,
-                    "verify_certs": True,
-                    "ca_certs": cert_path,
-                }
-                es_kwargs.update(_auth_kwargs(config_override))
+                # Try with certificate first if provided
+                es = None
+                if cert_path:
+                    try:
+                        es_kwargs: Dict[str, Any] = {
+                            "request_timeout": 10,
+                            "verify_certs": True,
+                            "ca_certs": cert_path,
+                        }
+                        es_kwargs.update(auth_kwargs)
+                        es = Elasticsearch(host, **es_kwargs)
+                        if not es.ping():
+                            es = None
+                    except Exception:
+                        es = None
                 
-                es = Elasticsearch(config_override["host"], **es_kwargs)
+                # Fall back to no verification if cert didn't work
+                if es is None:
+                    try:
+                        es_kwargs: Dict[str, Any] = {
+                            "request_timeout": 10,
+                            "verify_certs": False,
+                        }
+                        es_kwargs.update(auth_kwargs)
+                        es = Elasticsearch(host, **es_kwargs)
+                        if not es.ping():
+                            return False, "Failed to connect to Elasticsearch", {}
+                    except Exception as e:
+                        return False, f"Elasticsearch connection failed: {str(e)}", {}
+                
                 info = es.info()
                 cluster_name = info.get("cluster_name")
                 version = (info.get("version") or {}).get("number")
@@ -639,19 +672,8 @@ class ElasticsearchService(BaseSIEMService):
         # If config_override is provided, create a temporary connection
         if config_override:
             try:
-                def _auth_kwargs(cfg: Dict[str, Any]) -> Dict[str, Any]:
-                    api_key = (cfg.get('api_key', '') or '').strip()
-                    if api_key:
-                        return {"api_key": api_key}
-                    
-                    username = (cfg.get('user', '') or '').strip()
-                    password = cfg.get('password', '') or ''
-                    if username and password:
-                        return {"basic_auth": (username, password)}
-                    return {}
-                
                 cert_path = (config_override.get("cert_path", '') or '').strip()
-                auth_kwargs = _auth_kwargs(config_override)
+                auth_kwargs = self._build_auth_kwargs(config_override)
                 
                 if cert_path:
                     conn = Elasticsearch(
