@@ -70,11 +70,10 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
             return False, "Missing search_index or search_query for validation", {}
 
         try:
-            # Convert search_entry_count to int if it's a string
-            try:
-                entry_count = int(search_entry_count)
-            except (ValueError, TypeError):
-                entry_count = 10
+            # Convert search_entry_count to int, default to 10 if invalid
+            entry_count = int(search_entry_count) if search_entry_count else 10
+        except (ValueError, TypeError):
+            entry_count = 10
 
             # Construct search query
             search_string = f"search index={search_index} {search_query} | head {entry_count}"

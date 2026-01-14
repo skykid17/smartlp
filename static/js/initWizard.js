@@ -157,10 +157,11 @@ document.getElementById('btnSiemTest').addEventListener('click', async () => {
     let successMessage = data.message || 'SIEM test succeeded';
     if (data.details && typeof data.details.result_count !== 'undefined') {
       const resultCount = data.details.result_count;
+      const baseMessage = 'SIEM connection verified. Query executed successfully';
       if (resultCount === 0) {
-        successMessage = `SIEM connection verified. Query executed successfully (0 results found).`;
+        successMessage = `${baseMessage} (0 results found).`;
       } else {
-        successMessage = `SIEM connection verified. Query executed successfully (${resultCount} ${pluralize(resultCount, 'result')}).`;
+        successMessage = `${baseMessage} (${resultCount} ${pluralize(resultCount, 'result')}).`;
       }
     }
     
