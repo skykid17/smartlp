@@ -148,7 +148,19 @@ document.getElementById('btnSiemTest').addEventListener('click', async () => {
     state.siem.tested = true;
     const nextBtn = document.getElementById('btnSiemNext');
     nextBtn.disabled = false;
-    setSuccess(data.message || 'SIEM test succeeded');
+    
+    // Build success message with query execution details
+    let successMessage = data.message || 'SIEM test succeeded';
+    if (data.details && typeof data.details.result_count !== 'undefined') {
+      const resultCount = data.details.result_count;
+      if (resultCount === 0) {
+        successMessage = `SIEM connection verified. Query executed successfully (0 results found).`;
+      } else {
+        successMessage = `SIEM connection verified. Query executed successfully (${resultCount} result${resultCount !== 1 ? 's' : ''}).`;
+      }
+    }
+    
+    setSuccess(successMessage);
     nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e) {
     state.siem.tested = false;

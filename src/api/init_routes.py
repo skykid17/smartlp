@@ -49,6 +49,7 @@ def _slugify(text: str) -> str:
 def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
     try:
         import splunklib.client as splunk_client
+        import splunklib.results as splunk_results
 
         conn = splunk_client.connect(
             host=cfg["host"],
@@ -57,7 +58,48 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
             password=cfg["password"],
         )
         info = conn.info()
-        return True, "Connected to Splunk", {"version": info.get("version"), "build": info.get("build")}
+        version = info.get("version")
+        build = info.get("build")
+
+        # After successful connection, execute query validation
+        search_index = cfg.get("search_index", "").strip()
+        search_query = cfg.get("search_query", "").strip()
+        search_entry_count = cfg.get("search_entry_count", 10)
+
+        if not search_index or not search_query:
+            return False, "Missing search_index or search_query for validation", {}
+
+        try:
+            # Convert search_entry_count to int if it's a string
+            try:
+                entry_count = int(search_entry_count)
+            except (ValueError, TypeError):
+                entry_count = 10
+
+            # Construct search query
+            search_string = f"search index={search_index} {search_query} | head {entry_count}"
+            
+            # Execute search
+            job = conn.jobs.create(search_string)
+            
+            # Wait for search to complete
+            while not job.is_done():
+                pass
+            
+            # Get results and count
+            result_count = 0
+            for result in splunk_results.ResultsReader(job.results()):
+                if isinstance(result, dict):
+                    result_count += 1
+
+            return True, "Connected and query executed successfully", {
+                "version": version,
+                "build": build,
+                "result_count": result_count,
+            }
+        except Exception as query_error:
+            return False, f"Query validation failed: {str(query_error)}", {}
+
     except Exception as e:
         return False, f"Splunk connection failed: {str(e)}", {}
 
@@ -65,6 +107,7 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
 def _test_elastic(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
     try:
         from elasticsearch import Elasticsearch
+        import json
 
         es_kwargs: Dict[str, Any] = {
             "request_timeout": 10,
@@ -85,10 +128,53 @@ def _test_elastic(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
         es = Elasticsearch(cfg["host"], **es_kwargs)
         info = es.info()
 
-        return True, "Connected to Elasticsearch", {
-            "cluster_name": info.get("cluster_name"),
-            "version": (info.get("version") or {}).get("number"),
-        }
+        cluster_name = info.get("cluster_name")
+        version = (info.get("version") or {}).get("number")
+
+        # After successful connection, execute query validation
+        search_index = cfg.get("search_index", "").strip()
+        search_query = cfg.get("search_query", "").strip()
+
+        if not search_index or not search_query:
+            return False, "Missing search_index or search_query for validation", {}
+
+        # Parse query if it's a string
+        try:
+            query_dict = json.loads(search_query)
+        except json.JSONDecodeError:
+            # Treat as simple query string
+            query_dict = {
+                "query": {
+                    "query_string": {
+                        "query": search_query
+                    }
+                }
+            }
+
+        # Limit to 1 result for testing
+        query_dict["size"] = 1
+
+        try:
+            response = es.search(index=search_index, body=query_dict)
+            
+            # Extract result count
+            result_count = 0
+            hits_container = response.get('hits', {})
+            if isinstance(hits_container, dict):
+                total = hits_container.get('total')
+                if isinstance(total, dict):
+                    result_count = total.get('value', 0)
+                elif isinstance(total, int):
+                    result_count = total
+
+            return True, "Connected and query executed successfully", {
+                "cluster_name": cluster_name,
+                "version": version,
+                "result_count": result_count,
+            }
+        except Exception as query_error:
+            return False, f"Query validation failed: {str(query_error)}", {}
+
     except Exception as e:
         return False, f"Elasticsearch connection failed: {str(e)}", {}
 
