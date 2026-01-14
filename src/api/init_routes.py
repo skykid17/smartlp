@@ -75,6 +75,7 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
         except (ValueError, TypeError):
             entry_count = 10
 
+        try:
             # Construct search query
             search_string = f"search index={search_index} {search_query} | head {entry_count}"
             
