@@ -50,6 +50,10 @@ function setStep(step) {
   });
 }
 
+function pluralize(count, singular, plural) {
+  return count === 1 ? singular : plural || singular + 's';
+}
+
 function jsonOrThrow(resp) {
   return resp
     .json()
@@ -148,7 +152,20 @@ document.getElementById('btnSiemTest').addEventListener('click', async () => {
     state.siem.tested = true;
     const nextBtn = document.getElementById('btnSiemNext');
     nextBtn.disabled = false;
-    setSuccess(data.message || 'SIEM test succeeded');
+    
+    // Build success message with query execution details
+    let successMessage = data.message || 'SIEM test succeeded';
+    if (data.details && typeof data.details.result_count !== 'undefined') {
+      const resultCount = data.details.result_count;
+      const baseMessage = 'SIEM connection verified. Query executed successfully';
+      if (resultCount === 0) {
+        successMessage = `${baseMessage} (0 results found).`;
+      } else {
+        successMessage = `${baseMessage} (${resultCount} ${pluralize(resultCount, 'result')}).`;
+      }
+    }
+    
+    setSuccess(successMessage);
     nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e) {
     state.siem.tested = false;
