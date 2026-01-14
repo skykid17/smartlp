@@ -142,19 +142,19 @@ def _test_elastic(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
         # Parse query if it's a string
         try:
             query_dict = json.loads(search_query)
+            # Extract just the query portion
+            query_body = query_dict.get("query", {"match_all": {}})
         except json.JSONDecodeError:
             # Treat as simple query string
-            query_dict = {
-                "query": {
-                    "query_string": {
-                        "query": search_query
-                    }
+            query_body = {
+                "query_string": {
+                    "query": search_query
                 }
             }
 
         # Use count API for accurate result counting without retrieving documents
         try:
-            count_response = es.count(index=search_index, body={"query": query_dict.get("query", {"match_all": {}})})
+            count_response = es.count(index=search_index, query=query_body)
             result_count = count_response.get("count", 0)
 
             return True, "Connected and query executed successfully", {
