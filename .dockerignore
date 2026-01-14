@@ -1,0 +1,9 @@
+.venv
+tools/
+__pycache__
+node_modules
+.git
+*.pyc
+
+# already added via compose
+smartlp.archive

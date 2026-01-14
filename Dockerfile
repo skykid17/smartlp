@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
     wget \
     libpcre2-8-0 \
+    libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download MongoDB Database Tools tarball and install
@@ -51,10 +52,13 @@ RUN wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-
     && rm -rf mongodb-database-tools-debian12-x86_64-${MONGO_TOOLS_VERSION}* 
 
 # Copy Python packages from builder
-COPY --from=builder /install /usr/local
+COPY --from=builder /install/lib /usr/local/lib
+COPY --from=builder /install/bin /usr/local/bin
+COPY --from=builder /install/include /usr/local/include
+
 
 # Copy application code
-COPY . /app
+COPY . .
 
 # Use tini for PID 1 signal handling
 ENTRYPOINT ["tini", "--"]

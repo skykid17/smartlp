@@ -26,8 +26,6 @@ def _bootstrap_sys_path() -> None:
 
 _bootstrap_sys_path()
 
-from src.services.rag import rag_service
-
 URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
 ARCHIVE_PATH = os.getenv(
     "SMARTLP_ARCHIVE",
@@ -79,6 +77,8 @@ def main():
     client = MongoClient(URI)
     restore_archive()
     wait_for_mongot(client)
+    from src.services.rag import rag_service
+    
     rag_service.init()
     start_application()
 
