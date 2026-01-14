@@ -251,7 +251,7 @@ class ApplicationFactory:
         run_port = port or env_manager.app.port
         run_debug = debug if debug is not None else env_manager.app.debug
         
-        logger.info("Starting SmartSOC server on %s:%s", run_host, run_port)
+        logger.info("Starting SmartLP server on %s:%s", run_host, run_port)
         
         # Run with SocketIO
         if socketio_manager.socketio is not None:

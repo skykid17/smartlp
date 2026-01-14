@@ -363,7 +363,7 @@ def register_settings_routes(app: Flask) -> None:
 
             if siem_type == 'elastic':
                 cfg = data.get('elastic') or {}
-                for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "pipeline_id"]:
+                for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "search_query"]:
                     err = _required(cfg, f)
                     if err:
                         return jsonify({"success": False, "error": err}), 400
@@ -405,7 +405,7 @@ def register_settings_routes(app: Flask) -> None:
             # Validate + test before saving
             if siem_type == 'elastic':
                 cfg = data.get('elastic') or {}
-                for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "pipeline_id"]:
+                for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "search_query"]:
                     err = _required(cfg, f)
                     if err:
                         return jsonify({"success": False, "error": err}), 400
@@ -430,7 +430,8 @@ def register_settings_routes(app: Flask) -> None:
                     "user": (cfg.get("user") or "").strip(),
                     "password": cfg.get("password") or "",
                     "search_index": (cfg.get("search_index") or "").strip(),
-                    "pipeline_id": (cfg.get("pipeline_id") or "").strip(),
+                    "search_query": (cfg.get("search_query") or "").strip(),
+                    "pipeline_id": "smartlp",
                     "cert_path": (cfg.get("cert_path") or "").strip(),
                 }
             else:

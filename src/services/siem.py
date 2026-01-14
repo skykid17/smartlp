@@ -9,8 +9,6 @@ import pcre2
 from collections import defaultdict
 import requests
 
-from tools.deploy_rule import KIBANA_URL
-
 from .base import BaseService
 
 from elasticsearch import Elasticsearch

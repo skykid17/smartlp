@@ -26,7 +26,7 @@ def _bootstrap_sys_path() -> None:
 
 _bootstrap_sys_path()
 
-URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/?directConnection=true")
+URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/?directConnection=true")
 ARCHIVE_PATH = os.getenv(
     "SMARTLP_ARCHIVE",
     str(Path(__file__).resolve().with_name("smartlp.archive")),
@@ -59,14 +59,18 @@ def wait_for_mongot(client, timeout=60):
     raise RuntimeError("mongot not ready")
 
 def is_db_seeded(client):
-    doc = client.smartlp.global_settings.find_one({"id": "global"})
+    doc = client.smartlp.settings.find_one({"id": "global"})
     return doc and doc.get("db_seeded") is True
 
-
-def restore_archive():
+def restore_archive(client):
     subprocess.run(
         ["mongorestore", "--uri", URI, "--gzip", f"--archive={ARCHIVE_PATH}"],
         check=True,
+    )
+    client.smartlp.settings.update_one(
+        {"id": "global"},
+        {"$set": {"db_seeded": True}},
+        upsert=True,
     )
 
 def start_application():
@@ -75,10 +79,11 @@ def start_application():
 def main():
     wait_for_mongo(URI)
     client = MongoClient(URI)
-    restore_archive()
+    if not is_db_seeded(client):
+        restore_archive(client)
     wait_for_mongot(client)
     from src.services.rag import rag_service
-    
+
     rag_service.init()
     start_application()
 

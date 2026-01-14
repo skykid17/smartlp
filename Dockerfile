@@ -11,18 +11,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # System deps for building Python wheels
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpcre2-dev \
-    wget \
-    gnupg \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpcre2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir --prefix=/install -r requirements.txt
+    && pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 
 ############################################################
@@ -38,10 +34,7 @@ WORKDIR /app
 
 # Install tini, libpcre2, wget (for downloading tarball)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini \
-    wget \
-    libpcre2-8-0 \
-    libgssapi-krb5-2 \
+    tini wget libpcre2-8-0 libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download MongoDB Database Tools tarball and install
@@ -51,11 +44,8 @@ RUN wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-
     && mv mongodb-database-tools-debian12-x86_64-${MONGO_TOOLS_VERSION}/bin/* /usr/local/bin/ \
     && rm -rf mongodb-database-tools-debian12-x86_64-${MONGO_TOOLS_VERSION}* 
 
-# Copy Python packages from builder
-COPY --from=builder /install/lib /usr/local/lib
-COPY --from=builder /install/bin /usr/local/bin
-COPY --from=builder /install/include /usr/local/include
-
+COPY --from=builder /app/wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
 # Copy application code
 COPY . .

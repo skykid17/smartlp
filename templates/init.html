@@ -32,55 +32,27 @@
       background: rgba(5, 150, 105, 0.10);
       color: #047857;
     }
-
-    .slp-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1rem;
-      font-weight: 600;
-      border: 1px solid transparent;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .slp-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .slp-btn-secondary {
-      background: #e2e8f0;
-      color: #0f172a;
-    }
-
-    .slp-btn-primary {
-      background: #4f46e5;
-      color: #ffffff;
-    }
   </style>
 </head>
 
-<body class="min-h-screen bg-slate-950 text-slate-100">
+<body class="min-h-screen bg-gray-50 text-gray-900">
   <div class="min-h-screen flex items-center justify-center p-6">
     <div class="w-full max-w-2xl">
       <div class="mb-6">
         <h1 class="text-2xl font-semibold">SmartLP Setup</h1>
-        <p class="text-slate-300 mt-1">Complete first-run configuration to continue.</p>
+        <p class="text-gray-600 mt-1">Complete first-run configuration to continue.</p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl shadow p-6">
+      <div class="bg-white border border-gray-200 rounded-xl shadow-md p-6">
         <div class="flex items-center justify-between text-sm mb-6">
-          <div id="stepIndicator" class="text-slate-300">
-            <span data-step="1" class="font-medium text-slate-100">SIEM Setup</span>
+          <div id="stepIndicator" class="text-gray-600">
+            <span data-step="1" class="font-medium text-gray-900">SIEM Setup</span>
             <span class="mx-2">→</span>
             <span data-step="2">LLM Setup</span>
             <span class="mx-2">→</span>
             <span data-step="3">Review</span>
           </div>
-          <div id="statusBadge" class="px-2 py-1 rounded bg-slate-800 text-slate-200">Not initialized</div>
+          <div id="statusBadge" class="px-2 py-1 rounded bg-gray-200 text-gray-700">Not initialized</div>
         </div>
 
         <div id="alert" class="hidden slp-alert slp-alert-error"></div>
@@ -89,8 +61,8 @@
         <!-- Step 1: SIEM -->
         <section data-step-panel="1">
           <div class="mb-4">
-            <label class="block text-sm text-slate-300 mb-2">Active SIEM</label>
-            <select id="siemType" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2">
+            <label class="block text-sm text-gray-700 mb-2">Active SIEM</label>
+            <select id="siemType" class="w-full bg-white border border-gray-300 rounded px-3 py-2">
               <option value="">Select…</option>
               <option value="elastic">Elastic</option>
               <option value="splunk">Splunk</option>
@@ -100,41 +72,46 @@
           <div id="elasticFields" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Elasticsearch Host</label>
-                <input id="elasticHost" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                  placeholder="https://localhost:9200" />
+                <label class="block text-sm text-gray-700 mb-1">Elasticsearch Host</label>
+                <input id="elasticHost" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  placeholder="https://localhost:9200" value="https://192.168.31.62:9200" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">API Key</label>
-                <input id="elasticApiKey" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                  placeholder="Base64 API key" required />
+                <label class="block text-sm text-gray-700 mb-1">API Key</label>
+                <input id="elasticApiKey" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  placeholder="Base64 API key" value="dnBVVzU1WUI2MFhUUENVblpCSzA6OVdHN2JGamVUSC1SWHEtd0hpQmhhUQ=="
+                  required />
               </div>
               <div class="md:col-span-2">
-                <label class="block text-sm text-slate-300 mb-1">Kibana URL</label>
-                <input id="elasticKibanaUrl" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                  placeholder="https://localhost:5601" required />
+                <label class="block text-sm text-gray-700 mb-1">Kibana URL</label>
+                <input id="elasticKibanaUrl" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  placeholder="https://localhost:5601" value="https://192.168.31.62:5601" required />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">User</label>
-                <input id="elasticUser" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                <label class="block text-sm text-gray-700 mb-1">User</label>
+                <input id="elasticUser" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  value="george" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Password</label>
-                <input id="elasticPassword" type="password"
-                  class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                <label class="block text-sm text-gray-700 mb-1">Password</label>
+                <input id="elasticPassword" type="password" value="P@55w0rd"
+                  class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Search Index</label>
-                <input id="elasticSearchIndex" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm text-slate-300 mb-1">Pipeline ID</label>
-                <input id="elasticPipelineId" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                <label class="block text-sm text-gray-700 mb-1">Search Index</label>
+                <input id="elasticSearchIndex" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  value="logs-unparsed*" />
               </div>
               <div class="md:col-span-2">
-                <label class="block text-sm text-slate-300 mb-1">Cert Path</label>
-                <input id="elasticCertPath" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                  placeholder="/path/to/ca.crt" required />
+                <label class="block text-sm text-gray-700 mb-1">Search Query</label>
+                <input id="elasticSearchQuery" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  placeholder='{"query": {"match_all": {}}'
+                  value='{ "size": 1,  "sort": [   {"@timestamp": {"order": "desc"}}  ],"query": {"match_all": {}  } }' />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm text-gray-700 mb-1">Cert Path</label>
+                <input id="elasticCertPath" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                  placeholder="/path/to/ca.crt" value="./certs/elastic_chain_cert.cer" required />
               </div>
             </div>
           </div>
@@ -142,104 +119,130 @@
           <div id="splunkFields" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Host</label>
-                <input id="splunkHost" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
+                <label class="block text-sm text-gray-700 mb-1">Host</label>
+                <input id="splunkHost" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
                   placeholder="localhost" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Port</label>
-                <input id="splunkPort" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
+                <label class="block text-sm text-gray-700 mb-1">Port</label>
+                <input id="splunkPort" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
                   placeholder="8089" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">User</label>
-                <input id="splunkUser" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                <label class="block text-sm text-gray-700 mb-1">User</label>
+                <input id="splunkUser" class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Password</label>
+                <label class="block text-sm text-gray-700 mb-1">Password</label>
                 <input id="splunkPassword" type="password"
-                  class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                  class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Search Index</label>
-                <input id="splunkSearchIndex" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                <label class="block text-sm text-gray-700 mb-1">Search Index</label>
+                <input id="splunkSearchIndex" class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
-                <label class="block text-sm text-slate-300 mb-1">Search Entry Count</label>
-                <input id="splunkSearchEntryCount" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
+                <label class="block text-sm text-gray-700 mb-1">Search Entry Count</label>
+                <input id="splunkSearchEntryCount" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
                   placeholder="10" />
               </div>
               <div class="md:col-span-2">
-                <label class="block text-sm text-slate-300 mb-1">Search Query</label>
-                <input id="splunkSearchQuery" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
+                <label class="block text-sm text-gray-700 mb-1">Search Query</label>
+                <input id="splunkSearchQuery" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
                   placeholder="(index=main)" />
               </div>
             </div>
           </div>
 
-          <div class="mt-6 flex items-center justify-end gap-3">
-            <button id="btnSiemTest" type="button" class="slp-btn slp-btn-secondary">Test
-              Connection</button>
-            <button id="btnSiemNext" type="button" disabled class="slp-btn slp-btn-primary">Next</button>
+          <div class="mt-6 flex items-center justify-end gap-6">
+            <button id="btnSiemTest" type="button"
+              class="px-4 py-2 rounded bg-gray-100 text-gray-900 font-medium inline-flex items-center hover:bg-gray-300">Test
+              Connection
+              <span id="siemSpinner" class="hidden ml-2">
+                <svg class="animate-spin h-4 w-4 text-gray-900" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              </span>
+            </button>
+            <button id="btnSiemNext" type="button" disabled
+              class="px-4 py-2 rounded bg-blue-600 text-white font-medium disabled:opacity-50 hover:bg-blue-600">Next</button>
           </div>
         </section>
 
         <!-- Step 2: LLM -->
         <section data-step-panel="2" class="hidden">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="md:col-span-2">
-              <label class="block text-sm text-slate-300 mb-1">Provider</label>
-              <select id="llmProvider" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 mb-3">
+              <label class="block text-sm text-gray-700 mb-1">Provider</label>
+              <select id="llmProvider" class="w-full bg-white border border-gray-300 rounded px-3 py-2">
+                <option value="vllm">vLLM</option>
                 <option value="">Select…</option>
                 <option value="ollama">Ollama</option>
                 <option value="lmstudio">LM Studio</option>
-                <option value="vllm">vLLM</option>
+                <option value="custom">OpenAI</option>
               </select>
             </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm text-slate-300 mb-1">Endpoint URL</label>
-              <input id="llmEndpointUrl" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                placeholder="http://localhost:8000/v1" />
+            <div class="md:col-span-2 mb-3">
+              <label class="block text-sm text-gray-700 mb-1">Endpoint URL</label>
+              <input id="llmEndpointUrl" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                placeholder="http://localhost:8000/v1" value="http://192.168.125.31:8000/v1" />
             </div>
-            <div>
-              <label class="block text-sm text-slate-300 mb-1">Model Name</label>
-              <input id="llmModelName" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2"
-                placeholder="Qwen3-8B" />
+            <div class="mb-3">
+              <label class="block text-sm text-gray-700 mb-1">Model Name</label>
+              <input id="llmModelName" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                value="qwen25-coder-32b-awq" placeholder="Qwen3-8B" />
             </div>
-            <div>
-              <label class="block text-sm text-slate-300 mb-1">API Key (optional)</label>
-              <input id="llmApiKey" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+            <div class="mb-3">
+              <label class="block text-sm text-gray-700 mb-1">API Key (optional)</label>
+              <input id="llmApiKey" class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
             </div>
           </div>
 
-          <div class="mt-6 flex items-center gap-3">
-            <button id="btnLlmTest" type="button" class="slp-btn slp-btn-secondary">Test LLM</button>
-            <button id="btnLlmNext" type="button" disabled class="slp-btn slp-btn-primary">Next</button>
-            <button id="btnLlmBack" type="button" class="ml-auto slp-btn slp-btn-secondary">Back</button>
+          <div class="mt-6 flex items-center gap-6">
+            <button id="btnLlmBack"
+              class="px-4 py-2 rounded bg-gray-100 text-gray-900 font-medium hover:bg-gray-300">Back</button>
+            <button id="btnLlmTest"
+              class="ml-auto px-4 py-2 rounded bg-gray-100 text-gray-900 font-medium inline-flex items-center hover:bg-gray-300">Test
+              LLM
+              <span id="llmSpinner" class="hidden ml-2">
+                <svg class="animate-spin h-4 w-4 text-gray-900" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              </span>
+            </button>
+            <button id="btnLlmNext" disabled
+              class="px-4 py-2 rounded bg-blue-600 text-white font-medium disabled:opacity-50 hover:bg-blue-600">Next</button>
           </div>
         </section>
 
         <!-- Step 3: Review -->
         <section data-step-panel="3" class="hidden">
           <div class="space-y-3 text-sm">
-            <div class="rounded border border-slate-800 bg-slate-950 p-3">
-              <div class="text-slate-300">SIEM</div>
+            <div class="rounded border border-gray-200 bg-gray-50 p-3">
+              <div class="text-gray-600">SIEM</div>
               <div id="reviewSiem" class="mt-1 font-medium"></div>
             </div>
-            <div class="rounded border border-slate-800 bg-slate-950 p-3">
-              <div class="text-slate-300">LLM</div>
+            <div class="rounded border border-gray-200 bg-gray-50 p-3">
+              <div class="text-gray-600">LLM</div>
               <div id="reviewLlm" class="mt-1 font-medium"></div>
             </div>
           </div>
 
           <div class="mt-6 flex items-center gap-3">
-            <button id="btnFinish" type="button" class="slp-btn slp-btn-primary">Finish Setup</button>
-            <button id="btnReviewBack" type="button" class="ml-auto slp-btn slp-btn-secondary">Back</button>
+            <button id="btnReviewBack"
+              class="px-4 py-2 rounded bg-gray-100 text-gray-900 font-medium hover:bg-gray-300">Back</button>
+            <button id="btnFinish"
+              class="ml-auto px-4 py-2 rounded bg-green-500 text-white font-medium hover:bg-green-600">Finish
+              Setup</button>
           </div>
         </section>
       </div>
 
-      <p class="text-xs text-slate-500 mt-4">Settings are stored in MongoDB and can be changed later in Settings.</p>
+      <p class="text-xs text-gray-500 mt-4">Settings are stored in MongoDB and can be changed later in Settings.</p>
     </div>
   </div>
 

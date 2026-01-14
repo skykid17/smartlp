@@ -44,9 +44,7 @@ services:
       - mongod
       - mongot
     environment:
-      # App reads MongoDB URI from MONGO_URL; setup.py uses MONGODB_URI.
-      - MONGO_URL=mongodb://mongod:27017/?directConnection=true
-      - MONGODB_URI=mongodb://mongod:27017/?directConnection=true
+      - MONGO_URI=mongodb://mongod:27017/?directConnection=true
       - SMARTLP_ARCHIVE=/smartlp.archive
       - APP_HOST=0.0.0.0
       - APP_PORT=8800

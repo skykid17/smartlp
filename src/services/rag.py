@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
+import os
 import logging
 from enum import Enum
 import time
@@ -412,7 +412,7 @@ class LocalRetriever:
 class RAG:
     def __init__(
         self,
-        mongo_uri: str = "mongodb://localhost:27017/?directConnection=true",
+        mongo_uri: str = os.getenv("MONGO_URI", "mongodb://localhost:27017/?directConnection=true"),
         database: str = "smartlp",
         collection_name: str = "knowledge_base",
         embedding_dim: int = 384,

@@ -67,7 +67,7 @@ class EnvironmentManager:
 
     def _mongo_url(self) -> str:
         """Return MongoDB connection string with a safe default."""
-        return os.getenv('MONGO_URL') or 'mongodb://admin:password@localhost:27017/?directConnection=true'
+        return os.getenv('MONGO_URI') or 'mongodb://localhost:27017/?directConnection=true'
 
     def _settings_collection(self):
         db = MongoClient(self._mongo_url()).get_database("smartlp")
@@ -78,9 +78,9 @@ class EnvironmentManager:
         """Get database settings."""
         if self._database_settings is None:
             # Prefer explicit environment variable, but fall back to a sensible localhost default
-            mongo_url = os.getenv('MONGO_URL') or 'mongodb://admin:password@localhost:27017/?directConnection=true'
+            mongo_uri = os.getenv('MONGO_URI') or 'mongodb://localhost:27017/?directConnection=true'
             self._database_settings = DatabaseSettings(
-                mongo_url=mongo_url,
+                mongo_url=mongo_uri,
                 db_name="smartlp",
                 knowledge_collection="knowledge_base",
                 logs_collection="logs",

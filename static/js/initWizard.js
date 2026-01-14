@@ -45,8 +45,8 @@ function setStep(step) {
 
   Array.from(stepIndicator.querySelectorAll('[data-step]')).forEach((el) => {
     el.classList.toggle('font-medium', el.getAttribute('data-step') === String(step));
-    el.classList.toggle('text-slate-100', el.getAttribute('data-step') === String(step));
-    el.classList.toggle('text-slate-300', el.getAttribute('data-step') !== String(step));
+    el.classList.toggle('text-gray-900', el.getAttribute('data-step') === String(step));
+    el.classList.toggle('text-gray-600', el.getAttribute('data-step') !== String(step));
   });
 }
 
@@ -74,7 +74,7 @@ function getSiemPayload() {
       user: document.getElementById('elasticUser').value,
       password: document.getElementById('elasticPassword').value,
       search_index: document.getElementById('elasticSearchIndex').value,
-      pipeline_id: document.getElementById('elasticPipelineId').value,
+      search_query: document.getElementById('elasticSearchQuery') ? document.getElementById('elasticSearchQuery').value : '',
       cert_path: document.getElementById('elasticCertPath').value,
     };
   }
@@ -132,6 +132,10 @@ siemType.addEventListener('change', () => {
 document.getElementById('btnSiemTest').addEventListener('click', async () => {
   setAlert('');
   setSuccess('');
+  const siemSpinner = document.getElementById('siemSpinner');
+  const siemBtn = document.getElementById('btnSiemTest');
+  if (siemSpinner) siemSpinner.classList.remove('hidden');
+  if (siemBtn) siemBtn.disabled = true;
 
   try {
     const body = getSiemPayload();
@@ -145,12 +149,14 @@ document.getElementById('btnSiemTest').addEventListener('click', async () => {
     const nextBtn = document.getElementById('btnSiemNext');
     nextBtn.disabled = false;
     setSuccess(data.message || 'SIEM test succeeded');
-    // Make it obvious where to go next (especially on smaller screens)
     nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e) {
     state.siem.tested = false;
     document.getElementById('btnSiemNext').disabled = true;
     setAlert(e.message);
+  } finally {
+    if (siemSpinner) siemSpinner.classList.add('hidden');
+    if (siemBtn) siemBtn.disabled = false;
   }
 });
 
@@ -184,6 +190,10 @@ document.getElementById('btnLlmBack').addEventListener('click', () => setStep(1)
 document.getElementById('btnLlmTest').addEventListener('click', async () => {
   setAlert('');
   setSuccess('');
+  const llmSpinner = document.getElementById('llmSpinner');
+  const llmBtn = document.getElementById('btnLlmTest');
+  if (llmSpinner) llmSpinner.classList.remove('hidden');
+  if (llmBtn) llmBtn.disabled = true;
 
   try {
     const body = getLlmPayload();
@@ -202,6 +212,9 @@ document.getElementById('btnLlmTest').addEventListener('click', async () => {
     state.llm.tested = false;
     document.getElementById('btnLlmNext').disabled = true;
     setAlert(e.message);
+  } finally {
+    if (llmSpinner) llmSpinner.classList.add('hidden');
+    if (llmBtn) llmBtn.disabled = false;
   }
 });
 
@@ -242,8 +255,8 @@ document.getElementById('btnFinish').addEventListener('click', async () => {
     await jsonOrThrow(resp);
 
     statusBadge.textContent = 'Initialized';
-    statusBadge.classList.remove('bg-slate-800');
-    statusBadge.classList.add('bg-emerald-700');
+    statusBadge.classList.remove('bg-gray-200', 'text-gray-700');
+    statusBadge.classList.add('bg-green-500', 'text-white');
 
     setSuccess('Setup complete. Redirecting…');
     setTimeout(() => {

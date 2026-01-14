@@ -26,13 +26,9 @@ SIEM_SPLUNK = "splunk"
 CATEGORY_LLM_ENDPOINT = "llm_endpoint"
 CATEGORY_LLM_MODEL = "llm_model"
 
-LLM_PROVIDER_OLLAMA = "ollama"
-LLM_PROVIDER_LMSTUDIO = "lmstudio"
-LLM_PROVIDER_VLLM = "vllm"
-ALLOWED_LLM_PROVIDERS = {LLM_PROVIDER_OLLAMA, LLM_PROVIDER_LMSTUDIO, LLM_PROVIDER_VLLM}
+ALLOWED_LLM_PROVIDERS = {"vllm", "lmstudio", "ollama", "openai"}
 
 DEFAULT_TEST_PROMPT = "Hello! Reply with a short confirmation."
-
 
 def _required(data: Dict[str, Any], field: str) -> Optional[str]:
     value = data.get(field)
@@ -153,7 +149,7 @@ def register_init_routes(app: Flask) -> None:
             return jsonify({"success": False, "error": "Invalid SIEM type"}), 400
 
         if siem == SIEM_ELASTIC:
-            for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "pipeline_id"]:
+            for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "search_query"]:
                 err = _required(data, f)
                 if err:
                     return jsonify({"success": False, "error": err}), 400
@@ -210,7 +206,8 @@ def register_init_routes(app: Flask) -> None:
                     "user": data.get("user") or "",
                     "password": data.get("password") or "",
                     "search_index": data.get("search_index"),
-                    "pipeline_id": data.get("pipeline_id"),
+                    "search_query": data.get("search_query"),
+                    "pipeline_id": "smartlp",
                     "cert_path": (data.get("cert_path") or "").strip(),
                 }
             )
@@ -290,7 +287,7 @@ def register_init_routes(app: Flask) -> None:
         api_key = (data.get("api_key") or "").strip()
         model_name = (data.get("model_name") or "").strip()
 
-        endpoint_id = f"{provider}-endpoint"
+        endpoint_id = f"{provider}"
         model_id = f"{provider}-{_slugify(model_name)}"
 
         now = datetime.now().isoformat()
