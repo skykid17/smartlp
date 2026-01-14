@@ -50,6 +50,7 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
     try:
         import splunklib.client as splunk_client
         import splunklib.results as splunk_results
+        import time
 
         conn = splunk_client.connect(
             host=cfg["host"],
@@ -82,9 +83,9 @@ def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
             # Execute search
             job = conn.jobs.create(search_string)
             
-            # Wait for search to complete
+            # Wait for search to complete with a small sleep to reduce CPU usage
             while not job.is_done():
-                pass
+                time.sleep(0.1)
             
             # Get results and count
             result_count = 0
@@ -151,21 +152,10 @@ def _test_elastic(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
                 }
             }
 
-        # Limit to 1 result for testing
-        query_dict["size"] = 1
-
+        # Use count API for accurate result counting without retrieving documents
         try:
-            response = es.search(index=search_index, body=query_dict)
-            
-            # Extract result count
-            result_count = 0
-            hits_container = response.get('hits', {})
-            if isinstance(hits_container, dict):
-                total = hits_container.get('total')
-                if isinstance(total, dict):
-                    result_count = total.get('value', 0)
-                elif isinstance(total, int):
-                    result_count = total
+            count_response = es.count(index=search_index, body={"query": query_dict.get("query", {"match_all": {}})})
+            result_count = count_response.get("count", 0)
 
             return True, "Connected and query executed successfully", {
                 "cluster_name": cluster_name,
