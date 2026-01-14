@@ -324,7 +324,7 @@ class SettingsService(BaseService):
             global_fields = [
                 'activeSiem', 'activeLlmModelId', 'ingestFrequency',
                 'similarityThreshold', 'similarityCheck', 'ingestOn',
-                'ingestAlgoVersion', 'fixCount'
+                'ingestAlgoVersion', 'fixCount', 'initialized'
             ]
             global_updates = {}
             for field in global_fields:
@@ -359,6 +359,32 @@ class SettingsService(BaseService):
                     db_connection.update_one(
                         'settings', {"category": "siem_settings", "id": siem_id}, {"$set": siem_updates}
                     )
+            
+            # --- Create/Update SIEM configuration (for initialization) ---
+            if 'siemConfig' in settings_data:
+                siem_config = settings_data['siemConfig']
+                siem_id = siem_config.get('id')
+                
+                if siem_id:
+                    now = datetime.now().isoformat()
+                    siem_doc = {
+                        'category': 'siem_settings',
+                        'id': siem_id,
+                        'name': siem_config.get('name', siem_id.upper()),
+                        'updated_at': now,
+                    }
+                    
+                    # Add all other fields from siem_config
+                    for key, value in siem_config.items():
+                        if key not in ['id', 'name', 'category', 'updated_at']:
+                            siem_doc[key] = value
+                    
+                    db_connection.get_collection('settings').update_one(
+                        {"category": "siem_settings", "id": siem_id},
+                        {"$set": siem_doc, "$setOnInsert": {"created_at": now}},
+                        upsert=True,
+                    )
+                    changes.append(f"SIEM configuration for '{siem_id}' saved")
 
             # --- Update / create LLM endpoints ---
             if 'llmEndpoints' in settings_data:
