@@ -24,61 +24,6 @@ def _required(data: Dict[str, Any], field: str) -> Optional[str]:
     return None
 
 
-def _test_splunk(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
-    try:
-        import splunklib.client as splunk_client
-
-        conn = splunk_client.connect(
-            host=cfg["host"],
-            port=str(cfg["port"]),
-            username=cfg["user"],
-            password=cfg["password"],
-        )
-        info = conn.info()
-        return True, "Connected to Splunk", {"version": info.get("version"), "build": info.get("build")}
-    except Exception as e:
-        return False, f"Splunk connection failed: {str(e)}", {}
-
-
-def _test_elastic(cfg: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
-    try:
-        from elasticsearch import Elasticsearch
-
-        es_kwargs: Dict[str, Any] = {
-            "request_timeout": 10,
-        }
-
-        api_key = (cfg.get("api_key") or "").strip()
-        if api_key:
-            es_kwargs["api_key"] = api_key
-        else:
-            # Fall back to basic auth if api_key is not provided
-            user = (cfg.get("user") or "").strip()
-            password = cfg.get("password") or ""
-            if user and password:
-                es_kwargs["basic_auth"] = (user, password)
-            else:
-                return False, "Missing required field: api_key (or user+password)", {}
-
-        cert_path = (cfg.get("cert_path") or "").strip()
-        if cert_path:
-            es_kwargs["verify_certs"] = True
-            es_kwargs["ca_certs"] = cert_path
-        else:
-            # Allow non-verified connection for dev/self-signed setups
-            es_kwargs["verify_certs"] = False
-
-        es = Elasticsearch(cfg["host"], **es_kwargs)
-        info = es.info()
-
-        return True, "Connected to Elasticsearch", {
-            "cluster_name": info.get("cluster_name"),
-            "version": (info.get("version") or {}).get("number"),
-        }
-    except Exception as e:
-        return False, f"Elasticsearch connection failed: {str(e)}", {}
-
-
 def _refresh_siem_runtime_cache() -> None:
     """Refresh cached SIEM settings/services after a settings write."""
     try:
@@ -243,57 +188,20 @@ def register_settings_routes(app: Flask) -> None:
                         }
                         continue
                     
-                    # Test connection
-                    if siem_service.test_connection():
-                        # Get additional info if available
-                        info = {}
-                        try:
-                            if siem == 'elastic':
-                                if hasattr(siem_service, '_connection') and siem_service._connection:
-                                    cluster_info = siem_service._connection.info()
-                                    info['cluster_name'] = cluster_info.get('cluster_name', 'Unknown')
-                                    info['version'] = cluster_info.get('version', {}).get('number', 'Unknown')
-                                    info['tagline'] = cluster_info.get('tagline', '')
-                                    info['host'] = getattr(siem_service.config, 'host', 'Unknown')
-                                    # Check actual SSL verification status
-                                    ssl_verified = getattr(siem_service, 'ssl_verified', False)
-                                    info['ssl_verified'] = ssl_verified
-                                    cert_path = getattr(siem_service.config, 'cert_path', 'Unknown')
-                                    if cert_path and cert_path != 'Unknown':
-                                        info['cert_path'] = cert_path
-                            elif siem == 'splunk':
-                                if hasattr(siem_service, '_connection') and siem_service._connection:
-                                    splunk_info = siem_service._connection.info()
-                                    info['version'] = splunk_info.get('version', 'Unknown')
-                                    info['build'] = splunk_info.get('build', 'Unknown')
-                                    info['host'] = getattr(siem_service.config, 'host', 'Unknown')
-                                    info['port'] = getattr(siem_service.config, 'port', 'Unknown')
-                        except Exception as e:
-                            logger.warning("Failed to get %s info: %s", siem, str(e))
-                            info['info_error'] = str(e)
-                        
+                    # Test connection (no config_override, use saved settings)
+                    success, message, details = siem_service.test_connection()
+                    
+                    if success:
                         results[siem] = {
                             "status": "connected", 
-                            "message": f"Successfully connected to {siem.upper()}",
-                            "details": info
+                            "message": message,
+                            "details": details
                         }
                     else:
-                        # Connection failed
-                        config_info = {}
-                        try:
-                            if hasattr(siem_service, 'config'):
-                                config_info['host'] = getattr(siem_service.config, 'host', 'Unknown')
-                                if siem == 'splunk':
-                                    config_info['port'] = getattr(siem_service.config, 'port', 'Unknown')
-                                elif siem == 'elastic':
-                                    config_info['username'] = getattr(siem_service.config, 'username', 'Unknown')
-                        except Exception:
-                            pass
-                            
                         results[siem] = {
                             "status": "failed", 
-                            "message": f"Failed to connect to {siem.upper()} - check credentials and network",
-                            "details": config_info
+                            "message": message,
+                            "details": details
                         }
                         
                 except Exception as e:
@@ -356,6 +264,8 @@ def register_settings_routes(app: Flask) -> None:
     def test_siem_connection_candidate():
         """Test a candidate SIEM configuration (not yet saved)."""
         try:
+            from services.siem import SIEMServiceFactory
+            
             data = request.get_json() or {}
             siem_type = (data.get('siem_type') or '').strip().lower()
             if siem_type not in {'elastic', 'splunk'}:
@@ -372,7 +282,12 @@ def register_settings_routes(app: Flask) -> None:
                 if kibana_url and not (kibana_url.startswith("http://") or kibana_url.startswith("https://")):
                     return jsonify({"success": False, "error": "kibana_url must start with http:// or https://"}), 400
 
-                ok, msg, details = _test_elastic(cfg)
+                # Use service layer to test connection with config override
+                siem_service = SIEMServiceFactory.get_service('elastic')
+                if not siem_service:
+                    return jsonify({"success": False, "error": "Failed to create Elasticsearch service"}), 500
+                
+                ok, msg, details = siem_service.test_connection(config_override=cfg)
                 return jsonify({"success": ok, "message": msg, "details": details}), (200 if ok else 400)
 
             cfg = data.get('splunk') or {}
@@ -381,7 +296,12 @@ def register_settings_routes(app: Flask) -> None:
                 if err:
                     return jsonify({"success": False, "error": err}), 400
 
-            ok, msg, details = _test_splunk(cfg)
+            # Use service layer to test connection with config override
+            siem_service = SIEMServiceFactory.get_service('splunk')
+            if not siem_service:
+                return jsonify({"success": False, "error": "Failed to create Splunk service"}), 500
+            
+            ok, msg, details = siem_service.test_connection(config_override=cfg)
             return jsonify({"success": ok, "message": msg, "details": details}), (200 if ok else 400)
         except Exception as e:
             logger.exception("Candidate SIEM test failed")
@@ -391,6 +311,8 @@ def register_settings_routes(app: Flask) -> None:
     def save_siem_settings_candidate():
         """Upsert a SIEM settings document (post-initialization add/edit)."""
         try:
+            from services.siem import SIEMServiceFactory
+            
             data = request.get_json() or {}
             siem_type = (data.get('siem_type') or '').strip().lower()
             if siem_type not in {'elastic', 'splunk'}:
@@ -414,7 +336,12 @@ def register_settings_routes(app: Flask) -> None:
                 if kibana_url and not (kibana_url.startswith("http://") or kibana_url.startswith("https://")):
                     return jsonify({"success": False, "error": "kibana_url must start with http:// or https://"}), 400
 
-                ok, msg, _details = _test_elastic(cfg)
+                # Use service layer to test connection with config override
+                siem_service = SIEMServiceFactory.get_service('elastic')
+                if not siem_service:
+                    return jsonify({"success": False, "error": "Failed to create Elasticsearch service"}), 500
+                
+                ok, msg, _details = siem_service.test_connection(config_override=cfg)
                 if not ok:
                     return jsonify({"success": False, "error": msg}), 400
 
@@ -441,7 +368,12 @@ def register_settings_routes(app: Flask) -> None:
                     if err:
                         return jsonify({"success": False, "error": err}), 400
 
-                ok, msg, _details = _test_splunk(cfg)
+                # Use service layer to test connection with config override
+                siem_service = SIEMServiceFactory.get_service('splunk')
+                if not siem_service:
+                    return jsonify({"success": False, "error": "Failed to create Splunk service"}), 500
+                
+                ok, msg, _details = siem_service.test_connection(config_override=cfg)
                 if not ok:
                     return jsonify({"success": False, "error": msg}), 400
 

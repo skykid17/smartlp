@@ -36,8 +36,11 @@ class BaseSIEMService(BaseService, ABC):
         self._connection = None
     
     @abstractmethod
-    def connect(self) -> bool:
+    def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
         """Establish connection to SIEM.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
         
         Returns:
             True if connection successful, False otherwise
@@ -45,22 +48,26 @@ class BaseSIEMService(BaseService, ABC):
         pass
     
     @abstractmethod
-    def test_connection(self) -> bool:
+    def test_connection(self, config_override: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """Test SIEM connection.
         
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
         Returns:
-            True if connection is working, False otherwise
+            Tuple of (success, message, details)
         """
         pass
     
     @abstractmethod
-    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100, config_override: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict], Optional[str]]:
         """Execute search query.
         
         Args:
             query: Search query
             index: Index/sourcetype to search
             max_results: Maximum number of results
+            config_override: Optional configuration to use instead of self.settings
             
         Returns:
             Tuple of (results, error_message)
@@ -87,19 +94,37 @@ class SplunkService(BaseSIEMService):
         super().__init__("splunk")
         self.settings = env_manager.splunk
     
-    def connect(self) -> bool:
+    def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
         """Connect to Splunk.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
         
         Returns:
             True if connection successful, False otherwise
         """
         try:
-            self._connection = splunk_client.connect(
-                host=self.settings.host,
-                port=self.settings.port,
-                username=self.settings.username,
-                password=self.settings.password
-            )
+            if config_override:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
+                self._connection = splunk_client.connect(
+                    host=config_override.get("host"),
+                    port=port,
+                    username=config_override.get("user"),
+                    password=config_override.get("password")
+                )
+            else:
+                self._connection = splunk_client.connect(
+                    host=self.settings.host,
+                    port=self.settings.port,
+                    username=self.settings.username,
+                    password=self.settings.password
+                )
             self.logger.info("Successfully connected to Splunk")
             return True
         except Exception as e:
@@ -107,43 +132,135 @@ class SplunkService(BaseSIEMService):
             self._connection = None
             return False
     
-    def test_connection(self) -> bool:
+    def test_connection(self, config_override: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """Test Splunk connection.
         
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
         Returns:
-            True if connection is working, False otherwise
+            Tuple of (success, message, details)
         """
-        if not self._connection:
-            return self.connect()
+        import time
         
         try:
-            # Test with a simple search
-            self._connection.info()
-            return True
+            # If config_override is provided, create a temporary connection
+            if config_override:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
+                conn = splunk_client.connect(
+                    host=config_override.get("host"),
+                    port=port,
+                    username=config_override.get("user"),
+                    password=config_override.get("password")
+                )
+                info = conn.info()
+            else:
+                if not self._connection:
+                    if not self.connect():
+                        return False, "Failed to connect to Splunk", {}
+                conn = self._connection
+                info = conn.info()
+            
+            version = info.get("version")
+            build = info.get("build")
+            
+            # If config_override includes query validation parameters, test the query
+            if config_override:
+                search_index = config_override.get("search_index", "").strip()
+                search_query = config_override.get("search_query", "").strip()
+                search_entry_count = config_override.get("search_entry_count", 10)
+                
+                if search_index and search_query:
+                    try:
+                        # Convert search_entry_count to int, default to 10 if invalid
+                        entry_count = int(search_entry_count) if search_entry_count else 10
+                    except (ValueError, TypeError):
+                        entry_count = 10
+                    
+                    try:
+                        # Construct search query
+                        search_string = f"search index={search_index} {search_query} | head {entry_count}"
+                        
+                        # Execute search
+                        job = conn.jobs.create(search_string)
+                        
+                        # Wait for search to complete with timeout protection
+                        max_wait_time = 30  # seconds
+                        poll_interval = 0.1
+                        start_time = time.time()
+                        
+                        while not job.is_done():
+                            if time.time() - start_time >= max_wait_time:
+                                job.cancel()
+                                return False, "Query validation timed out after 30 seconds", {}
+                            time.sleep(poll_interval)
+                        
+                        # Get result count efficiently without iterating through all results
+                        result_count = int(job["resultCount"])
+                        
+                        return True, "Connected and query executed successfully", {
+                            "version": version,
+                            "build": build,
+                            "result_count": result_count,
+                        }
+                    except Exception as query_error:
+                        return False, f"Query validation failed: {str(query_error)}", {}
+            
+            return True, "Connected to Splunk", {"version": version, "build": build}
+            
         except Exception as e:
             self.logger.error("Splunk connection test failed: %s", e)
-            return False
+            return False, f"Splunk connection failed: {str(e)}", {}
     
-    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100, config_override: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict], Optional[str]]:
         """Execute Splunk search.
         
         Args:
             query: Splunk search query
             index: Splunk index to search
             max_results: Maximum number of results
+            config_override: Optional configuration to use instead of self.settings
             
         Returns:
             Tuple of (results, error_message)
         """
-        if not self._connection and not self.connect():
-            return [], "Failed to connect to Splunk"
+        # If config_override is provided, create a temporary connection
+        if config_override:
+            try:
+                port = config_override.get("port")
+                # Handle port conversion carefully
+                if port is None:
+                    port = "8089"  # Default Splunk port
+                elif not isinstance(port, str):
+                    port = str(port)
+                
+                conn = splunk_client.connect(
+                    host=config_override.get("host"),
+                    port=port,
+                    username=config_override.get("user"),
+                    password=config_override.get("password")
+                )
+            except Exception as e:
+                error_msg = f"Failed to connect to Splunk with override config: {e}"
+                self.logger.error("%s", error_msg)
+                return [], error_msg
+        else:
+            if not self._connection and not self.connect():
+                return [], "Failed to connect to Splunk"
+            conn = self._connection
         
         try:
             # Construct search query
             search_query = f"search index={index} {query} | head {max_results}"
             
             # Execute search
-            job = self._connection.jobs.create(search_query)
+            job = conn.jobs.create(search_query)
             
             # Wait for search to complete
             while not job.is_done():
@@ -323,13 +440,26 @@ class ElasticsearchService(BaseSIEMService):
         self.settings = env_manager.elastic
         self.ssl_verified = False  # Track whether SSL verification is being used
     
-    def connect(self) -> bool:
-        """Connect to Elasticsearch.
+    def _build_auth_kwargs(self, config_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Build authentication kwargs for Elasticsearch connection.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
         
         Returns:
-            True if connection successful, False otherwise
+            Dictionary with authentication parameters
         """
-        def _auth_kwargs() -> Dict[str, Any]:
+        if config_override:
+            api_key = (config_override.get('api_key', '') or '').strip()
+            if api_key:
+                return {"api_key": api_key}
+            
+            username = (config_override.get('user', '') or '').strip()
+            password = config_override.get('password', '') or ''
+            if username and password:
+                return {"basic_auth": (username, password)}
+            return {}
+        else:
             api_key = (getattr(self.settings, 'api_key', '') or '').strip()
             if api_key:
                 return {"api_key": api_key}
@@ -339,15 +469,30 @@ class ElasticsearchService(BaseSIEMService):
             if username and password:
                 return {"basic_auth": (username, password)}
             return {}
-
+    
+    def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
+        """Connect to Elasticsearch.
+        
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
+        Returns:
+            True if connection successful, False otherwise
+        """
         try:
             # First try with certificate verification
-            cert_path = (getattr(self.settings, 'cert_path', '') or '').strip()
-            auth_kwargs = _auth_kwargs()
+            if config_override:
+                host = config_override.get("host")
+                cert_path = (config_override.get("cert_path", '') or '').strip()
+            else:
+                host = self.settings.host
+                cert_path = (getattr(self.settings, 'cert_path', '') or '').strip()
+            
+            auth_kwargs = self._build_auth_kwargs(config_override)
 
             if cert_path:
                 self._connection = Elasticsearch(
-                    self.settings.host,
+                    host,
                     ca_certs=cert_path,
                     verify_certs=True,
                     **auth_kwargs,
@@ -374,9 +519,14 @@ class ElasticsearchService(BaseSIEMService):
         # If certificate verification fails, try without it (for self-signed certificates)
         try:
             self.logger.info("Attempting connection without certificate verification")
-            auth_kwargs = _auth_kwargs()
+            if config_override:
+                host = config_override.get("host")
+            else:
+                host = self.settings.host
+            
+            auth_kwargs = self._build_auth_kwargs(config_override)
             self._connection = Elasticsearch(
-                self.settings.host,
+                host,
                 verify_certs=False,
                 **auth_kwargs,
             )
@@ -400,34 +550,152 @@ class ElasticsearchService(BaseSIEMService):
             self.ssl_verified = False
             return False
     
-    def test_connection(self) -> bool:
+    def test_connection(self, config_override: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """Test Elasticsearch connection.
         
+        Args:
+            config_override: Optional configuration to use instead of self.settings
+        
         Returns:
-            True if connection is working, False otherwise
+            Tuple of (success, message, details)
         """
-        if not self._connection:
-            return self.connect()
+        import json
         
         try:
-            return self._connection.ping()
+            # If config_override is provided, create a temporary connection
+            if config_override:
+                # Use relaxed validation - allow connection attempt without strict requirements
+                # This matches the behavior of the connect() method
+                host = config_override.get("host")
+                cert_path = (config_override.get("cert_path") or "").strip()
+                auth_kwargs = self._build_auth_kwargs(config_override)
+                
+                # Try with certificate first if provided
+                es = None
+                if cert_path:
+                    try:
+                        es_kwargs: Dict[str, Any] = {
+                            "request_timeout": 10,
+                            "verify_certs": True,
+                            "ca_certs": cert_path,
+                        }
+                        es_kwargs.update(auth_kwargs)
+                        es = Elasticsearch(host, **es_kwargs)
+                        if not es.ping():
+                            es = None
+                    except Exception:
+                        es = None
+                
+                # Fall back to no verification if cert didn't work
+                if es is None:
+                    try:
+                        es_kwargs: Dict[str, Any] = {
+                            "request_timeout": 10,
+                            "verify_certs": False,
+                        }
+                        es_kwargs.update(auth_kwargs)
+                        es = Elasticsearch(host, **es_kwargs)
+                        if not es.ping():
+                            return False, "Failed to connect to Elasticsearch", {}
+                    except Exception as e:
+                        return False, f"Elasticsearch connection failed: {str(e)}", {}
+                
+                info = es.info()
+                cluster_name = info.get("cluster_name")
+                version = (info.get("version") or {}).get("number")
+                
+                # If config_override includes query validation parameters, test the query
+                search_index = config_override.get("search_index", "").strip()
+                search_query = config_override.get("search_query", "").strip()
+                
+                if search_index and search_query:
+                    # Parse query if it's a string
+                    try:
+                        query_dict = json.loads(search_query)
+                        # Extract just the query portion
+                        query_body = query_dict.get("query", {"match_all": {}})
+                    except json.JSONDecodeError:
+                        # Treat as simple query string
+                        query_body = {
+                            "query_string": {
+                                "query": search_query
+                            }
+                        }
+                    
+                    # Use count API for accurate result counting without retrieving documents
+                    try:
+                        count_response = es.count(index=search_index, query=query_body)
+                        result_count = count_response.get("count", 0)
+                        
+                        return True, "Connected and query executed successfully", {
+                            "cluster_name": cluster_name,
+                            "version": version,
+                            "result_count": result_count,
+                        }
+                    except Exception as query_error:
+                        return False, f"Query validation failed: {str(query_error)}", {}
+                
+                return True, "Connected to Elasticsearch", {
+                    "cluster_name": cluster_name,
+                    "version": version,
+                }
+            else:
+                if not self._connection:
+                    if not self.connect():
+                        return False, "Failed to connect to Elasticsearch", {}
+                
+                if self._connection.ping():
+                    info = self._connection.info()
+                    return True, "Connected to Elasticsearch", {
+                        "cluster_name": info.get("cluster_name"),
+                        "version": (info.get("version") or {}).get("number"),
+                    }
+                else:
+                    return False, "Elasticsearch ping failed", {}
+            
         except Exception as e:
             self.logger.error("Elasticsearch connection test failed: %s", e)
-            return False
+            return False, f"Elasticsearch connection failed: {str(e)}", {}
     
-    def search(self, index: str, query: str, max_results: int = 100) -> Tuple[List[Dict], Optional[str]]:
+    def search(self, index: str, query: str, max_results: int = 100, config_override: Optional[Dict[str, Any]] = None) -> Tuple[List[Dict], Optional[str]]:
         """Execute Elasticsearch search.
         
         Args:
             query: Elasticsearch query (JSON string or dict)
             index: Elasticsearch index pattern
             max_results: Maximum number of results
+            config_override: Optional configuration to use instead of self.settings
             
         Returns:
             Tuple of (results, error_message)
         """
-        if not self._connection and not self.connect():
-            return [], "Failed to connect to Elasticsearch"
+        # If config_override is provided, create a temporary connection
+        if config_override:
+            try:
+                cert_path = (config_override.get("cert_path", '') or '').strip()
+                auth_kwargs = self._build_auth_kwargs(config_override)
+                
+                if cert_path:
+                    conn = Elasticsearch(
+                        config_override.get("host"),
+                        ca_certs=cert_path,
+                        verify_certs=True,
+                        **auth_kwargs,
+                    )
+                else:
+                    conn = Elasticsearch(
+                        config_override.get("host"),
+                        verify_certs=False,
+                        **auth_kwargs,
+                    )
+            except Exception as e:
+                error_msg = f"Failed to connect to Elasticsearch with override config: {e}"
+                self.logger.error("%s", error_msg)
+                return [], error_msg
+        else:
+            if not self._connection and not self.connect():
+                return [], "Failed to connect to Elasticsearch"
+            conn = self._connection
         
         try:
             # Parse query if it's a string
@@ -452,7 +720,7 @@ class ElasticsearchService(BaseSIEMService):
             
             # Execute search
             self.logger.debug(f"Executing ES search: index={index} body={query_dict}")
-            response = self._connection.search(
+            response = conn.search(
                 index=index,
                 body=query_dict
             )
