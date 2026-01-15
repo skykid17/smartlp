@@ -20,7 +20,7 @@
 </div>
 
 <!-- Settings Content -->
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-2">
     <!-- Settings Navigation (Tabs) -->
     <div class="lg:col-span-1">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
@@ -49,11 +49,11 @@
         <!-- SmartLP Settings -->
         <div id="smartlp-settings" class="settings-content">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">SmartLP Configuration</h2>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">SmartLP Settings</h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Left Column -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- Ingestion Toggle -->
                         <div>
                             <label class="flex items-center justify-between cursor-pointer">
@@ -123,7 +123,7 @@
                     </div>
 
                     <!-- Right Column -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- Active SIEM -->
                         <div>
                             <label for="activeSiem"
@@ -184,49 +184,137 @@
         <div id="siem-settings" class="settings-content hidden">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
                 <div class="flex items-center justify-between gap-4 mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">SIEM Configuration</h2>
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">SIEM Settings</h2>
                     <button id="addSiemBtn" type="button"
                         class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-black dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white transition-colors duration-200">
                         <i class="fas fa-plus mr-2"></i>Add SIEM
                     </button>
                 </div>
 
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform</label>
+                    <!-- SIEM selection tabs (primary UI) -->
+                    <div id="siemTabs" class="flex flex-wrap gap-2 mb-3"></div>
+                    <!-- Hidden select retained for compatibility with existing code -->
+                    <select id="siem" class="hidden">
+                        <option value="">Select SIEM...</option>
+                    </select>
+                </div>
+                <!-- Left Column -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Left Column -->
-                    <div class="space-y-6">
-                        <!-- SIEM Selection -->
-                        <div>
-                            <label for="siem" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                SIEM Platform
-                            </label>
-                            <select id="siem"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                                <option value="">Select SIEM...</option>
-                            </select>
+
+                    <!-- SIEM Selection -->
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 ">
+                            <div class="lg:col-span-2">
+                                <!-- Search Index -->
+                                <label for="searchIndex"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Search Index
+                                </label>
+                                <input type="text" id="searchIndex"
+                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    placeholder="Enter index name...">
+                            </div>
+
+                            <!-- Entry Count -->
+                            <div>
+                                <label for="searchEntryCount"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Number of Entries
+                                </label>
+                                <input type="number" id="searchEntryCount"
+                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    placeholder="Enter count...">
+                            </div>
+                        </div>
+                        <!-- Elastic / Splunk connection fields (shown based on selected SIEM) -->
+                        <div id="elasticFields" class="hidden">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                                <div class="lg:col-span-2">
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Elasticsearch
+                                        Host</label>
+                                    <input id="elasticHost" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        placeholder="https://localhost:9200" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">User</label>
+                                    <input id="elasticUser" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" />
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kibana
+                                        URL</label>
+                                    <input id="elasticKibanaUrl" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        placeholder="https://localhost:5601" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                                    <input id="elasticPassword" type="password"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API
+                                    Key</label>
+                                <input id="elasticApiKey" type="password"
+                                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                    placeholder="Base64 API key" />
+                            </div>
                         </div>
 
-                        <!-- Search Index -->
+                        <div id="splunkFields" class="hidden">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div class="lg:col-span-2">
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Host</label>
+                                    <input id="splunkHost" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        placeholder="localhost" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">User</label>
+                                    <input id="splunkUser" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" />
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Port</label>
+                                    <input id="splunkPort" type="text"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                        placeholder="8089" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                                    <input id="splunkPassword" type="password"
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white" />
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-4">
+                        <!-- Search Query -->
                         <div>
-                            <label for="searchIndex"
+                            <label for="searchQuery"
                                 class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Search Index
+                                Search Query
                             </label>
-                            <input type="text" id="searchIndex"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                placeholder="Enter index name...">
+                            <textarea id="searchQuery" rows="10"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
+                                placeholder="Enter search query..."></textarea>
                         </div>
-
-                        <!-- Entry Count -->
-                        <div>
-                            <label for="searchEntryCount"
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Number of Entries
-                            </label>
-                            <input type="number" id="searchEntryCount"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                                placeholder="Enter count...">
-                        </div>
-
                         <!-- Test Buttons -->
                         <div class="flex space-x-2">
                             <button id="testConnectionBtn"
@@ -240,21 +328,6 @@
                         </div>
 
                         <div id="connectionTestLogger" class="text-sm"></div>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="space-y-6">
-                        <!-- Search Query -->
-                        <div>
-                            <label for="searchQuery"
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Search Query
-                            </label>
-                            <textarea id="searchQuery" rows="10"
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
-                                placeholder="Enter search query..."></textarea>
-                        </div>
-
                         <div id="searchQueryLogger" class="text-sm"></div>
                     </div>
                 </div>
@@ -409,13 +482,13 @@
                         </div>
 
                         <div
-                            class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                            class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 gap-2">
                             <button id="addSiemTestBtn" type="button"
                                 class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
                                 Test Connection
                             </button>
                             <button id="addSiemSaveBtn" type="button" disabled
-                                class="px-4 py-2 bg-indigo-600 text-black rounded-lg disabled:opacity-50 hover:bg-indigo-700">
+                                class="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 hover:bg-blue-600">
                                 Save SIEM
                             </button>
                         </div>
@@ -427,12 +500,16 @@
         <!-- LLM Settings -->
         <div id="llm-settings" class="settings-content hidden">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">LLM Configuration</h2>
-
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">LLM Settings</h2>
+                    <button id="addEndpointBtn" type="button"
+                        class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-black dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white transition-colors duration-200">
+                        <i class="fas fa-plus mr-2"></i>Add Endpoint
+                    </button>
+                </div>
                 <!-- LLM Endpoint Tabs -->
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">LLM
-                        Endpoints:</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Endpoints</label>
                     <div id="llmEndpointTabs" class="flex flex-wrap gap-2">
                         <!-- Endpoint tabs will be populated here -->
                     </div>
@@ -440,7 +517,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Left Column -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- LLM Endpoint Name -->
                         <div>
                             <label for="llmName"
@@ -455,9 +532,9 @@
                         <!-- LLM URL -->
                         <div>
                             <label for="llmUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                LLM API URL
+                                URL
                             </label>
-                            <textarea id="llmUrl" rows="4"
+                            <textarea id="llmUrl" rows="2"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
                                 placeholder="Enter API URL..."></textarea>
                         </div>
@@ -466,7 +543,7 @@
                         <div>
                             <label for="llmApiKey"
                                 class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                LLM API Key
+                                API Key
                             </label>
                             <input type="password" id="llmApiKey"
                                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
@@ -483,7 +560,7 @@
                     </div>
 
                     <!-- Right Column -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- LLM Models -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

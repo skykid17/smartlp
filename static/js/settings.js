@@ -35,9 +35,22 @@ class Settings {
             activeLlm: document.getElementById('activeLlm'),
             fixCount: document.getElementById('fixCount'),
             siemSelect: document.getElementById('siem'),
+            siemTabs: document.getElementById('siemTabs'),
             searchIndex: document.getElementById('searchIndex'),
             searchEntryCount: document.getElementById('searchEntryCount'),
             searchQuery: document.getElementById('searchQuery'),
+            // Main SIEM connection fields
+            elasticFields: document.getElementById('elasticFields'),
+            elasticHost: document.getElementById('elasticHost'),
+            elasticApiKey: document.getElementById('elasticApiKey'),
+            elasticKibanaUrl: document.getElementById('elasticKibanaUrl'),
+            elasticUser: document.getElementById('elasticUser'),
+            elasticPassword: document.getElementById('elasticPassword'),
+            splunkFields: document.getElementById('splunkFields'),
+            splunkHost: document.getElementById('splunkHost'),
+            splunkPort: document.getElementById('splunkPort'),
+            splunkUser: document.getElementById('splunkUser'),
+            splunkPassword: document.getElementById('splunkPassword'),
             llmName: document.getElementById('llmName'),
             llmUrl: document.getElementById('llmUrl'),
             llmApiKey: document.getElementById('llmApiKey'),
@@ -62,7 +75,8 @@ class Settings {
             addSplunkFields: document.getElementById('addSplunkFields'),
             addSiemAlert: document.getElementById('addSiemAlert'),
             addSiemTestBtn: document.getElementById('addSiemTestBtn'),
-            addSiemSaveBtn: document.getElementById('addSiemSaveBtn')
+            addSiemSaveBtn: document.getElementById('addSiemSaveBtn'),
+            addEndpointBtn: document.getElementById('addEndpointBtn')
         };
     }
 
@@ -79,6 +93,26 @@ class Settings {
         }
 
         this.elements.siemSelect?.addEventListener('change', () => this.handleSiemChange());
+        // Wire main SIEM connection inputs to update local objects (values persisted on Save)
+        ['elasticHost', 'elasticApiKey', 'elasticKibanaUrl', 'elasticUser', 'elasticPassword', 'splunkHost', 'splunkPort', 'splunkUser', 'splunkPassword'].forEach(id => {
+            const el = this.elements[id];
+            if (!el) return;
+            el.addEventListener('input', () => {
+                // Update local siem object so UI reflects changes before saving
+                const siemId = this.elements.siemSelect?.value;
+                if (!siemId) return;
+                const siem = this.siems.find((s) => s.id === siemId);
+                if (!siem) return;
+                // Map element ids to camelCase keys expected in frontend siem objects
+                const map = {
+                    elasticHost: 'host', elasticApiKey: 'apiKey', elasticKibanaUrl: 'kibanaUrl', elasticUser: 'user', elasticPassword: 'password',
+                    splunkHost: 'host', splunkPort: 'port', splunkUser: 'user', splunkPassword: 'password'
+                };
+                const key = map[id];
+                if (!key) return;
+                siem[key] = el.value;
+            });
+        });
         this.elements.activeLlmEndpoint?.addEventListener('change', () => this.handleActiveEndpointChange());
         this.elements.addModelBtn?.addEventListener('click', (e) => {
             e.preventDefault();
@@ -231,6 +265,44 @@ class Settings {
             this.elements.siemSelect?.value || this.currentSettings.activeSiem,
             'Select SIEM...'
         );
+
+        // Render SIEM tabs (primary UI). Clicking a tab updates the hidden select and triggers change handling.
+        const tabsContainer = this.elements.siemTabs;
+        if (tabsContainer) {
+            tabsContainer.innerHTML = '';
+            const activeId = (this.currentSettings?.activeSiem) || this.elements.siemSelect?.value || '';
+            this.siems.forEach((s) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = s.name || s.id;
+                btn.dataset.siemId = s.id;
+                btn.className = 'px-4 py-2 rounded-lg text-sm border';
+                const isActive = (s.id === activeId);
+                if (isActive) {
+                    btn.classList.add('bg-blue-50', 'border-blue-500', 'text-blue-600');
+                } else {
+                    btn.classList.add('bg-gray-50', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                }
+                btn.addEventListener('click', () => {
+                    // Update hidden select value
+                    if (this.elements.siemSelect) {
+                        try { this.elements.siemSelect.value = s.id; } catch (e) { }
+                    }
+                    // Update tab styles: clear active classes and dark-mode overrides
+                    Array.from(tabsContainer.children).forEach((child) => {
+                        child.classList.remove('bg-blue-50', 'border-blue-500', 'text-blue-600', 'bg-gray-50', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                        // set non-active appearance
+                        child.classList.add('bg-gray-50', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                    });
+                    // Make clicked button active: remove dark-mode non-active classes that block white background
+                    btn.classList.remove('bg-gray-50', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+                    btn.classList.add('bg-blue-50', 'border-blue-500', 'text-blue-600');
+                    this.handleSiemChange();
+                });
+                tabsContainer.appendChild(btn);
+            });
+        }
+
         this.handleSiemChange();
 
         this.updateAddSiemButtonVisibility();
@@ -467,6 +539,29 @@ class Settings {
         this.elements.searchIndex.value = siem.searchIndex || '';
         this.elements.searchEntryCount.value = siem.searchEntryCount ?? '';
         this.elements.searchQuery.value = siem.searchQuery || '';
+        // Show/hide connection panels and populate fields
+        const isElastic = (siem.id || '').toLowerCase() === 'elastic';
+        const isSplunk = (siem.id || '').toLowerCase() === 'splunk';
+
+        if (this.elements.elasticFields) this.elements.elasticFields.classList.toggle('hidden', !isElastic);
+        if (this.elements.splunkFields) this.elements.splunkFields.classList.toggle('hidden', !isSplunk);
+
+        // Populate Elastic fields
+        if (isElastic) {
+            this.setValue(this.elements.elasticHost, siem.host || '');
+            this.setValue(this.elements.elasticApiKey, siem.apiKey || '');
+            this.setValue(this.elements.elasticKibanaUrl, siem.kibanaUrl || '');
+            this.setValue(this.elements.elasticUser, siem.user || '');
+            this.setValue(this.elements.elasticPassword, siem.password || '');
+        }
+
+        // Populate Splunk fields
+        if (isSplunk) {
+            this.setValue(this.elements.splunkHost, siem.host || '');
+            this.setValue(this.elements.splunkPort, siem.port || '');
+            this.setValue(this.elements.splunkUser, siem.user || '');
+            this.setValue(this.elements.splunkPassword, siem.password || '');
+        }
     }
 
     persistSiemField(field) {
@@ -536,10 +631,13 @@ class Settings {
         this.llmEndpoints.forEach((ep) => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = `px-4 py-2 rounded-lg text-sm border ${ep.id === this.selectedLlmEndpoint
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-transparent'
-                }`;
+            btn.className = 'px-4 py-2 rounded-lg text-sm border';
+            const isActive = (ep.id === this.selectedLlmEndpoint);
+            if (isActive) {
+                btn.classList.add('bg-blue-50', 'border-blue-500', 'text-blue-600');
+            } else {
+                btn.classList.add('bg-gray-50', 'text-gray-700', 'dark:bg-gray-700', 'dark:text-gray-300');
+            }
             btn.textContent = ep.name || ep.id;
             btn.addEventListener('click', () => {
                 this.selectLlmEndpoint(ep.id);
@@ -548,12 +646,9 @@ class Settings {
             container.appendChild(btn);
         });
 
-        const addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'px-4 py-2 rounded-lg text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
-        addBtn.innerHTML = '<i class="fas fa-plus mr-1"></i>Add Endpoint';
-        addBtn.addEventListener('click', () => this.promptNewEndpoint());
-        container.appendChild(addBtn);
+        addEndpointBtn.addEventListener('click', () => this.promptNewEndpoint());
+
+        // Ensure a valid endpoint is selected
 
         if (!this.selectedLlmEndpoint && this.llmEndpoints.length) {
             this.selectLlmEndpoint(this.llmEndpoints[0].id);
@@ -868,6 +963,27 @@ class Settings {
             payload.searchIndex = this.elements.searchIndex?.value || '';
             payload.searchEntryCount = Number(this.elements.searchEntryCount?.value) || 0;
             payload.searchQuery = this.elements.searchQuery?.value || '';
+            // Include full SIEM connection config for selected SIEM so backend can persist it
+            const siemId = this.elements.siemSelect.value;
+            const siemConfig = { id: siemId };
+            if (siemId.toLowerCase() === 'elastic') {
+                siemConfig.host = this.elements.elasticHost?.value || '';
+                siemConfig.api_key = this.elements.elasticApiKey?.value || '';
+                siemConfig.kibana_url = this.elements.elasticKibanaUrl?.value || '';
+                siemConfig.user = this.elements.elasticUser?.value || '';
+                siemConfig.password = this.elements.elasticPassword?.value || '';
+                siemConfig.search_index = this.elements.searchIndex?.value || '';
+                siemConfig.search_query = this.elements.searchQuery?.value || '';
+            } else if (siemId.toLowerCase() === 'splunk') {
+                siemConfig.host = this.elements.splunkHost?.value || '';
+                siemConfig.port = this.elements.splunkPort?.value || '';
+                siemConfig.user = this.elements.splunkUser?.value || '';
+                siemConfig.password = this.elements.splunkPassword?.value || '';
+                siemConfig.search_index = this.elements.searchIndex?.value || '';
+                siemConfig.search_query = this.elements.searchQuery?.value || '';
+                siemConfig.search_entry_count = Number(this.elements.searchEntryCount?.value) || 0;
+            }
+            payload.siemConfig = siemConfig;
         }
 
         // Always prepare llmModels map so we can include creations, updates and deletions
