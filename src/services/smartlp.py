@@ -902,9 +902,10 @@ class SmartLPService(CRUDService):
             filter_category="sigma_rules",
             top_k=5
         )
-
+        print("RAG Response:", response)
+        content_raw = response.get("content", "")
         context_docs = response.get("context", [])
-        if not context_docs or all(not (c and c.get("content")) for c in context_docs):
+        if not content_raw and (not context_docs or all(not (c and c.get("content")) for c in context_docs)):
             self.logger.info("No relevant detection rules found in RAG context.")
             return {
                 "success": True,
@@ -926,7 +927,7 @@ class SmartLPService(CRUDService):
 
         # Parse RAG output
         try:
-            content = clean_response(response["content"])
+            content = clean_response(content_raw)
             parsed = json.loads(content)
 
             if isinstance(parsed, dict):

@@ -986,12 +986,14 @@ output {{
 
     def create_rule_elastic(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a detection rule in Elasticsearch."""
-
-        rule = db_connection.query('knowledge_base', {'id': data.get('id'),'metadata.category': 'elastic_rules'}, projection={'_id': 0})[0]
-        sigma_rule = db_connection.query('knowledge_base', {'id': data.get('id'),'metadata.category': 'sigma_rules'}, projection={'_id': 0})[0]
+        print("fetched data:", data)
+        siem_rule = db_connection.query('knowledge_base', {'sigma_id': data.get('id'),'metadata.category': 'elastic_rules'}, projection={'_id': 0}, limit =1)
+        print("rule:", siem_rule)
+        sigma_rule = db_connection.query('knowledge_base', {'id': data.get('id'),'metadata.category': 'sigma_rules'}, projection={'_id': 0}, limit =1)
+        print("sigma_rule:", sigma_rule)
         elastic_rule = {
-            'rule_id': rule.get('rule_id', f"smartlp_rule_{data.get('id')}"),
-            'name': rule.get('title'),
+            'rule_id': siem_rule.get('id', f"smartlp_rule_{data.get('id')}"),
+            'name': siem_rule.get('title'),
             'description': sigma_rule.get('description'),
             'severity': data.get('severity', 'medium'),
             'risk_score': data.get('risk_score', 50),
@@ -1001,7 +1003,7 @@ output {{
             'type': "esql",
             'language': "esql",
             'enabled': True,
-            'query': "FROM logs-parsed* \n| " + rule.get('rule'),
+            'query': "FROM logs-parsed* \n| " + siem_rule.get('rule'),
             'tags': sigma_rule.get('tags', []),
         }
         return elastic_rule

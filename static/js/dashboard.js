@@ -13,6 +13,7 @@ class Dashboard {
         this.totalEntries = 0;
         this.selectedEntries = new Set();
         this.entries = [];
+        this.selectedDetectionRule = null;
         this.statusSocket = null;
         this.statusPollInterval = null;
 
@@ -443,6 +444,8 @@ class Dashboard {
         if (riskEl) riskEl.value = '';
         if (latestEl) latestEl.value = '';
         if (earliestEl) earliestEl.value = '';
+        // Clear any selected detection rule when resetting popup
+        this.selectedDetectionRule = null;
     }
 
     openDeployRulePopup() {
@@ -473,6 +476,18 @@ class Dashboard {
         const entryId = this.currentEntry?.id;
         if (!entryId) return;
 
+        // Prepare confirm button handle early so we can re-enable on errors
+        const confirmBtn = document.getElementById('deployRuleConfirm');
+
+        // Determine which rule id to send to backend: prefer sigma_id, then id, then title
+        const selected = this.selectedDetectionRule || null;
+        const ruleIdToSend = selected?.sigma_id || selected?.id || selected?.title || null;
+        if (!ruleIdToSend) {
+            window.showToast?.('No detection rule selected to deploy', 'error');
+            if (confirmBtn) confirmBtn.disabled = false;
+            return;
+        }
+
         const severity = (document.getElementById('deploySeverity')?.value || '').trim();
         const riskRaw = (document.getElementById('deployRiskScore')?.value || '').trim();
         const dispatch_latest_time = (document.getElementById('deployLatest')?.value || '').trim();
@@ -489,7 +504,6 @@ class Dashboard {
             return;
         }
 
-        const confirmBtn = document.getElementById('deployRuleConfirm');
         if (confirmBtn) confirmBtn.disabled = true;
 
         try {
@@ -497,7 +511,8 @@ class Dashboard {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: entryId,
+                    id: ruleIdToSend,
+                    entry_id: entryId,
                     severity,
                     risk_score,
                     dispatch_latest_time,
@@ -630,6 +645,12 @@ class Dashboard {
                 deployBtn.innerHTML = '<i class="fas fa-cloud-upload-alt mr-2"></i>Deploy Rule';
                 deployBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    // Store which detection rule the user intends to deploy
+                    try {
+                        this.selectedDetectionRule = rule;
+                    } catch (err) {
+                        this.selectedDetectionRule = null;
+                    }
                     this.openDeployRulePopup();
                 });
 

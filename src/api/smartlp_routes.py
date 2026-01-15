@@ -414,23 +414,16 @@ def register_smartlp_routes(app: Flask) -> None:
         try:
             data = request.get_json()
             if not data or 'id' not in data:
-                return jsonify({"error": "Entry ID is required"}), 400
+                return jsonify({"error": "Rule ID is required"}), 400
             
-            entry_id = data.get('id')
-            if not entry_id:
-                return jsonify({"error": "Entry ID cannot be empty"}), 400
-
-            # Get the entry from database
-            entry = smartlp_service.get_by_id(entry_id)
-            if not entry:
-                return jsonify({"error": f"No entry found with ID {entry_id}"}), 404
+            rule_id = data.get('id')
+            if not rule_id:
+                return jsonify({"error": "Rule ID cannot be empty"}), 400
             
             # Get active SIEM
             active_siem = settings_service.get_active_siem()
             if not active_siem:
                 return jsonify({"error": "No active SIEM configured"}), 400
-
-            rule = elasticsearch_service.create_rule_elastic(data)
 
             # Deploy to SIEM
             if active_siem == 'splunk':
@@ -443,7 +436,7 @@ def register_smartlp_routes(app: Flask) -> None:
             if success:
                 logger.info("SIEM rule deployment successful: %s", message)
                 # update status of entry to 'Deployed'
-                smartlp_service.update(entry_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
+                smartlp_service.update(rule_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
                 return jsonify({
                     "success": True,
                     "message": message,
@@ -456,7 +449,10 @@ def register_smartlp_routes(app: Flask) -> None:
                     "success": False,
                     "error": message
                 }), 500
-                
+        except ValueError as e:
+            # Validation / missing data errors from services
+            logger.warning("Rule deployment validation error: %s", str(e))
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             error_msg = f"Rule deployment error: {str(e)}"
             logger.exception("%s", error_msg)
