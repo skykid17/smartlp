@@ -260,8 +260,7 @@ class ApplicationFactory:
                     app, 
                     host=run_host, 
                     port=run_port, 
-                    debug=run_debug,
-                    # use_reloader=False  # Disable reloader to avoid double threads
+                    debug=run_debug
                 )
             except Exception as e:
                 logger.exception("SocketIO run error")

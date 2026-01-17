@@ -29,7 +29,6 @@ SmartLP (Smart Log Parser) is a Flask-based web application for ingesting securi
   - `src/utils/` – logging, formatting, pagination helpers
 - `templates/` – main UI template (`smartlp.html`) and sections
 - `static/` – CSS/JS assets used by the UI
-- `tools/` – CLI helpers for RAG indexes, testing, and debugging
 - `demo/` – demo JSON and utility scripts
 
 ## Requirements
