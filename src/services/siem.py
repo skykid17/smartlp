@@ -1026,13 +1026,11 @@ output {{
             if resp.status_code == 409:  # Conflict = already exists
                 update_url = f"{kibana_url}/api/detection_engine/rules/_update"
                 resp = requests.put(update_url, headers=HEADERS, json=rule, verify=False)
-
-            print(f"Rule ID: {rule.get('rule_id')}")
-            print(f"Entry ID: {rule.get('entry_id')}")
             
-            kb_modified = db_connection.update_one("knowledge_base", {"sigma_id": rule.get("rule_id"), "metadata.category": "elastic_rules"}, {"$set": {"deployed": True}})
-            log_modified = db_connection.update_one("logs", {"id": rule.get("entry_id"), "detection_rules.sigma_id": rule.get("rule_id")}, {"$set": {"detection_rules.$.deployed": True}})
-            print(f"Knowledge Base modified: {kb_modified}, Log modified: {log_modified}")
+            # Update database records to mark rule as deployed
+            db_connection.update_one("knowledge_base", {"sigma_id": rule.get("rule_id"), "metadata.category": "elastic_rules"}, {"$set": {"deployed": True}})
+            db_connection.update_one("logs", {"id": rule.get("entry_id"), "detection_rules.sigma_id": rule.get("rule_id")}, {"$set": {"detection_rules.$.deployed": True}})
+            
             return {"success": True, "message": f"Rule deployed successfully", "response": resp.json()}
         
         except Exception as e:

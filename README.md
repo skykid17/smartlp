@@ -1,40 +1,43 @@
 # SmartLP
 
-SmartLP (Smart Log Parser) is a Flask-based web application for ingesting security logs from SIEM platforms (Splunk / Elasticsearch), generating and validating parsing regex, and managing a workflow for improving parse coverage. It includes a modern single-page UI (Tailwind) plus REST APIs for ingestion, parsing, reporting, and configuration deployment.
+SmartLP (Smart Log Parser) is a Flask-based web application for ingesting security logs from SIEM platforms (Splunk or Elasticsearch), generating and validating parsing regex, and managing a workflow for improving parse coverage. It ships with a single-page Tailwind UI, REST APIs, and optional LLM/RAG capabilities.
 
-## Key capabilities
+## Highlights
 
-- **Log ingestion** from Splunk or Elasticsearch based on runtime settings stored in MongoDB
-- **Regex workflow**: generate, reduce/optimize, validate matching (PCRE2 engine), and save rules/log entries
-- **Analytics/reporting**: basic statistics and a report endpoint consumed by the UI
-- **Config generation & deployment**: generate SIEM-specific config for selected entries and deploy to the active SIEM
-- **LLM/RAG integration** (optional): uses a configurable LLM endpoint for tasks like regex generation and log-type inference
+- **SIEM ingestion** with a background worker driven by runtime settings in MongoDB
+- **Regex workflow** with PCRE2 validation, match inspection, and reduction utilities
+- **Reporting & analytics** for status coverage, volume, and log-type trends
+- **Config generation & deployment** for SIEM-ready rules and pipelines
+- **LLM/RAG integration** for regex generation, fixes, and general assistance
 
-## Tech stack
+## Architecture overview
 
-- **Backend:** Python, Flask, Flask-SocketIO
-- **Database:** MongoDB (pymongo)
-- **Regex engine:** PCRE2 (`pcre2` Python package)
-- **Frontend:** Server-rendered template + Tailwind-based UI with ES module scripts in `static/js/`
+- **Entry point:** `app.py` creates and runs the Flask app via `ApplicationFactory`.
+- **Application factory:** initializes Socket.IO logging, sets up the first-run guard, registers routes, and starts ingestion on the first request.
+- **Service layer:** `src/services/` encapsulates SmartLP logic, SIEM connectors, settings, LLM, RAG, and regex processing.
+- **Data access:** `src/database/connection.py` manages MongoDB connection lifecycle and CRUD helpers.
+- **UI:** server-rendered templates in `templates/` with Tailwind assets in `static/`.
 
 ## Project layout
 
 - `app.py` – application entrypoint
 - `src/` – backend source code
-  - `src/core/` – app factory, Socket.IO manager
-  - `src/api/` – Flask routes
-  - `src/services/` – SmartLP, SIEM, settings, LLM, RAG services
+  - `src/core/` – application factory, Socket.IO manager
+  - `src/api/` – Flask routes (init, settings, SmartLP, main)
+  - `src/services/` – SmartLP, SIEM, settings, LLM, RAG, regex engine
   - `src/database/` – MongoDB connection wrapper
+  - `src/utils/` – logging, formatting, pagination helpers
 - `templates/` – main UI template (`smartlp.html`) and sections
 - `static/` – CSS/JS assets used by the UI
-- `rag/` – scripts/data used to build/update RAG resources
+- `tools/` – CLI helpers for RAG indexes, testing, and debugging
+- `demo/` – demo JSON and utility scripts
 
 ## Requirements
 
-- Python 3.10+ recommended
+- Python 3.10+
 - MongoDB (local or remote)
-- Access to at least one SIEM endpoint (Splunk or Elasticsearch) if you want ingestion
-- Optional: an OpenAI-compatible LLM endpoint (Ollama/vLLM/LM Studio/OpenAI-style API)
+- Access to Splunk or Elasticsearch (only required for ingestion)
+- Optional: OpenAI-compatible LLM endpoint (Ollama, vLLM, LM Studio, OpenAI API)
 
 ## Quick start
 
@@ -43,7 +46,7 @@ SmartLP (Smart Log Parser) is a Flask-based web application for ingesting securi
 ```bash
 python -m venv .venv
 # Windows PowerShell
-.\.venv\Scripts\Activate.ps1
+\.\.venv\Scripts\Activate.ps1
 # macOS/Linux
 source .venv/bin/activate
 ```
@@ -60,66 +63,68 @@ Create a `.env` file in the project root:
 
 ```env
 # Required
-MONGO_URL=mongodb://localhost:27017/?directConnection=true
+MONGO_URI=mongodb://localhost:27017/?directConnection=true
 
 # Optional application settings
 APP_HOST=0.0.0.0
 APP_PORT=8800
 APP_DEBUG=True
 SECRET_KEY=change-me
+APP_LOG_LEVEL=INFO
 ```
 
-4) Ensure MongoDB has the required collections/documents
-
-SmartLP expects MongoDB database **`smartlp`** (hard-coded in the configuration) and uses these collections:
-
-- `logs` – ingested and curated log entries
-- `knowledge_base` – RAG knowledge store
-- `settings` – runtime configuration (global settings, SIEM configs, LLM endpoints, prompts)
-
-The repo contains example JSON documents in `mongo/` (e.g., `mongo/settings.global.json`, `mongo/settings.siems.json`, `mongo/settings.llms.json`). When seeding your database, ensure the documents in the `settings` collection include the `category` fields expected by the backend:
-
-- `category: global_settings` (global config)
-- `category: siem_settings` (Splunk/Elastic configs)
-- `category: llm_settings` (LLM endpoint configs)
-
-5) Run the app
+4) Start the app
 
 ```bash
 python app.py
 ```
 
-Open:
+Open http://localhost:8800/.
 
-- http://localhost:8800/
+## First-run initialization
 
-Note: the ingestion thread is started on the first request (after the UI is loaded), and only runs if `ingest_on` is enabled in global settings.
+SmartLP gates access until initial configuration is complete. Visit /init to run the setup wizard or call the init APIs directly:
+
+- `POST /api/init/siem/test` – test SIEM connection details
+- `POST /api/init/siem/save` – persist SIEM settings
+- `POST /api/init/llm/test` – test LLM endpoint/model
+- `POST /api/init/llm/save` – persist LLM endpoint/model
+- `POST /api/init/finish` – mark initialization complete
+
+Once initialized, SmartLP routes are registered and ingestion can run.
 
 ## Configuration model (MongoDB)
 
-SmartLP reads most runtime configuration from MongoDB `smartlp.settings`:
+The application stores runtime configuration in the `smartlp.settings` collection. Documents are grouped by `category`:
 
-- **Global settings** (ingestion, active SIEM, LLM selection)
-  - `active_siem`, `ingest_on`, `ingest_frequency`, `similarity_check`, `similarity_threshold`, `fix_count`, `active_llm_endpoint`, `active_llm`
-- **SIEM settings**
+- **`global_settings`** (id: `global`)
+  - `active_siem`, `ingest_on`, `ingest_frequency`, `similarity_check`, `similarity_threshold`, `fix_count`
+  - `active_llm_model_id`, `ingest_algo_version`, `initialized`
+- **`siem_settings`** (id: `elastic` or `splunk`)
   - Splunk: `host`, `port`, `user`, `password`, `search_index`, `search_query`, `search_entry_count`
-  - Elasticsearch: `host`, `user`, `password`, `cert_path`, `search_index`, `search_query`, `search_entry_count`
-- **LLM endpoint settings**
-  - `id`, `name`, `url`, `models`, optional `api_key`, optional `temperature`
+  - Elasticsearch: `host`, `kibana_url`, `api_key`, `user`, `password`, `search_index`, `search_query`, `cert_path`
+- **`llm_endpoint`** – endpoint URL, API key, display name
+- **`llm_model`** – model name, provider, `endpoint_id`
+- **`prompts`** – LLM system prompts used by the regex/assistant flows
+
+Notes:
+
+- The backend stores keys in snake_case; the UI works in camelCase and is normalized in the settings service.
+- SmartLP defaults to a safe `global_settings` document on first access if one does not exist.
 
 ## API overview
 
-The UI calls these endpoints (non-exhaustive):
+Common endpoints used by the UI (non-exhaustive):
 
 - **Entries**
   - `GET /api/smartlp/entries` – list entries with pagination and filters
   - `PUT|PATCH /api/smartlp/entries/<entry_id>` – update a log entry
   - `POST /api/smartlp/entries/delete` – bulk delete entries
-  - `GET /api/entries/oldest` – fetch oldest unmatched entry
+  - `GET /api/entries/oldest` – fetch the oldest unmatched entry
 
 - **Regex utilities**
   - `POST /api/find_match` – run regex match and return groups/status
-  - `POST /api/reduce_regex` – attempt regex reduction/optimization
+  - `POST /api/reduce_regex` – reduce regex to the longest valid match
 
 - **Ingestion**
   - `GET /api/smartlp/ingestion/status`
@@ -131,22 +136,35 @@ The UI calls these endpoints (non-exhaustive):
   - `GET /api/report/smartlp`
 
 - **Settings**
-  - `GET /api/settings`
-  - `PUT /api/settings`
-  - `POST /api/test_siem_connection`
-  - `POST /api/test_llm_connection`
-  - `POST /api/test_query`
+  - `GET /api/settings` – full settings payload for the UI
+  - `GET /api/settings/global` – global settings document
+  - `PUT /api/settings` – save settings changes
+  - `POST /api/settings/siem/test` – test a candidate SIEM config
+  - `POST /api/settings/siem` – add a SIEM configuration
+  - `POST /api/test_siem_connection` – test saved SIEM config(s)
+  - `POST /api/test_llm_connection` – test saved LLM endpoint/model
+  - `POST /api/test_query` – run a SIEM query test
 
 - **Config generation & deployment**
   - `POST /api/smartlp/generate_config`
   - `POST /api/check_deployable`
   - `POST /api/smartlp/deploy_config`
+  - `POST /api/smartlp/deploy_rule`
 
 - **LLM / RAG**
-  - `POST /api/query` – task router used by the UI (generate/fix/default)
+  - `POST /api/query` – task router (`generate`, `fix`, or default RAG query)
 
-## Notes for development
+## Background ingestion behavior
+
+The ingestion loop runs in a daemon thread started on the first HTTP request after initialization. It reads `global_settings` each cycle, and only ingests when `ingest_on` is enabled. You can also start/stop ingestion manually via the ingestion endpoints.
+
+## RAG and LLM notes
+
+- RAG uses MongoDB vector search with a fallback local retriever. Index names are `vector_index` and `text_index`.
+- LLM integration uses LangChain’s `ChatOpenAI` client with OpenAI-compatible endpoints.
+
+## Development notes
 
 - Static assets are served from `static/` and templates from `templates/`.
-- Socket.IO is initialized via Flask-SocketIO; logs/events are managed through the app’s logging utilities.
-- The application is currently configured to use Tailwind assets already present in `static/css/`.
+- Socket.IO forwards log events to the UI via a structured `log` event payload.
+- Tailwind assets are prebuilt in `static/css/`.
