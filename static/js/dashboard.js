@@ -564,48 +564,33 @@ class Dashboard {
             const confidence = Number(rule?.confidence ?? 0);
             const reason = (rule?.reason ?? '').toString();
             const siemRule = (rule?.siem_rule ?? '').toString();
+            const deployed = Boolean(rule?.deployed ?? false);
 
             const pct = Number.isFinite(confidence) ? Math.round(confidence * 100) : 0;
 
             let badgeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-            if (confidence >= 0.9) {
+            if (confidence >= 0.85) {
                 badgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-            } else if (confidence >= 0.8) {
+            } else if (confidence >= 0.75) {
                 badgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
             }
 
             const card = document.createElement('div');
             card.className = 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800';
 
-            // Header row: Sigma ID + copy button + confidence badge
+            // Header row: Sigma Title + confidence badge
             const headerRow = document.createElement('div');
-            headerRow.className = 'flex items-start justify-between gap-3';
+            headerRow.className = 'flex items-start justify-between gap-4';
 
-            const sigmaWrap = document.createElement('div');
-            sigmaWrap.className = 'min-w-0 flex-1';
-
-            const sigmaBox = document.createElement('div');
-            sigmaBox.className = 'relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-10';
-
-            const copyBtn = document.createElement('button');
-            copyBtn.type = 'button';
-            copyBtn.className = 'absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn';
-            copyBtn.setAttribute('aria-label', 'Copy Sigma ID');
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-
-            const sigmaCode = document.createElement('code');
-            sigmaCode.className = 'text-sm text-gray-900 dark:text-gray-100 font-mono whitespace-pre-wrap break-words';
-            sigmaCode.textContent = title || 'N/A';
-
-            sigmaBox.appendChild(copyBtn);
-            sigmaBox.appendChild(sigmaCode);
-            sigmaWrap.appendChild(sigmaBox);
+            const sigmaTitle = document.createElement('span');
+            sigmaTitle.className = 'text-gray-900 dark:text-gray-100 font-semibold whitespace-pre-wrap break-words';
+            sigmaTitle.textContent = title || 'N/A';
 
             const badge = document.createElement('span');
-            badge.className = `shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`;
-            badge.textContent = `${pct}%`;
+            badge.className = `px-2.5 py-0.5 rounded-full text-xs ${badgeClass}`;
+            badge.textContent = `${pct}% Confidence`;
 
-            headerRow.appendChild(sigmaWrap);
+            headerRow.appendChild(sigmaTitle);
             headerRow.appendChild(badge);
 
             // Reason
@@ -616,7 +601,7 @@ class Dashboard {
             card.appendChild(headerRow);
             if (reason) card.appendChild(reasonEl);
 
-            // Optional expandable SIEM rule
+            // Optional expandable SIEM rule + copy + deploy
             const hasSiemRule = Boolean(siemRule && siemRule.trim());
             if (hasSiemRule) {
                 const controlsId = `modalSiemRule_${Date.now()}_${idx}`;
@@ -624,19 +609,28 @@ class Dashboard {
                 const toggleBtn = document.createElement('button');
                 toggleBtn.type = 'button';
                 toggleBtn.className = 'mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline';
-                toggleBtn.textContent = 'View SIEM Rule';
+                toggleBtn.textContent = 'View Rule';
                 toggleBtn.setAttribute('aria-expanded', 'false');
                 toggleBtn.setAttribute('aria-controls', controlsId);
 
                 const siemContainer = document.createElement('div');
                 siemContainer.id = controlsId;
-                siemContainer.className = 'mt-2 hidden';
+                siemContainer.className = 'mt-2 relative hidden';
 
                 const pre = document.createElement('pre');
                 pre.className = 'text-xs text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 whitespace-pre-wrap break-words overflow-x-auto';
-                pre.textContent = siemRule;
+                const code = document.createElement('code');
+                code.textContent = siemRule;
+                pre.appendChild(code);
 
                 siemContainer.appendChild(pre);
+
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'absolute top-2 right-2 z-10 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn';
+                copyBtn.setAttribute('aria-label', 'Copy Rule');
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                siemContainer.appendChild(copyBtn);
 
                 const deployBtn = document.createElement('button');
                 deployBtn.type = 'button';
@@ -654,13 +648,20 @@ class Dashboard {
                     this.openDeployRulePopup();
                 });
 
-                siemContainer.appendChild(deployBtn);
+                if (!deployed) {
+                    siemContainer.appendChild(deployBtn);
+                } else {
+                    const deployedLabel = document.createElement('span');
+                    deployedLabel.className = 'inline-flex items-center px-2.5 py-0.5 mt-4 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+                    deployedLabel.innerHTML = '<i class="fas fa-cloud-upload-alt mr-1"></i>deployed';
+                    siemContainer.appendChild(deployedLabel);
+                }
 
                 toggleBtn.addEventListener('click', () => {
                     const isHidden = siemContainer.classList.contains('hidden');
                     siemContainer.classList.toggle('hidden', !isHidden);
                     toggleBtn.setAttribute('aria-expanded', String(isHidden));
-                    toggleBtn.textContent = isHidden ? 'Hide SIEM Rule' : 'View SIEM Rule';
+                    toggleBtn.textContent = isHidden ? 'Hide Rule' : 'View Rule';
                 });
 
                 card.appendChild(toggleBtn);

@@ -986,13 +986,11 @@ output {{
 
     def create_rule_elastic(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a detection rule in Elasticsearch."""
-        print("fetched data:", data)
         siem_rule = db_connection.query('knowledge_base', {'sigma_id': data.get('id'),'metadata.category': 'elastic_rules'}, projection={'_id': 0}, limit =1)
-        print("rule:", siem_rule)
         sigma_rule = db_connection.query('knowledge_base', {'id': data.get('id'),'metadata.category': 'sigma_rules'}, projection={'_id': 0}, limit =1)
-        print("sigma_rule:", sigma_rule)
         elastic_rule = {
-            'rule_id': siem_rule.get('id', f"smartlp_rule_{data.get('id')}"),
+            'rule_id': siem_rule.get('id', data.get('id')),
+            'entry_id': data.get('entry_id'),
             'name': siem_rule.get('title'),
             'description': sigma_rule.get('description'),
             'severity': data.get('severity', 'medium'),
@@ -1028,8 +1026,14 @@ output {{
             if resp.status_code == 409:  # Conflict = already exists
                 update_url = f"{kibana_url}/api/detection_engine/rules/_update"
                 resp = requests.put(update_url, headers=HEADERS, json=rule, verify=False)
+
+            print(f"Rule ID: {rule.get('rule_id')}")
+            print(f"Entry ID: {rule.get('entry_id')}")
             
-            return {"success": True, "message": f"Rule '{rule.get('rule_id')}' deployed successfully", "response": resp.json()}
+            kb_modified = db_connection.update_one("knowledge_base", {"sigma_id": rule.get("rule_id"), "metadata.category": "elastic_rules"}, {"$set": {"deployed": True}})
+            log_modified = db_connection.update_one("logs", {"id": rule.get("entry_id"), "detection_rules.sigma_id": rule.get("rule_id")}, {"$set": {"detection_rules.$.deployed": True}})
+            print(f"Knowledge Base modified: {kb_modified}, Log modified: {log_modified}")
+            return {"success": True, "message": f"Rule deployed successfully", "response": resp.json()}
         
         except Exception as e:
             error_msg = f"Failed to deploy rule to Elasticsearch: {e}"

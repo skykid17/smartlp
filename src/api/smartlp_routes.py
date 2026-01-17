@@ -428,26 +428,26 @@ def register_smartlp_routes(app: Flask) -> None:
             # Deploy to SIEM
             if active_siem == 'splunk':
                 rule = splunk_service.create_rule_splunk(data)
-                success, message = splunk_service.deploy_rule_splunk(rule)
+                reply = splunk_service.deploy_rule_splunk(rule)
             else: # elastic
                 rule = elasticsearch_service.create_rule_elastic(data)
-                success, message = elasticsearch_service.deploy_rule_elastic(rule)
+                reply = elasticsearch_service.deploy_rule_elastic(rule)
             
-            if success:
-                logger.info("SIEM rule deployment successful: %s", message)
+            if reply.get("success", False):
+                logger.info("SIEM rule deployment successful: %s", reply.get("message", "Rule deployed successfully"))
                 # update status of entry to 'Deployed'
                 smartlp_service.update(rule_id, {"status": "Deployed", "last_modified": datetime.utcnow().isoformat()})
                 return jsonify({
                     "success": True,
-                    "message": message,
+                    "message": reply.get("message"),
                     "siem": active_siem,
                     "rule_deployed": rule.get("rule_id")
                 }), 200
             else:
-                logger.error("SIEM rule deployment failed: %s", message)
+                logger.error("SIEM rule deployment failed: %s", reply.get("message", "Rule deployment failed"))
                 return jsonify({
                     "success": False,
-                    "error": message
+                    "error": reply.get("message", "Rule deployment failed")
                 }), 500
         except ValueError as e:
             # Validation / missing data errors from services

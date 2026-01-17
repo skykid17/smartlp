@@ -940,8 +940,6 @@ class SmartLPService(CRUDService):
             if not isinstance(matches, list):
                 raise ValueError("Invalid matches format")
 
-            
-
             detection_rules = []
             for match in matches:
                 sigma_id = match.get("id")
@@ -966,7 +964,8 @@ class SmartLPService(CRUDService):
                     "confidence": confidence,
                     "reason": match.get("reason", ""),
                     "title": siem_rule_doc.get("title") if siem_rule_doc else "",
-                    "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else ""
+                    "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else "",
+                    "deployed": siem_rule_doc.get("deployed", False) if siem_rule_doc else False
                 })
             self.logger.info(
                 "Identified %s detection rules above confidence threshold %s",
