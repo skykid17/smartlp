@@ -31,10 +31,12 @@ class SocketIOLogHandler(logging.Handler):
                 "logger": record.name,
                 "message": self.format(record),
             }
-            self._socketio.emit("log", payload, broadcast=True)
-        except Exception:
-            # Never let logging failures break request handling.
-            pass
+            # Emit with namespace and broadcast for background thread compatibility
+            self._socketio.emit("log", payload, namespace='/', broadcast=True)
+        except Exception as e:
+            # Log errors to stderr for debugging, but don't break the application
+            import sys
+            print(f"SocketIOLogHandler emit error: {e}", file=sys.stderr)
 
 
 def configure_logging(socketio: Optional[Any] = None) -> None:
