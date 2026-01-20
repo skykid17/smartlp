@@ -1,3 +1,8 @@
+# Monkey patch stdlib before any other imports for eventlet compatibility
+# This MUST be done before importing anything else
+import eventlet
+eventlet.monkey_patch()
+
 import subprocess
 import time
 import os

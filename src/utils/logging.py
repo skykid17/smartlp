@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -31,10 +32,12 @@ class SocketIOLogHandler(logging.Handler):
                 "logger": record.name,
                 "message": self.format(record),
             }
-            self._socketio.emit("log", payload)
-        except Exception:
-            # Never let logging failures break request handling.
-            pass
+            # Emit to all clients on the default namespace
+            # When using eventlet, socketio.emit() automatically broadcasts from background threads
+            self._socketio.emit("log", payload, namespace='/')
+        except Exception as e:
+            # Log errors to stderr for debugging, but don't break the application
+            print(f"SocketIOLogHandler emit error: {e}", file=sys.stderr)
 
 
 def configure_logging(socketio: Optional[Any] = None) -> None:
