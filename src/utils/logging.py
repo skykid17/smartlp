@@ -32,8 +32,9 @@ class SocketIOLogHandler(logging.Handler):
                 "logger": record.name,
                 "message": self.format(record),
             }
-            # Emit with namespace and broadcast for background thread compatibility
-            self._socketio.emit("log", payload, namespace='/', broadcast=True)
+            # Emit to all clients on the default namespace
+            # When using eventlet, socketio.emit() automatically broadcasts from background threads
+            self._socketio.emit("log", payload, namespace='/')
         except Exception as e:
             # Log errors to stderr for debugging, but don't break the application
             print(f"SocketIOLogHandler emit error: {e}", file=sys.stderr)
