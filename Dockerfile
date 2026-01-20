@@ -29,11 +29,7 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    SMARTLP_ARCHIVE=/smartlp.archive \
-    HF_HOME=/app/hf_cache \
-    TRANSFORMERS_CACHE=/app/hf_cache \
-    HF_HUB_OFFLINE=1 \
-    TRANSFORMERS_OFFLINE=1
+    SMARTLP_ARCHIVE=/smartlp.archive
 
 WORKDIR /app
 

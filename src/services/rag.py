@@ -526,18 +526,17 @@ class RAG:
 
     # --- Embeddings ---
     def get_embedding_model(self) -> SentenceTransformer:
-        if self._embedding_model is not None:
-            return self._embedding_model
+        if self._embedding_model is None:
+            
+            model_id = self.embedding_provider
 
-        model_id = self.embedding_provider
-
-        if not Path(model_id).exists():
-            raise RuntimeError(f"Embedding model not found locally at {model_id}. Download it once while online before running RAG.")
-        
-        self._embedding_model = SentenceTransformer(
-            str(model_id),
-            local_files_only=True,
-        )
+            if not Path(model_id).exists():
+                raise RuntimeError(f"Embedding model not found locally at {model_id}. Download it once into /app/models/all-MiniLM-L6-v2 while online before running RAG.")
+            
+            self._embedding_model = SentenceTransformer(
+                model_id,
+                local_files_only=True,
+            )
 
         return self._embedding_model
 
