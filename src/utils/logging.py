@@ -31,7 +31,7 @@ class SocketIOLogHandler(logging.Handler):
                 "logger": record.name,
                 "message": self.format(record),
             }
-            self._socketio.emit("log", payload)
+            self._socketio.emit("log", payload, broadcast=True)
         except Exception:
             # Never let logging failures break request handling.
             pass
