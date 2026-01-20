@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -35,7 +36,6 @@ class SocketIOLogHandler(logging.Handler):
             self._socketio.emit("log", payload, namespace='/', broadcast=True)
         except Exception as e:
             # Log errors to stderr for debugging, but don't break the application
-            import sys
             print(f"SocketIOLogHandler emit error: {e}", file=sys.stderr)
 
 
