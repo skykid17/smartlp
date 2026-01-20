@@ -21,8 +21,7 @@ def _bootstrap_sys_path() -> None:
 
     project_root = Path(__file__).resolve().parent
     src_dir = project_root / "src"
-
-    # Put `src/` first so `import services...` resolves to `src/services/...`.
+    
     if str(src_dir) not in sys.path:
         sys.path.insert(0, str(src_dir))
     if str(project_root) not in sys.path:

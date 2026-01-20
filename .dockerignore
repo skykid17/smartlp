@@ -4,6 +4,7 @@ __pycache__
 node_modules
 .git
 *.pyc
+models/
 
 # already added via compose
 smartlp.archive

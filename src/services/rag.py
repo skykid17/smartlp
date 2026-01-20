@@ -416,7 +416,7 @@ class RAG:
         database: str = "smartlp",
         collection_name: str = "knowledge_base",
         embedding_dim: int = 384,
-        embedding_provider: str = "all-MiniLM-L6-v2",
+        embedding_provider: str = "models/all-MiniLM-L6-v2",
         vector_index: str = "vector_index",
         text_index: str = "text_index",
         text_paths: Sequence[str] = DEFAULT_TEXT_PATHS,
@@ -444,11 +444,6 @@ class RAG:
         self.client: Optional[MongoClient] = None
         self._embedding_model: Optional[SentenceTransformer] = None
         self.embedding_fn = lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress)
-        self.local_retriever = LocalRetriever(
-            collection=self._ensure_collection(),
-            embedding_fn=self.embedding_fn,
-            text_index=self.text_index,
-        )
 
 
     # --- Index Creation Helpers ---
@@ -515,13 +510,35 @@ class RAG:
         self._ensure_index(coll, self.vector_index, "vectorSearch", vector_def)
         self._ensure_index(coll, self.text_index, "search", text_def)
 
+        # preload embedding model
+        try:
+            self.get_embedding_model()
+        except Exception as e:
+            logger.error("Failed to preload embedding model: %s", e)
+            raise
+
+        self.local_retriever = LocalRetriever(
+            collection=self._ensure_collection(),
+            embedding_fn=self.embedding_fn,
+            text_index=self.text_index,
+        )
         logger.info("RAG initialization complete")
 
     # --- Embeddings ---
     def get_embedding_model(self) -> SentenceTransformer:
-        if self._embedding_model is None:
-            logger.info("Loading SentenceTransformer: %s", self.embedding_provider)
-            self._embedding_model = SentenceTransformer(self.embedding_provider)
+        if self._embedding_model is not None:
+            return self._embedding_model
+
+        model_id = self.embedding_provider
+
+        if not Path(model_id).exists():
+            raise RuntimeError(f"Embedding model not found locally at {model_id}. Download it once while online before running RAG.")
+        
+        self._embedding_model = SentenceTransformer(
+            str(model_id),
+            local_files_only=True,
+        )
+
         return self._embedding_model
 
     def generate_embeddings(self, texts: Sequence[str], show_progress: bool = False) -> List[List[float]]:
