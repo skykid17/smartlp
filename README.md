@@ -36,46 +36,26 @@ SmartLP (Smart Log Parser) is a Flask-based web application for ingesting securi
 - Python 3.10+
 - MongoDB (local or remote)
 - Access to Splunk or Elasticsearch (only required for ingestion)
+- Docker
 - Optional: OpenAI-compatible LLM endpoint (Ollama, vLLM, LM Studio, OpenAI API)
 
-## Quick start
+## Quick start (Docker)
 
-1) Create and activate a virtual environment
-
+1) Download the application file
 ```bash
-python -m venv .venv
-# Windows PowerShell
-\.\.venv\Scripts\Activate.ps1
-# macOS/Linux
-source .venv/bin/activate
+git pull https://github.com/skykid17/smartlp.git
 ```
 
-2) Install dependencies
+2) Create the Docker network (first time only)
 
 ```bash
-pip install -r requirements.txt
+docker network create search-community
 ```
 
-3) Configure environment variables
-
-Create a `.env` file in the project root:
-
-```env
-# Required
-MONGO_URI=mongodb://localhost:27017/?directConnection=true
-
-# Optional application settings
-APP_HOST=0.0.0.0
-APP_PORT=8800
-APP_DEBUG=True
-SECRET_KEY=change-me
-APP_LOG_LEVEL=INFO
-```
-
-4) Start the app
+3) Build and start the stack
 
 ```bash
-python app.py
+docker compose up --build
 ```
 
 Open http://localhost:8800/.
