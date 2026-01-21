@@ -10,29 +10,27 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - mongod_data:/data/db
-      - ./mongod.conf:/etc/mongod.conf:ro
-      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+      - ./docker/mongod.conf:/etc/mongod.conf:ro
+      - ./docker/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     networks:
       - search-community
     restart: unless-stopped
 
   mongot:
-    # image: mongodb/mongodb-community-search:latest
     build:
       context: .
-      dockerfile: Dockerfile.mongot
+      dockerfile: ./docker/Dockerfile.mongot
     container_name: mongot-community-pupr
     networks:
       - search-community
     volumes:
       - mongot_data:/data/mongot
-      - ./mongot.conf:/mongot-community/config.default.yml
-      # - ./pwfile:/mongot-community/pwfile:ro
+      - ./docker/mongot.conf:/mongot-community/config.default.yml
     depends_on:
       - mongod
     ports:
-      - 27028:27028 # Query server port from config
-      - 9946:9946 # Metrics port from config
+      - 27028:27028
+      - 9946:9946
     restart: unless-stopped
 
   smartlp:
@@ -67,4 +65,4 @@ volumes:
 networks:
   search-community:
     name: search-community
-    external: true # Use an external network if it exists. Comment this line if you want to create a new network.
+    external: true
