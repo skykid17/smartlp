@@ -171,10 +171,8 @@ class LoggerPanel {
         if (pauseBtn) {
             const icon = pauseBtn.querySelector('i');
             if (this.autoScroll) {
-                icon.className = 'fas fa-pause mr-2';
                 pauseBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>Pause Auto-Scroll';
             } else {
-                icon.className = 'fas fa-play mr-2';
                 pauseBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Resume Auto-Scroll';
             }
         }
