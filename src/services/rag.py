@@ -444,6 +444,7 @@ class RAG:
         self.client: Optional[MongoClient] = None
         self._embedding_model: Optional[SentenceTransformer] = None
         self.embedding_fn = lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress)
+        self.local_retriever: Optional[LocalRetriever] = None
 
 
     # --- Index Creation Helpers ---
@@ -722,6 +723,12 @@ class RAG:
         start = time.time()
         try:
             coll = self._ensure_collection()
+            if self.local_retriever is None:
+                self.local_retriever = LocalRetriever(
+                    collection=coll,
+                    embedding_fn=self.embedding_fn,
+                    text_index=self.text_index,
+                )
             retriever = MongoHybridRetriever(
                 collection=coll,
                 embedding_fn=self.embedding_fn,
@@ -739,8 +746,9 @@ class RAG:
             
             chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"))
             answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
-
-            return {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
+            result = {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
+            logger.info("RAG Response: %s", result)
+            return result
 
         except Exception as e:
             return {"success": False, "error": str(e), "latency": round(time.time() - start, 3)}

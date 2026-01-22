@@ -265,6 +265,16 @@ class Playground {
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
 
             const data = await response.json();
+
+            if (!data || data.success === false || !data.regex) {
+                const message = data?.error || data?.message || 'Regex update failed';
+                this.setLogger(message);
+                if (typeof window.showToast === 'function') {
+                    window.showToast(message, 'error');
+                }
+                return;
+            }
+
             if (this.dom.regexDisplay) this.dom.regexDisplay.value = data.regex;
             this.setLogger(data.logger || 'Regex updated');
             const successMessage = task === 'fix' ? 'Regex improved successfully' : 'Regex generated successfully';

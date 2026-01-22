@@ -3,7 +3,7 @@ FROM mongodb/mongodb-community-search:latest
 USER root
 
 # 1. Fix Password File (as before)
-COPY pwfile /mongot-community/pwfile
+COPY ./docker/pwfile /mongot-community/pwfile
 RUN chown 1000:1000 /mongot-community/pwfile && \
     chmod 400 /mongot-community/pwfile
 

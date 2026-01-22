@@ -72,7 +72,7 @@ def register_init_routes(app: Flask) -> None:
             return jsonify({"success": False, "error": "Invalid SIEM type"}), 400
 
         if siem == SIEM_ELASTIC:
-            for f in ["host", "kibana_url", "api_key", "cert_path", "search_index", "search_query"]:
+            for f in ["host", "kibana_url", "api_key", "search_index", "search_query"]:
                 err = _required(data, f)
                 if err:
                     return jsonify({"success": False, "error": err}), 400

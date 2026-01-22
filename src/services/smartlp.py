@@ -902,7 +902,6 @@ class SmartLPService(CRUDService):
             filter_category="sigma_rules",
             top_k=5
         )
-        print("RAG Response:", response)
         content_raw = response.get("content", "")
         context_docs = response.get("context", [])
         if not content_raw and (not context_docs or all(not (c and c.get("content")) for c in context_docs)):

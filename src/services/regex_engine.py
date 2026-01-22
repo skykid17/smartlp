@@ -1,5 +1,6 @@
 import pcre2
 import logging
+import json
 from services.settings import settings_service
 from services.rag import rag_service
 from utils.formatters import clean_response
@@ -11,6 +12,33 @@ class RegexEngineService:
     def __init__(self):
         """Initialize regex engine service."""
         self.service_name = "regex_engine"
+
+    def _normalize_regex_output(self, response: str) -> str:
+        """Normalize LLM output into a usable regex string.
+
+        Handles JSON-wrapped strings/objects and safely unescapes backslashes.
+        """
+        cleaned = clean_response(response)
+
+        parsed = None
+        try:
+            parsed = json.loads(cleaned)
+        except Exception:
+            parsed = None
+
+        if isinstance(parsed, dict):
+            cleaned = parsed.get("regex") or parsed.get("pattern") or cleaned
+        elif isinstance(parsed, list) and parsed:
+            first = parsed[0]
+            cleaned = first if isinstance(first, str) else cleaned
+        elif isinstance(parsed, str):
+            cleaned = parsed
+
+        if isinstance(cleaned, str):
+            cleaned = cleaned.strip()
+            cleaned = cleaned.replace("\\\\", "\\")
+
+        return cleaned
         
 
     def run_regex_match(self, log: str, pattern: str):
@@ -206,8 +234,8 @@ class RegexEngineService:
                 "latency": result["latency"]
             }
 
-        # Clean
-        regex = clean_response(result["content"])
+        # Clean + normalize
+        regex = self._normalize_regex_output(result["content"])
         if not regex.endswith("$"):
             regex += "$"
 
@@ -250,7 +278,7 @@ class RegexEngineService:
                     "latency": total_latency
                 }
 
-            raw = clean_response(result["content"])
+            raw = self._normalize_regex_output(result["content"])
             if not raw.endswith("$"):
                 raw += "$"
 
@@ -300,16 +328,12 @@ class RegexEngineService:
 
 
     def fix_regex(self, log: str, regex: str) -> Dict[str, Any]:
-        system_prompt = settings_service.get_prompts_settings("fix_regex")
-
+        
         # shrink to longest matching core
         longest = regex_engine_service.run_reduce_regex(log, regex)
-        longest = longest["regex"]
-
-        result = rag_service.query_rag(
-            user_prompt=f"log: {log}\ncurrent regex: {regex}\nreduced core: {longest}", 
-            system_prompt=system_prompt
-        )
+        longest_end = longest["end"]
+        remaining_text = log[longest_end:] if longest_end is not None else ""
+        result = self.generate_regex_v2(remaining_text, fix_count=3)
 
         if not result["success"]:
             return {
@@ -319,17 +343,58 @@ class RegexEngineService:
                 "latency": result["latency"]
             }
 
-        fixed = clean_response(result["content"])
+        # Assemble without re-normalizing the assembled regex
+        prefix = longest.get("regex", "") or ""
+        suffix = result.get("regex", "") or ""
+        fixed = f"{prefix}{suffix}"
+        fixed = self.resolve_duplicate_capture_groups(fixed)
         if not fixed.endswith("$"):
             fixed += "$"
+
+        # Validate compilation
+        try:
+            pcre2.compile(fixed)
+        except Exception as e:
+            return {
+                "success": False,
+                "regex": None,
+                "error": f"CompileError: {e}",
+                "latency": result["latency"]
+            }
+
+        # Validate match quality; try a spacer if needed
+        match_info = regex_engine_service.run_regex_match(log, fixed)
+        if match_info["status"] == "Unmatched" and prefix and suffix:
+            fixed_spaced = f"{prefix}\\s?{suffix}"
+            fixed_spaced = self.resolve_duplicate_capture_groups(fixed_spaced)
+            if not fixed_spaced.endswith("$"):
+                fixed_spaced += "$"
+            try:
+                pcre2.compile(fixed_spaced)
+                match_info = regex_engine_service.run_regex_match(log, fixed_spaced)
+                if match_info["status"] != "Unmatched":
+                    fixed = fixed_spaced
+            except Exception:
+                pass
+
+        if match_info["status"] == "Unmatched":
+            return {
+                "success": True,
+                "regex": fixed,
+                "warning": "Fixed regex did not match input log",
+                "match_status": match_info["status"],
+                "error": None,
+                "latency": result["latency"]
+            }
 
         return {
             "success": True,
             "regex": fixed,
+            "warning": None,
+            "match_status": match_info["status"],
             "error": None,
             "latency": result["latency"]
         }
-    
     
     def resolve_duplicate_capture_groups(self, regex: str) -> str:
         """Resolve duplicate named capture groups by appending incremental numbers.
