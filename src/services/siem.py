@@ -415,8 +415,160 @@ class SplunkService(BaseSIEMService):
         
         Args:
             entry_ids: List of entry IDs to deploy
+            
+        Returns:
+            Tuple of (success, message)
         """
-        pass
+        import os
+        import shutil
+        import tempfile
+        
+        # Fixed Splunk configuration paths
+        PROPS_CONF_PATH = "/etc/system/default/props.conf"
+        TRANSFORMS_CONF_PATH = "/etc/system/default/transforms.conf"
+        
+        try:
+            self.logger.info("Starting Splunk configuration deployment for %s entries", len(entry_ids))
+            
+            # Step 1: Generate configuration
+            config_dict = self.create_config_splunk(entry_ids)
+            if not config_dict or "Error" in config_dict.get("props_conf", ""):
+                return False, "Failed to generate valid configuration"
+            
+            props_content = config_dict["props_conf"]
+            transforms_content = config_dict["transforms_conf"]
+            
+            # Step 2: Backup existing files
+            backup_files = []
+            try:
+                if os.path.exists(PROPS_CONF_PATH):
+                    backup_path = f"{PROPS_CONF_PATH}.bak"
+                    shutil.copy2(PROPS_CONF_PATH, backup_path)
+                    backup_files.append((PROPS_CONF_PATH, backup_path))
+                    self.logger.info("Backed up props.conf to %s", backup_path)
+                
+                if os.path.exists(TRANSFORMS_CONF_PATH):
+                    backup_path = f"{TRANSFORMS_CONF_PATH}.bak"
+                    shutil.copy2(TRANSFORMS_CONF_PATH, backup_path)
+                    backup_files.append((TRANSFORMS_CONF_PATH, backup_path))
+                    self.logger.info("Backed up transforms.conf to %s", backup_path)
+            except Exception as e:
+                self.logger.warning("Could not create backups: %s", str(e))
+                # Continue without backups - may be first deployment
+            
+            # Step 3: Write configuration files atomically
+            try:
+                # Ensure target directory exists
+                os.makedirs(os.path.dirname(PROPS_CONF_PATH), exist_ok=True)
+                
+                # Write props.conf atomically
+                with tempfile.NamedTemporaryFile(
+                    mode='w', 
+                    dir=os.path.dirname(PROPS_CONF_PATH),
+                    delete=False,
+                    prefix='.props.conf.',
+                    suffix='.tmp'
+                ) as tmp_props:
+                    tmp_props.write(props_content)
+                    tmp_props.flush()
+                    os.fsync(tmp_props.fileno())
+                    tmp_props_path = tmp_props.name
+                
+                os.replace(tmp_props_path, PROPS_CONF_PATH)
+                self.logger.info("Successfully wrote props.conf")
+                
+                # Write transforms.conf atomically
+                with tempfile.NamedTemporaryFile(
+                    mode='w',
+                    dir=os.path.dirname(TRANSFORMS_CONF_PATH),
+                    delete=False,
+                    prefix='.transforms.conf.',
+                    suffix='.tmp'
+                ) as tmp_transforms:
+                    tmp_transforms.write(transforms_content)
+                    tmp_transforms.flush()
+                    os.fsync(tmp_transforms.fileno())
+                    tmp_transforms_path = tmp_transforms.name
+                
+                os.replace(tmp_transforms_path, TRANSFORMS_CONF_PATH)
+                self.logger.info("Successfully wrote transforms.conf")
+                
+            except Exception as e:
+                self.logger.error("Failed to write configuration files: %s", str(e))
+                # Rollback from backups
+                self._rollback_config_files(backup_files)
+                return False, f"Failed to write configuration files: {str(e)}"
+            
+            # Step 4: Reload Splunk configuration
+            reload_success = self._reload_splunk_config()
+            if not reload_success:
+                self.logger.warning("Configuration files written but Splunk reload failed or not connected")
+                # Don't rollback - files are written, just needs manual reload
+                return True, f"Configuration deployed to {PROPS_CONF_PATH} and {TRANSFORMS_CONF_PATH} (Splunk reload may require manual intervention)"
+            
+            self.logger.info("Successfully deployed and reloaded Splunk configuration")
+            return True, f"Successfully deployed configuration to Splunk ({len(entry_ids)} entries)"
+            
+        except Exception as e:
+            self.logger.exception("Error deploying Splunk configuration")
+            return False, f"Deployment failed: {str(e)}"
+    
+    def _rollback_config_files(self, backup_files: List[Tuple[str, str]]) -> None:
+        """Rollback configuration files from backups.
+        
+        Args:
+            backup_files: List of (original_path, backup_path) tuples
+        """
+        if not backup_files:
+            return
+        
+        self.logger.info("Rolling back configuration files from backups")
+        for original_path, backup_path in backup_files:
+            try:
+                if os.path.exists(backup_path):
+                    shutil.copy2(backup_path, original_path)
+                    self.logger.info("Restored %s from backup", original_path)
+            except Exception as e:
+                self.logger.error("Failed to restore %s: %s", original_path, str(e))
+    
+    def _reload_splunk_config(self) -> bool:
+        """Reload Splunk configuration using REST API.
+        
+        Returns:
+            True if reload successful, False otherwise
+        """
+        try:
+            # Try to connect if not already connected
+            if not self._connection:
+                connected = self.connect()
+                if not connected:
+                    self.logger.warning("Cannot reload config: not connected to Splunk")
+                    return False
+            
+            # Reload configuration using Splunk REST API
+            # The _rcvr endpoint reloads all configurations
+            try:
+                self._connection.post('admin/_rcvr', output_mode='json')
+                self.logger.info("Splunk configuration reloaded successfully")
+                return True
+            except Exception as e:
+                self.logger.error("Failed to reload Splunk config via REST API: %s", str(e))
+                # Try alternative method with specific conf refreshes
+                try:
+                    # Refresh props and transforms configurations
+                    service = self._connection
+                    if hasattr(service, 'confs'):
+                        service.confs['props'].refresh()
+                        service.confs['transforms'].refresh()
+                        self.logger.info("Refreshed props and transforms configurations")
+                        return True
+                except Exception as e2:
+                    self.logger.error("Failed to refresh specific confs: %s", str(e2))
+                    return False
+                    
+        except Exception as e:
+            self.logger.error("Error reloading Splunk configuration: %s", str(e))
+            return False
     
     def create_rule_splunk(self, rule: Dict[str, Any]) -> Dict[str, Any]:
         """Create a detection rule in Splunk.

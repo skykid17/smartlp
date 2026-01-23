@@ -171,10 +171,27 @@ class ConfigHub {
             });
 
             const data = await response.json();
-            const configText = data?.config ?? data?.settings;
-            if (response.ok && configText) {
-                this.lastGeneratedConfig = configText;
-                this.showConfigModal(configText);
+            
+            if (response.ok) {
+                // Check if this is a Splunk dict response or Elastic string response
+                if (data.props_conf !== undefined && data.transforms_conf !== undefined) {
+                    // Splunk dictionary response
+                    this.lastGeneratedConfig = {
+                        props_conf: data.props_conf,
+                        transforms_conf: data.transforms_conf,
+                        siem: data.siem
+                    };
+                    this.showConfigModal(this.lastGeneratedConfig);
+                } else {
+                    // Elastic string response (backward compatibility)
+                    const configText = data?.config ?? data?.settings;
+                    if (configText) {
+                        this.lastGeneratedConfig = configText;
+                        this.showConfigModal(configText);
+                    } else {
+                        window.showToast('No configuration returned', 'error');
+                    }
+                }
             } else {
                 window.showToast(data?.error || 'Failed to generate configuration', 'error');
             }
@@ -189,32 +206,169 @@ class ConfigHub {
         const modal = document.createElement('div');
         modal.id = 'generatedConfigModal';
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        modal.innerHTML = `
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
-                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Generated Configuration</h2>
-                    <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+        
+        // Check if config is a dictionary (Splunk) or string (Elastic)
+        const isSplunk = typeof config === 'object' && config.props_conf !== undefined;
+        
+        if (isSplunk) {
+            // Splunk tabbed interface
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Generated Splunk Configuration</h2>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="flex border-b border-gray-200 dark:border-gray-700">
+                        <button id="propsTab" class="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400" onclick="window.configHub.switchTab('props')">
+                            props.conf
+                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/default/props.conf</span>
+                        </button>
+                        <button id="transformsTab" class="px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200" onclick="window.configHub.switchTab('transforms')">
+                            transforms.conf
+                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/default/transforms.conf</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Tab Content -->
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <div id="propsContent" class="tab-content">
+                            <textarea id="propsTextarea" class="bg-gray-900 text-gray-100 p-4 rounded-lg w-full overflow-x-auto text-sm font-mono" spellcheck="false" style="height:50vh; resize: vertical;" readonly></textarea>
+                        </div>
+                        <div id="transformsContent" class="tab-content hidden">
+                            <textarea id="transformsTextarea" class="bg-gray-900 text-gray-100 p-4 rounded-lg w-full overflow-x-auto text-sm font-mono" spellcheck="false" style="height:50vh; resize: vertical;" readonly></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex space-x-2">
+                            <button onclick="window.configHub.copyConfig()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
+                                <i class="fas fa-copy mr-2"></i>Copy
+                            </button>
+                            <button onclick="window.configHub.downloadConfig()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
+                                <i class="fas fa-download mr-2"></i>Download
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Close</button>
+                            <button onclick="window.configHub.showDeployConfirm()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
+                                <i class="fas fa-rocket mr-2"></i>Deploy to Splunk
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4">
-                    <textarea id="generatedConfigTextarea" class="bg-gray-900 text-gray-100 p-4 rounded-lg w-full overflow-x-auto text-sm" spellcheck="false" style="height:60vh; resize: vertical;"></textarea>
+            `;
+            document.body.appendChild(modal);
+            
+            // Populate textareas
+            document.getElementById('propsTextarea').value = config.props_conf || '';
+            document.getElementById('transformsTextarea').value = config.transforms_conf || '';
+            
+            // Store current tab
+            this.currentTab = 'props';
+            
+        } else {
+            // Elastic single text area interface (original)
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Generated Configuration</h2>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <textarea id="generatedConfigTextarea" class="bg-gray-900 text-gray-100 p-4 rounded-lg w-full overflow-x-auto text-sm font-mono" spellcheck="false" style="height:60vh; resize: vertical;"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Close</button>
+                        <button onclick="window.configHub.showDeployConfirm()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
+                            <i class="fas fa-rocket mr-2"></i>Deploy
+                        </button>
+                    </div>
                 </div>
-                <div class="flex justify-end space-x-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Close</button>
-                    <button onclick="window.configHub.showDeployConfirm()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200">
-                        <i class="fas fa-rocket mr-2"></i>Deploy
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        const textarea = modal.querySelector('#generatedConfigTextarea');
-        textarea.value = config ?? '';
-        textarea.addEventListener('input', () => {
-            this.lastGeneratedConfig = textarea.value;
+            `;
+            document.body.appendChild(modal);
+            
+            const textarea = modal.querySelector('#generatedConfigTextarea');
+            textarea.value = config ?? '';
+            textarea.addEventListener('input', () => {
+                this.lastGeneratedConfig = textarea.value;
+            });
+        }
+    }
+    
+    switchTab(tab) {
+        // Update tab buttons
+        const propsTab = document.getElementById('propsTab');
+        const transformsTab = document.getElementById('transformsTab');
+        const propsContent = document.getElementById('propsContent');
+        const transformsContent = document.getElementById('transformsContent');
+        
+        if (tab === 'props') {
+            propsTab.className = 'px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400';
+            transformsTab.className = 'px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200';
+            propsContent.classList.remove('hidden');
+            transformsContent.classList.add('hidden');
+            this.currentTab = 'props';
+        } else {
+            transformsTab.className = 'px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400';
+            propsTab.className = 'px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200';
+            transformsContent.classList.remove('hidden');
+            propsContent.classList.add('hidden');
+            this.currentTab = 'transforms';
+        }
+    }
+    
+    copyConfig() {
+        // Copy current tab content for Splunk, or entire config for Elastic
+        let textToCopy = '';
+        if (typeof this.lastGeneratedConfig === 'object') {
+            // Splunk - copy current tab
+            const textarea = this.currentTab === 'props' 
+                ? document.getElementById('propsTextarea')
+                : document.getElementById('transformsTextarea');
+            textToCopy = textarea?.value || '';
+        } else {
+            // Elastic - copy entire config
+            const textarea = document.getElementById('generatedConfigTextarea');
+            textToCopy = textarea?.value || '';
+        }
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            window.showToast('Configuration copied to clipboard', 'success');
+        }).catch(() => {
+            window.showToast('Failed to copy configuration', 'error');
         });
+    }
+    
+    downloadConfig() {
+        // Download config files
+        if (typeof this.lastGeneratedConfig === 'object') {
+            // Splunk - download both files
+            this.downloadFile('props.conf', this.lastGeneratedConfig.props_conf);
+            this.downloadFile('transforms.conf', this.lastGeneratedConfig.transforms_conf);
+            window.showToast('Configuration files downloaded', 'success');
+        } else {
+            // Elastic - download single file
+            this.downloadFile('config.conf', this.lastGeneratedConfig);
+            window.showToast('Configuration file downloaded', 'success');
+        }
+    }
+    
+    downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     onInlineEdit(entryId, field, value) {
