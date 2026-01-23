@@ -318,7 +318,7 @@ class SplunkService(BaseSIEMService):
             entries = []
             for entry_id in entry_ids:
                 entry = db_connection.query(
-                    self.collection_name,
+                    "logs",
                     {"id": entry_id},
                     projection={"_id": 0},
                     limit=1
