@@ -183,7 +183,7 @@ class Settings {
                 updatedAt: ep.updatedAt || null,
                 models: (ep.models || []).map((m) => ({
                     id: m.id,
-                    endpoint_id: ep.endpointId || ep.id,
+                    endpoint_id: m.endpointId || ep.id,
                     model_name: m.modelName || '',
                     display_name: m.displayName || m.modelName || '',
                     provider: m.provider || ''
