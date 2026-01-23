@@ -7,7 +7,7 @@ from datetime import datetime
 
 from .base import BaseService
 from database.connection import db_connection
-from utils.formatters import convert_key_to_camel, convert_key_to_snake
+from utils.formatters import convert_key_to_snake
 
 
 class SettingsService(BaseService):
@@ -211,7 +211,7 @@ class SettingsService(BaseService):
         """Get all application settings (for frontend).
         
         Returns:
-            All settings grouped by category, with LLM endpoints nested with their models
+            All settings grouped by category, with LLM endpoints nested with their models in snake_case
         """
         try:
             # Fetch raw backend settings
@@ -228,8 +228,8 @@ class SettingsService(BaseService):
                     models_by_endpoint[endpoint_id] = []
                 models_by_endpoint[endpoint_id].append({
                     "id": m.get("id"),
-                    "displayName": m.get("display_name"),
-                    "modelName": m.get("model_name"),
+                    "display_name": m.get("display_name"),
+                    "model_name": m.get("model_name"),
                     "provider": m.get("provider")
                 })
 
@@ -241,20 +241,20 @@ class SettingsService(BaseService):
                     "id": e.get("id"),
                     "name": e.get("name"),
                     "url": e.get("url"),
-                    "apiKey": e.get("api_key"),
-                    "updatedAt": e.get("updated_at"),
+                    "api_key": e.get("api_key"),
+                    "updated_at": e.get("updated_at"),
                     "models": endpoint_models
                 })
 
             return {
-                "globalSettings": convert_key_to_camel(global_settings) if isinstance(global_settings, dict) else {},
-                "siems": [convert_key_to_camel(s) for s in siems],
-                "llmEndpoints": endpoints_nested
+                "global_settings": global_settings if isinstance(global_settings, dict) else {},
+                "siems": siems,
+                "llm_endpoints": endpoints_nested
             }
 
         except Exception as e:
             self.logger.exception("Failed to prepare frontend settings response")
-            return {"globalSettings": {}, "siems": [], "llmEndpoints": []}
+            return {"global_settings": {}, "siems": [], "llm_endpoints": []}
 
     
     def get_human_friendly_change_description(self, field: str, new_value: Any, current_siems: Dict = None, current_llms: Dict = None) -> str:
@@ -304,7 +304,10 @@ class SettingsService(BaseService):
             return f"{display_name}: {new_value}"
 
     def update_settings(self, settings_data: Dict[str, Any]) -> List[str]:
-        """Update application settings with the new llm_endpoint / llm_model schema."""
+        """Update application settings with the new llm_endpoint / llm_model schema.
+        
+        Expects settings_data in snake_case format matching database schema.
+        """
         changes = []
 
         try:
@@ -314,24 +317,18 @@ class SettingsService(BaseService):
             current_endpoints = {e['id']: e for e in self.get_llm_endpoints() or []}
             current_models = {m['id']: m for m in self.get_llm_models() or []}
 
-            # Convert to snake_case for comparison
-            current_global_snake = convert_key_to_snake(current_global)
-            current_siems_snake = {s['id']: convert_key_to_snake(s) for s in current_siems.values()}
-            current_endpoints_snake = {e['id']: convert_key_to_snake(e) for e in current_endpoints.values()}
-            current_models_snake = {m['id']: convert_key_to_snake(m) for m in current_models.values()}
-
             # --- Update global settings ---
             global_fields = [
-                'activeSiem', 'activeLlmModelId', 'ingestFrequency',
-                'similarityThreshold', 'similarityCheck', 'ingestOn',
-                'ingestAlgoVersion', 'fixCount', 'initialized'
+                'active_siem', 'active_llm_model_id', 'ingest_frequency',
+                'similarity_threshold', 'similarity_check', 'ingest_on',
+                'ingest_algo_version', 'fix_count', 'initialized'
             ]
             global_updates = {}
             for field in global_fields:
                 if field in settings_data:
-                    key_snake, new_value = list(convert_key_to_snake({field: settings_data[field]}).items())[0]
-                    if current_global_snake.get(key_snake) != new_value:
-                        global_updates[key_snake] = new_value
+                    new_value = settings_data[field]
+                    if current_global.get(field) != new_value:
+                        global_updates[field] = new_value
                         changes.append(f"Global setting '{field}' updated to '{new_value}'")
             if global_updates:
                 global_updates['updated_at'] = datetime.now().isoformat()
@@ -345,13 +342,13 @@ class SettingsService(BaseService):
             if 'siem' in settings_data:
                 siem_id = settings_data['siem']
                 siem_updates = {}
-                siem_fields = ['searchIndex', 'searchEntryCount', 'searchQuery']
+                siem_fields = ['search_index', 'search_entry_count', 'search_query']
                 for field in siem_fields:
                     if field in settings_data:
-                        key_snake, new_value = list(convert_key_to_snake({field: settings_data[field]}).items())[0]
-                        current_siem = current_siems_snake.get(siem_id, {})
-                        if current_siem.get(key_snake) != new_value:
-                            siem_updates[key_snake] = new_value
+                        new_value = settings_data[field]
+                        current_siem = current_siems.get(siem_id, {})
+                        if current_siem.get(field) != new_value:
+                            siem_updates[field] = new_value
                             siem_name = current_siems.get(siem_id, {}).get('name', siem_id)
                             changes.append(f"{siem_name} {field} updated to {new_value}")
                 if siem_updates:
@@ -361,8 +358,8 @@ class SettingsService(BaseService):
                     )
             
             # --- Create/Update SIEM configuration (for initialization) ---
-            if 'siemConfig' in settings_data:
-                siem_config = settings_data['siemConfig']
+            if 'siem_config' in settings_data:
+                siem_config = settings_data['siem_config']
                 siem_id = siem_config.get('id')
                 
                 if siem_id:
@@ -387,8 +384,8 @@ class SettingsService(BaseService):
                     changes.append(f"SIEM configuration for '{siem_id}' saved")
 
             # --- Update / create LLM endpoints ---
-            if 'llmEndpoints' in settings_data:
-                for endpoint_id, endpoint_data in settings_data['llmEndpoints'].items():
+            if 'llm_endpoints' in settings_data:
+                for endpoint_id, endpoint_data in settings_data['llm_endpoints'].items():
                     current_endpoint = current_endpoints.get(endpoint_id)
 
                     # Delete endpoint
@@ -403,7 +400,7 @@ class SettingsService(BaseService):
                             'id': endpoint_id,
                             'name': endpoint_data.get('name', endpoint_id),
                             'url': endpoint_data.get('url', ''),
-                            'api_key': endpoint_data.get('api_key') or endpoint_data.get('apiKey') or '',
+                            'api_key': endpoint_data.get('api_key', ''),
                             'category': 'llm_endpoint',
                             'created_at': datetime.now().isoformat(),
                             'updated_at': datetime.now().isoformat()
@@ -415,7 +412,7 @@ class SettingsService(BaseService):
                     # Update existing endpoint
                     endpoint_updates = {}
                     for key in ['name', 'url', 'api_key']:
-                        incoming_val = endpoint_data.get(key) or (endpoint_data.get('apiKey') if key == 'api_key' else None)
+                        incoming_val = endpoint_data.get(key)
                         if incoming_val is not None and current_endpoint.get(key) != incoming_val:
                             endpoint_updates[key] = incoming_val
 
@@ -427,8 +424,8 @@ class SettingsService(BaseService):
                         changes.append(f"Updated LLM endpoint: {endpoint_id}")
 
             # --- Update / create LLM models ---
-            if 'llmModels' in settings_data:
-                for model_id, model_data in settings_data['llmModels'].items():
+            if 'llm_models' in settings_data:
+                for model_id, model_data in settings_data['llm_models'].items():
                     current_model = current_models.get(model_id)
 
                     # Delete model

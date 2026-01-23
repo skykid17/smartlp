@@ -167,22 +167,25 @@ class Settings {
                 throw new Error(data.error || 'Failed to load settings');
             }
 
-            // Backend returns `{ globalSettings, siems, llmEndpoints }`.
-            this.currentSettings = data.globalSettings || data.settings || {};
-            this.siems = data.siems || [];
+            // Backend now returns snake_case: { global_settings, siems, llm_endpoints }
+            // Convert to camelCase for internal use
+            const camelData = keysToCamel(data);
+            
+            this.currentSettings = camelData.globalSettings || {};
+            this.siems = camelData.siems || [];
 
             // Normalize endpoints and models to a frontend-friendly shape
-            this.llmEndpoints = (data.llmEndpoints || []).map((ep) => ({
+            this.llmEndpoints = (camelData.llmEndpoints || []).map((ep) => ({
                 id: ep.id,
                 name: ep.name || ep.id,
                 url: ep.url || '',
-                apiKey: ep.apiKey || ep.api_key || '',
-                updatedAt: ep.updatedAt || ep.updated_at || null,
+                apiKey: ep.apiKey || '',
+                updatedAt: ep.updatedAt || null,
                 models: (ep.models || []).map((m) => ({
                     id: m.id,
-                    endpoint_id: ep.id,
-                    model_name: m.modelName || m.model_name || m.model || m.model_name,
-                    display_name: m.displayName || m.display_name || m.modelName || m.model_name,
+                    endpoint_id: m.endpointId || ep.id,
+                    model_name: m.modelName || '',
+                    display_name: m.displayName || m.modelName || '',
                     provider: m.provider || ''
                 }))
             }));
@@ -201,8 +204,8 @@ class Settings {
 
             // Normalize possible global setting key variants for active endpoint/model
             const gs = this.currentSettings || {};
-            const activeEndpoint = gs.activeLlmEndpoint || gs.activeLlmEndpointId || gs.active_llm_endpoint || gs.activeLlm || gs.active_llm || null;
-            const activeModel = gs.activeLlm || gs.active_llm || gs.activeLlmModelId || gs.active_llm_model_id || null;
+            const activeEndpoint = gs.activeLlmEndpoint || null;
+            const activeModel = gs.activeLlm || gs.activeLlmModelId || null;
 
             // Ensure the canonical keys exist on currentSettings
             if (activeEndpoint) this.currentSettings.activeLlmEndpoint = activeEndpoint;
@@ -947,22 +950,22 @@ class Settings {
 
     async saveSettings() {
         const payload = {
-            ingestOn: this.elements.ingestOn?.checked ?? false,
-            ingestAlgoVersion: this.elements.ingestAlgoVersion?.value || 'v1',
-            ingestFrequency: Number(this.elements.ingestFrequency?.value) || 0,
-            similarityCheck: this.elements.similarityCheck?.checked ?? false,
-            similarityThreshold: Number(this.elements.similarityThreshold?.value) || 0,
-            activeSiem: this.elements.activeSiem?.value || '',
-            activeLlmEndpoint: this.elements.activeLlmEndpoint?.value || '',
-            activeLlmModelId: this.elements.activeLlm?.value || '',
-            fixCount: Number(this.elements.fixCount?.value) || 0
+            ingest_on: this.elements.ingestOn?.checked ?? false,
+            ingest_algo_version: this.elements.ingestAlgoVersion?.value || 'v1',
+            ingest_frequency: Number(this.elements.ingestFrequency?.value) || 0,
+            similarity_check: this.elements.similarityCheck?.checked ?? false,
+            similarity_threshold: Number(this.elements.similarityThreshold?.value) || 0,
+            active_siem: this.elements.activeSiem?.value || '',
+            active_llm_endpoint: this.elements.activeLlmEndpoint?.value || '',
+            active_llm_model_id: this.elements.activeLlm?.value || '',
+            fix_count: Number(this.elements.fixCount?.value) || 0
         };
 
         if (this.elements.siemSelect?.value) {
             payload.siem = this.elements.siemSelect.value;
-            payload.searchIndex = this.elements.searchIndex?.value || '';
-            payload.searchEntryCount = Number(this.elements.searchEntryCount?.value) || 0;
-            payload.searchQuery = this.elements.searchQuery?.value || '';
+            payload.search_index = this.elements.searchIndex?.value || '';
+            payload.search_entry_count = Number(this.elements.searchEntryCount?.value) || 0;
+            payload.search_query = this.elements.searchQuery?.value || '';
             // Include full SIEM connection config for selected SIEM so backend can persist it
             const siemId = this.elements.siemSelect.value;
             const siemConfig = { id: siemId };
@@ -983,29 +986,38 @@ class Settings {
                 siemConfig.search_query = this.elements.searchQuery?.value || '';
                 siemConfig.search_entry_count = Number(this.elements.searchEntryCount?.value) || 0;
             }
-            payload.siemConfig = siemConfig;
+            payload.siem_config = siemConfig;
         }
 
-        // Always prepare llmModels map so we can include creations, updates and deletions
+        // Always prepare llm_models map so we can include creations, updates and deletions
         const llmModels = {};
 
         // Include creations/updates from any endpoint changes the user made
         if (Object.keys(this.newLlmEndpoints).length) {
-            payload.llmEndpoints = this.newLlmEndpoints; // full object payload
-
+            // Convert endpoint data to snake_case
+            payload.llm_endpoints = {};
             Object.entries(this.newLlmEndpoints).forEach(([epId, epData]) => {
-                if (!epData || !epData.models) return;
-                epData.models.forEach((m) => {
-                    // Ensure model has an id
-                    const modelId = m.id || `model_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-                    // Normalize fields expected by backend
-                    llmModels[modelId] = {
-                        model_name: m.model_name || m.modelName || m.model || m.display_name || modelId,
-                        display_name: m.display_name || m.displayName || m.model_name || m.modelName || modelId,
-                        endpoint_id: epId,
-                        provider: m.provider || ''
-                    };
-                });
+                if (!epData) return;
+                payload.llm_endpoints[epId] = {
+                    id: epId,
+                    name: epData.name || epId,
+                    url: epData.url || '',
+                    api_key: epData.apiKey || epData.api_key || ''
+                };
+                
+                if (epData.models) {
+                    epData.models.forEach((m) => {
+                        // Ensure model has an id
+                        const modelId = m.id || `model_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                        // Normalize fields expected by backend (snake_case)
+                        llmModels[modelId] = {
+                            model_name: m.model_name || m.modelName || m.model || m.display_name || modelId,
+                            display_name: m.display_name || m.displayName || m.model_name || m.modelName || modelId,
+                            endpoint_id: epId,
+                            provider: m.provider || ''
+                        };
+                    });
+                }
             });
         }
 
@@ -1023,7 +1035,7 @@ class Settings {
         });
 
         if (Object.keys(llmModels).length) {
-            payload.llmModels = llmModels;
+            payload.llm_models = llmModels;
         }
 
         this.setSavingState(true);
