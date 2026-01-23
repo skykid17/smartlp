@@ -62,6 +62,7 @@ print("Embedding model downloaded to", TARGET_DIR)
 EOF
 
 # Copy application code
+COPY smartlp.archive /smartlp.archive
 COPY . .
 
 ENTRYPOINT ["tini", "--"]

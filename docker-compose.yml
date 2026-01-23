@@ -34,9 +34,7 @@ services:
     restart: unless-stopped
 
   smartlp:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: skykid17/smartlp:latest
     container_name: smartlp
     depends_on:
       - mongod
@@ -49,8 +47,6 @@ services:
       - APP_DEBUG=False
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./smartlp.archive:/smartlp.archive:ro
     ports:
       - 8800:8800
     networks:
