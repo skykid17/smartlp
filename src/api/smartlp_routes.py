@@ -470,7 +470,7 @@ def register_smartlp_routes(app: Flask) -> None:
             
             case "generate":
                 log = data.get('log', '')
-                result = regex_engine_service.generate_regex(log, 10)
+                result = smartlp_service.generate_regex(log, 10)
             case "fix":
                 log = data.get('log', '')
                 regex = data.get('regex', '')

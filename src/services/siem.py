@@ -302,103 +302,112 @@ class SplunkService(BaseSIEMService):
         """Get Splunk settings from database."""
         return db_connection.query("settings", {"category": "siem_settings", "id": "splunk"},)[0]
 
-    def create_config_splunk(self, entry_ids: List[str]) -> str:
-            """Create Splunk configuration for SmartLP entries.
+    def create_config_splunk(self, entry_ids: List[str]) -> Dict[str, str]:
+        """Create Splunk configuration for SmartLP entries.
+        
+        Args:
+            entry_ids: List of entry IDs
             
-            Args:
-                entry_ids: List of entry IDs
+        Returns:
+            Dictionary containing 'props_conf' and 'transforms_conf' strings
+        """
+        try:
+            self.logger.info("Creating Splunk config for %s entries", len(entry_ids))
+            
+            # Get entries from database
+            entries = []
+            for entry_id in entry_ids:
+                entry = db_connection.query(
+                    self.collection_name,
+                    {"id": entry_id},
+                    projection={"_id": 0},
+                    limit=1
+                )
+                if entry:
+                    entries.append(entry)
+                else:
+                    self.logger.warning("Entry not found: %s", entry_id)
+            
+            if not entries:
+                self.logger.warning("No valid entries found for config generation")
+                return {
+                    "props_conf": "# No valid entries found", 
+                    "transforms_conf": "# No valid entries found"
+                }
+            
+            # Prepare configuration components
+            sh_props_conf = defaultdict(list)
+            sh_transforms_conf = []
+            hf_transforms_conf = []
+            hf_index_routes = []
+            hf_sourcetype_routes = []
+            
+            for entry in entries:
+                source_type = entry.get("source_type", "<source_type>")
+                log_type = entry.get("logtype", "<log_type>")
+                entry_id = entry.get("id", "<entries.id>")
+                regex = entry.get("regex", "<entries.regex>")
+                index = entry.get("index", "<index>")
                 
-            Returns:
-                Splunk configuration string
-            """
-            try:
-                self.logger.info("Creating Splunk config for %s entries", len(entry_ids))
+                transform_name = f"{log_type}_{entry_id}"
+                route_index = f"{log_type}_route_index_{entry_id}"
+                route_sourcetype = f"{log_type}_route_sourcetype_{entry_id}"
                 
-                # Get entries from database
-                entries = []
-                for entry_id in entry_ids:
-                    entry = db_connection.query(
-                        self.collection_name,
-                        {"id": entry_id},
-                        projection={"_id": 0},
-                        limit=1
-                    )
-                    if entry:
-                        entries.append(entry)
-                    else:
-                        self.logger.warning("Entry not found: %s", entry_id)
-                
-                if not entries:
-                    self.logger.warning("No valid entries found for config generation")
-                    return "# No valid entries found"
-                
-                # Prepare configuration components
-                sh_props_conf = defaultdict(list)
-                sh_transforms_conf = []
-                hf_transforms_conf = []
-                hf_index_routes = []
-                hf_sourcetype_routes = []
-                config_blocks = []
-                
-                for entry in entries:
-                    source_type = entry.get("source_type", "<source_type>")
-                    log_type = entry.get("logtype", "<log_type>")
-                    entry_id = entry.get("id", "<entries.id>")
-                    regex = entry.get("regex", "<entries.regex>")
-                    index = entry.get("index", "<index>")
-                    
-                    transform_name = f"{log_type}_{entry_id}"
-                    route_index = f"{log_type}_route_index_{entry_id}"
-                    route_sourcetype = f"{log_type}_route_sourcetype_{entry_id}"
-                    
-                    # SH props.conf grouping
-                    sh_props_conf[source_type].append(transform_name)
-                    
-                    # SH transforms.conf
-                    sh_transforms_conf.append(f"\n[{transform_name}]\nREGEX = {regex}")
-                    
-                    # HF props.conf route names
-                    hf_index_routes.append(route_index)
-                    hf_sourcetype_routes.append(route_sourcetype)
-                    
-                    # HF transforms.conf
-                    hf_transforms_conf.extend([
-                        f"\n[{route_index}]\nREGEX = {regex}\nDEST_KEY = _MetaData:Index\nFORMAT = {index}",
-                        f"\n[{route_sourcetype}]\nREGEX = {regex}\nDEST_KEY = MetaData:Sourcetype\nFORMAT = sourcetype::{source_type}"
-                    ])
-                
-                # Build configuration blocks
-                
-                # SH props.conf
-                config_blocks.append("### SH props.conf")
-                for source_type, transforms in sh_props_conf.items():
-                    config_blocks.append(f"\n[{source_type}]\nREPORT-smartsoc = {', '.join(transforms)}")
-                config_blocks.append("")  # Blank line after SH props.conf
+                # SH props.conf grouping
+                sh_props_conf[source_type].append(transform_name)
                 
                 # SH transforms.conf
-                config_blocks.append("### SH transforms.conf")
-                config_blocks.extend(sh_transforms_conf)
-                config_blocks.append("")  # Blank line after SH transforms.conf
+                sh_transforms_conf.append(f"\n[{transform_name}]\nREGEX = {regex}")
                 
-                # HF props.conf
-                config_blocks.append("### HF props.conf")
-                config_blocks.append("\n[catchall]")
-                config_blocks.append(f"TRANSFORMS-catchallindex = {', '.join(hf_index_routes)}")
-                config_blocks.append(f"TRANSFORMS-catchallsourcetype = {', '.join(hf_sourcetype_routes)}")
-                config_blocks.append("")  # Blank line after HF props.conf
+                # HF props.conf route names
+                hf_index_routes.append(route_index)
+                hf_sourcetype_routes.append(route_sourcetype)
                 
                 # HF transforms.conf
-                config_blocks.append("### HF transforms.conf")
-                config_blocks.extend(hf_transforms_conf)
-                config_blocks.append("")  # Optional: Blank line at end
-                
-                config = "\n".join(config_blocks)
-                self.logger.info("Generated Splunk config with %s entries", len(entries))
-                return config
-                
-            except Exception as e:
-                self.logger.exception("Error creating Splunk config")
-                return f"# Error creating Splunk configuration: {str(e)}"
+                hf_transforms_conf.extend([
+                    f"\n[{route_index}]\nREGEX = {regex}\nDEST_KEY = _MetaData:Index\nFORMAT = {index}",
+                    f"\n[{route_sourcetype}]\nREGEX = {regex}\nDEST_KEY = MetaData:Sourcetype\nFORMAT = sourcetype::{source_type}"
+                ])
+            
+            # --- Build props.conf content ---
+            props_blocks = []
+            
+            # SH props.conf
+            props_blocks.append("### SH props.conf")
+            for source_type, transforms in sh_props_conf.items():
+                props_blocks.append(f"\n[{source_type}]\nREPORT-smartsoc = {', '.join(transforms)}")
+            
+            # HF props.conf
+            props_blocks.append("\n### HF props.conf")
+            props_blocks.append("\n[catchall]")
+            props_blocks.append(f"TRANSFORMS-catchallindex = {', '.join(hf_index_routes)}")
+            props_blocks.append(f"TRANSFORMS-catchallsourcetype = {', '.join(hf_sourcetype_routes)}")
+            
+            # --- Build transforms.conf content ---
+            transforms_blocks = []
+            
+            # SH transforms.conf
+            transforms_blocks.append("### SH transforms.conf")
+            transforms_blocks.extend(sh_transforms_conf)
+            
+            # HF transforms.conf
+            transforms_blocks.append("\n### HF transforms.conf")
+            transforms_blocks.extend(hf_transforms_conf)
+            
+            self.logger.info("Generated Splunk config dict with %s entries", len(entries))
+            
+            return {
+                "props_conf": "\n".join(props_blocks),
+                "transforms_conf": "\n".join(transforms_blocks)
+            }
+            
+        except Exception as e:
+            self.logger.exception("Error creating Splunk config")
+            error_msg = f"# Error creating Splunk configuration: {str(e)}"
+            return {
+                "props_conf": error_msg,
+                "transforms_conf": error_msg
+            }
     
 
     def deploy_config_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
