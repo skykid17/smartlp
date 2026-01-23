@@ -157,8 +157,8 @@ def register_init_routes(app: Flask) -> None:
         
         # Use settings_service to save configuration
         settings_service.update_settings({
-            "siemConfig": siem_config,
-            "activeSiem": siem
+            "siem_config": siem_config,
+            "active_siem": siem
         })
 
         return jsonify({"success": True}), 200
@@ -220,7 +220,7 @@ def register_init_routes(app: Flask) -> None:
 
         # Use settings_service to save LLM endpoint and model
         settings_service.update_settings({
-            "llmEndpoints": {
+            "llm_endpoints": {
                 endpoint_id: {
                     "id": endpoint_id,
                     "name": provider.upper(),
@@ -228,7 +228,7 @@ def register_init_routes(app: Flask) -> None:
                     "api_key": api_key or "",
                 }
             },
-            "llmModels": {
+            "llm_models": {
                 model_id: {
                     "id": model_id,
                     "model_name": model_name,
@@ -237,7 +237,7 @@ def register_init_routes(app: Flask) -> None:
                     "provider": provider,
                 }
             },
-            "activeLlmModelId": model_id
+            "active_llm_model_id": model_id
         })
 
         return jsonify({"success": True, "model_id": model_id, "endpoint_id": endpoint_id}), 200
