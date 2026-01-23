@@ -9,6 +9,9 @@ service = splunk_client.connect(
     verify=False
 )
 
+if "unparsed" not in service.indexes:
+    service.indexes.create("unparsed")
+    
 my_index = service.indexes["unparsed"]
 
 # Send a log message
