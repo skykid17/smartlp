@@ -55,10 +55,16 @@ docker network create search-community
 3) Build and start the stack
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
-Open http://localhost:8800/.
+4) Monitor Initialization The first setup involves seeding the database (approx. 10-15 minutes). You can track progress via real-time logs in a separate terminal:
+
+```
+docker logs -f smartlp
+```
+
+5) Start the application at http://localhost:8800/
 
 ## First-run initialization
 
