@@ -384,13 +384,8 @@ class SmartLPService(CRUDService):
 
                 is_unparsed = status_norm in {'unmatched', 'partially matched'}
 
-                # Dashboard uses `entry.log_type`; keep backward-compatible fallbacks.
-                log_type = (
-                    entry.get('log_type')
-                    or entry.get('logtype')
-                    or entry.get('logType')
-                    or 'Unknown'
-                )
+                # Dashboard uses `entry.log_type`
+                log_type = (entry.get('log_type', 'Unknown'))
                 log_type = str(log_type).strip() or 'Unknown'
 
                 # Parse timestamp for volume chart

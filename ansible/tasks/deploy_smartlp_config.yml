@@ -1,0 +1,75 @@
+---
+# Deploy SmartLP configuration for a single entry
+# This task is called in a loop for each MongoDB entry
+
+- name: Extract entry fields
+  set_fact:
+    source_type: "{{ entry.source_type | default('<source_type>') }}"
+    log_type: "{{ entry.logtype | default('<log_type>') }}"
+    entry_id: "{{ entry.id | default('<entry_id>') }}"
+    regex: "{{ entry.regex | default('<regex>') }}"
+    index: "{{ entry.index | default('<index>') }}"
+    
+- name: Generate transform names
+  set_fact:
+    transform_name: "{{ log_type }}_{{ entry_id }}"
+    route_index: "{{ log_type }}_route_index_{{ entry_id }}"
+    route_sourcetype: "{{ log_type }}_route_sourcetype_{{ entry_id }}"
+    
+- name: Check if transform already exists in props.conf
+  shell: "grep -q '\\[{{ source_type }}\\]' {{ props_conf_path }} || echo 'not_found'"
+  register: props_check
+  changed_when: false
+  failed_when: false
+  
+- name: Check if transform already exists in transforms.conf
+  shell: "grep -q '\\[{{ transform_name }}\\]' {{ transforms_conf_path }} || echo 'not_found'"
+  register: transforms_check
+  changed_when: false
+  failed_when: false
+  
+- name: Add props.conf stanza for sourcetype
+  blockinfile:
+    path: "{{ props_conf_path }}"
+    create: yes
+    owner: "{{ splunk_user | default('splunk') }}"
+    group: "{{ splunk_group | default('splunk') }}"
+    mode: '0644'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - {{ source_type }}"
+    block: |
+      [{{ source_type }}]
+      REPORT-smartlp = {{ transform_name }}
+  when: props_check.stdout == 'not_found'
+  
+- name: Update existing props.conf stanza
+  lineinfile:
+    path: "{{ props_conf_path }}"
+    regexp: '^REPORT-smartlp\s*='
+    line: "REPORT-smartlp = {{ transform_name }}"
+    insertafter: "^\\[{{ source_type }}\\]"
+    state: present
+  when: props_check.stdout != 'not_found'
+  
+- name: Add transforms.conf stanza
+  blockinfile:
+    path: "{{ transforms_conf_path }}"
+    create: yes
+    owner: "{{ splunk_user | default('splunk') }}"
+    group: "{{ splunk_group | default('splunk') }}"
+    mode: '0644'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - {{ transform_name }}"
+    block: |
+      [{{ transform_name }}]
+      REGEX = {{ regex }}
+  when: transforms_check.stdout == 'not_found'
+  
+- name: Update existing transform
+  ini_file:
+    path: "{{ transforms_conf_path }}"
+    section: "{{ transform_name }}"
+    option: REGEX
+    value: "{{ regex }}"
+    owner: "{{ splunk_user | default('splunk') }}"
+    group: "{{ splunk_group | default('splunk') }}"
+    mode: '0644'
+  when: transforms_check.stdout != 'not_found'

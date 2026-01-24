@@ -1,0 +1,83 @@
+---
+# SmartLP Configuration Deployment Playbook
+# Deploys log parsing configurations to /etc/apps/smartlp/local/
+# Replaces .refresh() approach with file-based configuration management
+
+- name: Deploy SmartLP configurations to Splunk
+  hosts: splunk_servers
+  become: true
+  become_user: "{{ splunk_user | default('splunk') }}"
+  
+  vars:
+    smartlp_app_path: "{{ splunk_home | default('/opt/splunk') }}/etc/apps/smartlp/local"
+    props_conf_path: "{{ smartlp_app_path }}/props.conf"
+    transforms_conf_path: "{{ smartlp_app_path }}/transforms.conf"
+    mongodb_host: "{{ mongodb_host | default('localhost') }}"
+    mongodb_port: "{{ mongodb_port | default('27017') }}"
+    mongodb_db: "{{ mongodb_db | default('smartlp') }}"
+    mongodb_collection: "{{ mongodb_collection | default('logs') }}"
+  
+  tasks:
+    - name: Include MongoDB connection setup
+      include_tasks: roles/common/tasks/extract_mongodb_primary_ip.yml
+      
+    - name: Query MongoDB for log parsing entries
+      community.mongodb.mongodb_shell:
+        login_host: "{{ mongo_primary_ip | default(mongodb_host) }}"
+        db: "{{ mongodb_db }}"
+        eval: 'db.getCollection("{{ mongodb_collection }}").find({ "id": { $in: {{ entry_ids }} } }).toArray()'
+      register: mongo_results
+      
+    - name: Debug MongoDB query results
+      debug:
+        var: mongo_results
+        verbosity: 1
+        
+    - name: Ensure smartlp app directory exists
+      file:
+        path: "{{ smartlp_app_path }}"
+        state: directory
+        owner: "{{ splunk_user | default('splunk') }}"
+        group: "{{ splunk_group | default('splunk') }}"
+        mode: '0755'
+        
+    - name: Backup existing props.conf
+      copy:
+        src: "{{ props_conf_path }}"
+        dest: "{{ props_conf_path }}.bak.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+        owner: "{{ splunk_user | default('splunk') }}"
+        group: "{{ splunk_group | default('splunk') }}"
+      when: props_conf_path is file
+      ignore_errors: yes
+      
+    - name: Backup existing transforms.conf
+      copy:
+        src: "{{ transforms_conf_path }}"
+        dest: "{{ transforms_conf_path }}.bak.{{ ansible_date_time.epoch }}"
+        remote_src: yes
+        owner: "{{ splunk_user | default('splunk') }}"
+        group: "{{ splunk_group | default('splunk') }}"
+      when: transforms_conf_path is file
+      ignore_errors: yes
+      
+    - name: Generate and deploy SmartLP configurations
+      include_tasks: tasks/deploy_smartlp_config.yml
+      loop: "{{ mongo_results.transformed_output | default([]) }}"
+      loop_control:
+        loop_var: entry
+      when: mongo_results.transformed_output is defined
+      
+    - name: Reload Splunk configuration
+      command: "{{ splunk_home | default('/opt/splunk') }}/bin/splunk reload deploy-server -auth admin:changeme"
+      become: true
+      become_user: "{{ splunk_user | default('splunk') }}"
+      ignore_errors: yes
+      
+    - name: Update MongoDB entry status to Deployed
+      community.mongodb.mongodb_shell:
+        login_host: "{{ mongo_primary_ip | default(mongodb_host) }}"
+        db: "{{ mongodb_db }}"
+        eval: "db.{{ mongodb_collection }}.updateOne({ _id: ObjectId('{{ item._id['$oid'] }}') }, { $set: { 'status': 'Deployed' } })"
+      loop: "{{ mongo_results.transformed_output | default([]) }}"
+      when: mongo_results.transformed_output is defined

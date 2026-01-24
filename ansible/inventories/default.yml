@@ -1,0 +1,17 @@
+---
+# Default SmartLP Ansible Inventory
+# Configure your Splunk servers here
+
+all:
+  children:
+    splunk_servers:
+      hosts:
+        localhost:
+          ansible_connection: local
+          splunk_home: /opt/splunk
+          splunk_user: splunk
+          splunk_group: splunk
+          mongodb_host: localhost
+          mongodb_port: 27017
+          mongodb_db: smartlp
+          mongodb_collection: logs

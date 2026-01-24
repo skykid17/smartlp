@@ -116,14 +116,16 @@ class SplunkService(BaseSIEMService):
                     host=config_override.get("host"),
                     port=port,
                     username=config_override.get("user"),
-                    password=config_override.get("password")
+                    password=config_override.get("password"),
+                    verify=False
                 )
             else:
                 self._connection = splunk_client.connect(
                     host=self.settings.host,
                     port=self.settings.port,
                     username=self.settings.username,
-                    password=self.settings.password
+                    password=self.settings.password,
+                    verify=False
                 )
             self.logger.info("Successfully connected to Splunk")
             return True
@@ -318,8 +320,8 @@ class SplunkService(BaseSIEMService):
             entries = []
             for entry_id in entry_ids:
                 entry = db_connection.query(
-                    self.collection_name,
-                    {"id": entry_id},
+                    collection_name="logs",
+                    filter_dict={"id": entry_id},
                     projection={"_id": 0},
                     limit=1
                 )
@@ -344,7 +346,7 @@ class SplunkService(BaseSIEMService):
             
             for entry in entries:
                 source_type = entry.get("source_type", "<source_type>")
-                log_type = entry.get("logtype", "<log_type>")
+                log_type = entry.get("log_type", "<log_type>")
                 entry_id = entry.get("id", "<entries.id>")
                 regex = entry.get("regex", "<entries.regex>")
                 index = entry.get("index", "<index>")
@@ -411,12 +413,119 @@ class SplunkService(BaseSIEMService):
     
 
     def deploy_config_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
-        """Deploy SmartLP configuration to Splunk by writing to props.conf and transforms.conf.
+        """Deploy SmartLP configuration to Splunk via Ansible playbook.
+        
+        This method triggers Ansible playbook execution to deploy configurations
+        to /etc/apps/smartlp/local/ directory, replacing the previous approach
+        that used REST API .refresh() calls.
         
         Args:
             entry_ids: List of entry IDs to deploy
+            
+        Returns:
+            Tuple of (success, message)
         """
-        pass
+        import subprocess
+        import os
+        
+        try:
+            self.logger.info("Starting Ansible-based Splunk configuration deployment for %s entries", len(entry_ids))
+            
+            # Validate entry IDs
+            if not entry_ids:
+                return False, "No entry IDs provided for deployment"
+            
+            # Prepare entry IDs as a JSON-formatted string for Ansible
+            entry_ids_json = ','.join(f'"{eid}"' for eid in entry_ids)
+            entry_ids_list = f'[{entry_ids_json}]'
+            
+            # Path to Ansible playbook
+            playbook_path = "/home/runner/work/smartlp/smartlp/ansible/deploy_smartlp.yml"
+            inventory_path = "/home/runner/work/smartlp/smartlp/ansible/inventories/default.yml"
+            
+            # Check if playbook exists
+            if not os.path.exists(playbook_path):
+                self.logger.error("Ansible playbook not found: %s", playbook_path)
+                return False, f"Ansible playbook not found: {playbook_path}"
+            
+            # Execute Ansible playbook
+            ansible_cmd = [
+                "ansible-playbook",
+                playbook_path,
+                "-i", inventory_path,
+                "-e", f"entry_ids={entry_ids_list}",
+                "-v"
+            ]
+            
+            self.logger.info("Executing Ansible command: %s", ' '.join(ansible_cmd))
+            
+            result = subprocess.run(
+                ansible_cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode == 0:
+                self.logger.info("Ansible deployment completed successfully")
+                self.logger.debug("Ansible stdout: %s", result.stdout)
+                return True, f"Successfully deployed configuration via Ansible ({len(entry_ids)} entries)"
+            else:
+                self.logger.error("Ansible deployment failed with return code %s", result.returncode)
+                self.logger.error("Ansible stderr: %s", result.stderr)
+                return False, f"Ansible deployment failed: {result.stderr}"
+                
+        except subprocess.TimeoutExpired:
+            self.logger.exception("Ansible deployment timed out")
+            return False, "Deployment timed out after 5 minutes"
+        except Exception as e:
+            self.logger.exception("Error deploying Splunk configuration via Ansible")
+            return False, f"Deployment failed: {str(e)}"
+    
+    
+    def _reload_splunk_config(self) -> bool:
+        """Reload Splunk configuration using CLI.
+        
+        This method is deprecated in favor of Ansible-based deployment
+        which handles configuration reload automatically.
+        
+        Returns:
+            True if reload successful, False otherwise
+        """
+        import subprocess
+        
+        try:
+            # Use Splunk CLI to reload configuration
+            # This avoids REST API .refresh() calls
+            reload_cmd = [
+                "/opt/splunk/bin/splunk",
+                "reload",
+                "deploy-server",
+                "-auth", "admin:changeme"  # TODO: Use proper credentials from config
+            ]
+            
+            self.logger.info("Reloading Splunk configuration via CLI")
+            
+            result = subprocess.run(
+                reload_cmd,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                self.logger.info("Splunk configuration reloaded successfully")
+                return True
+            else:
+                self.logger.error("Failed to reload Splunk config: %s", result.stderr)
+                return False
+                    
+        except subprocess.TimeoutExpired:
+            self.logger.error("Splunk reload timed out")
+            return False
+        except Exception as e:
+            self.logger.error("Error reloading Splunk configuration: %s", str(e))
+            return False
     
     def create_rule_splunk(self, rule: Dict[str, Any]) -> Dict[str, Any]:
         """Create a detection rule in Splunk.

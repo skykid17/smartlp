@@ -307,14 +307,28 @@ def register_smartlp_routes(app: Flask) -> None:
             
             if active_siem == 'splunk':
                 filename = f"smartlp_splunk_{len(entry_ids)}_entries.conf"
+                # Splunk returns a dictionary with props_conf and transforms_conf
+                if isinstance(config_content, dict):
+                    return jsonify({
+                        "props_conf": config_content.get("props_conf", ""),
+                        "transforms_conf": config_content.get("transforms_conf", ""),
+                        "filename": filename,
+                        "siem": active_siem
+                    })
+                else:
+                    # Fallback for backward compatibility
+                    return jsonify({
+                        "config": config_content,
+                        "filename": filename,
+                        "siem": active_siem
+                    })
             else:
                 filename = f"smartlp_logstash_{len(entry_ids)}_entries.conf"
-            
-            return jsonify({
-                "config": config_content,
-                "filename": filename,
-                "siem": active_siem
-            })
+                return jsonify({
+                    "config": config_content,
+                    "filename": filename,
+                    "siem": active_siem
+                })
             
         except Exception as e:
             logger.exception("Error generating SmartLP config")
