@@ -1,0 +1,78 @@
+---
+
+- name: Run the getCollection command to get sigma rule
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "mitre_db"
+    eval: 'db.getCollection("sigma_rules").find({ "id": "{{ item.sigma_id }}" }).toArray()'
+  register: inner_mongo_results
+
+- name: set_fact use case severity based on sigma rule level
+  set_fact:
+    use_case_severity: "{{ os_map[inner_mongo_results.transformed_output[0].level] | default('3') }}"
+  vars:
+    os_map:
+      informational: "1"
+      low: "2"
+      medium: "3"
+      high: "4"
+      critical: "5"
+
+- name: Update savedsearches.conf configuration in Splunk SH - creation of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/saved/searches"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      name: "{{ inner_mongo_results.transformed_output[0].title }}"
+      description: "{{ inner_mongo_results.transformed_output[0].description }}"
+      cron_schedule: "{{ item.cron_schedule }}"
+      dispatch.earliest_time: "{{ item.dispatch_earliest_time }}"
+      dispatch.latest_time: "{{ item.dispatch_latest_time }}"
+      alert.severity: "{{ use_case_severity }}"
+      alert_type: "number of events"
+      alert.track: "1"
+      is_scheduled: "1"
+      alert_threshold: "0"
+      alert_comparator: "greater than"
+      search: "{{ item.rule }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_savedsearches_creation_response
+  ignore_errors: true
+
+- name: Replace space with %20 for use case title
+  set_fact:
+    use_case_title: "{{ inner_mongo_results.transformed_output[0].title | regex_replace(' ', '%20') }}"
+  when: "'already exists' in post_restapi_savedsearches_creation_response.content"
+
+- name: Update savedsearches.conf configuration in Splunk SH - update of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/saved/searches/{{ use_case_title }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      description: "{{ inner_mongo_results.transformed_output[0].description }}"
+      cron_schedule: "{{ item.cron_schedule }}"
+      dispatch.earliest_time: "{{ item.dispatch_earliest_time }}"
+      dispatch.latest_time: "{{ item.dispatch_latest_time }}"
+      alert.severity: "{{ use_case_severity }}"
+      alert_type: "number of events"
+      alert.track: "1"
+      is_scheduled: "1"
+      alert_threshold: "0"
+      alert_comparator: "greater than"
+      search: "{{ item.rule }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_savedsearches_update_response
+  when: "'already exists' in post_restapi_savedsearches_creation_response.content"
+

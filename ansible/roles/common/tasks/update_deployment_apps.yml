@@ -1,0 +1,40 @@
+---
+    
+#Step 1: Get the list of apps in the ansible directory roles/common/files/apps_deployment_server (done)
+#Step 2: Get the list of apps in the deployment server /opt/splunk/etc/deployment_apps (done)
+#Step 3: Compare the list of apps, obtain the apps that are not inside deployment_apps (done) 
+#Step 4: If apps are not inside deployment_apps, copy in to deployment_apps (done)
+#Afterwards: edit serverclass.conf, push apps, restart deployment server
+
+#Include checking for overwrite    
+- name: Copy apps from ansible tower into deployment server
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  copy:
+    src: "{{playbook_dir}}/roles/common/files/apps_deployment_server/"
+    dest: "{{ splunk.home }}/etc/deployment-apps/"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+    mode: 0700
+    force: no
+  register: deploy_apps
+  when: "'deployment_server' in group_names"
+    
+#Reload Deployment Server
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/reload_deployment_server.yml"
+  when: deploy_apps is changed and "'deployment_server' in group_names"
+
+#Necessary if want to configure serverclass in the future.  
+# - name: Gather all deployment server apps
+  # become: true
+  # become_user: "{{ splunk.nix.user }}"
+  # find:
+    # path: "{{ splunk.home }}/etc/deployment-apps"
+    # recurse: no
+    # file_type: directory
+  # register: deployment_apps
+  # when: "'deployment_server' in group_names"
+
+
+
+    

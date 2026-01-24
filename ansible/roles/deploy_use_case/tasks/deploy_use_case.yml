@@ -1,0 +1,3 @@
+---
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/deploy_use_case.yml"

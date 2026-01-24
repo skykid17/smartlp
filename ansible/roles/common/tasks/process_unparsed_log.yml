@@ -1,0 +1,332 @@
+---
+
+- name: Set default value for variables
+  set_fact:
+    transform_stanza_catchall_index_exists: false
+    transform_stanza_catchall_sourcetype_exists: false
+    transform_stanza_force_update: false
+    transform_stanza_smartsoc_exists: false
+    props_report_catchall_index_value: ''
+    props_report_catchall_sourcetype_value: ''
+    props_report_smartsoc_value: ''
+
+- name: Set value from MongoDB query results
+  set_fact:
+    sh_props_report_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+    hf_props_catchall_index_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_route_index_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+    hf_props_catchall_sourcetype_transname: "{{ ((item.log_type if item.log_type is defined and item.log_type != '' else 'unknown' ) + '_route_sourcetype_' + item.id) | regex_replace('[^a-zA-Z0-9]+', '_') }}"
+
+- name: Get stats of a file
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.stat:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/props.conf"
+  register: st_props_conf
+
+- name: Slurp an INI file if exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.slurp:
+    src: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/props.conf"
+  register: props_conf
+  when: st_props_conf.stat.exists
+
+- name: Display the INI file as dictionary if exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.debug:
+    var: props_conf.content | b64decode | community.general.from_ini | regex_replace("TRANSFORMS-", "TRANSFORMSXXX")
+  when: st_props_conf.stat.exists
+
+- name: Set a new dictionary fact with the contents of the INI file if exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.set_fact:
+    props_dict: >-
+      {{
+          props_conf.content | b64decode | community.general.from_ini | regex_replace("TRANSFORMS-", "TRANSFORMSXXX")
+      }}
+  when: st_props_conf.stat.exists
+
+- name: Set a new variable with the TRANSFORMS-catchall value from the INI file if exists
+  set_fact:
+    props_report_catchall_index_value: "{{ props_dict.catchall | json_query('TRANSFORMSXXXcatchallindex') }}"
+    props_report_catchall_sourcetype_value: "{{ props_dict.catchall | json_query('TRANSFORMSXXXcatchallsourcetype') }}"
+  when: st_props_conf.stat.exists
+
+- name: set_fact when transform stanza catchallindex in props
+  set_fact:
+    transform_stanza_catchall_index_exists: true
+    transform_stanza_force_update: true
+  loop: "{{ props_report_catchall_index_value | replace(' ', '') | split(',') | list }}"
+  when:
+    - st_props_conf.stat.exists
+    - inner_item == hf_props_catchall_index_transname
+  loop_control:
+    loop_var: inner_item
+
+- name: Append the original TRANSFORMS-catchallindex value if exists
+  set_fact:
+    props_report_catchall_index_value: "{{ props_report_catchall_index_value + ', ' + hf_props_catchall_index_transname}}"
+  when:
+    - not transform_stanza_catchall_index_exists
+    - props_report_catchall_index_value != ''
+
+- name: Set new TRANSFORMS-catchallindex if not exists
+  set_fact:
+    props_report_catchall_index_value: "{{ hf_props_catchall_index_transname }}"
+  when: props_report_catchall_index_value == ""
+
+- name: Update deployment app in deployment server - props.conf if the stanza catchallindex not exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/props.conf"
+    section: "catchall"
+    option: "{{ inner_item.key }}"
+    value: "{{ inner_item.value }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  with_items:
+    - {key: "TRANSFORMS-catchallindex", value: "{{ props_report_catchall_index_value }}"}
+  register: deploymentapp_props
+  when: not transform_stanza_catchall_index_exists
+  loop_control:
+    loop_var: inner_item
+
+# May have few options, 1 with REGEX only, 1 with REGEX, FORMAT, REPEAT_MATCH
+- name: Update deployment app in deployment server - transforms.conf for catchallindex stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/transforms.conf"
+    section: "{{ hf_props_catchall_index_transname }}"
+    option: "{{ inner_item.key }}"
+    value: "{{ inner_item.value }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  with_items:
+    - {key: "REGEX", value: "{{ item.regex }}"}
+    - {key: "DEST_KEY", value: "_MetaData:Index"}
+    - {key: "FORMAT", value: "{{ item.index }}"}
+  register: deploymentapp_transforms
+  when: transform_stanza_force_update or not transform_stanza_catchall_index_exists
+  loop_control:
+    loop_var: inner_item
+
+- name: Insert empty line before the new stanza for catchall_index
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  lineinfile:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/transforms.conf"
+    insertbefore: "{{ hf_props_catchall_index_transname }}"
+    line: "\n"
+  when: not transform_stanza_catchall_index_exists
+
+- name: set_fact when transform stanza catchallsourcetype in props
+  set_fact:
+    transform_stanza_catchall_sourcetype_exists: true
+    transform_stanza_force_update: true
+  loop: "{{ props_report_catchall_sourcetype_value | replace(' ', '') | split(',') | list }}"
+  when:
+    - st_props_conf.stat.exists
+    - inner_item == hf_props_catchall_sourcetype_transname
+  loop_control:
+    loop_var: inner_item
+
+- name: Append the original TRANSFORMS-catchallsourcetype value if exists
+  set_fact:
+    props_report_catchall_sourcetype_value: "{{ props_report_catchall_sourcetype_value + ', ' + hf_props_catchall_sourcetype_transname}}"
+  when:
+    - not transform_stanza_catchall_sourcetype_exists
+    - props_report_catchall_sourcetype_value != ''
+
+- name: Set new TRANSFORMS-catchallsourcetype if not exists
+  set_fact:
+    props_report_catchall_sourcetype_value: "{{ hf_props_catchall_sourcetype_transname }}"
+  when: props_report_catchall_sourcetype_value == ""
+
+- name: Update deployment app in deployment server - props.conf if the stanza catchallsourcetype not exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/props.conf"
+    section: "catchall"
+    option: "{{ inner_item.key }}"
+    value: "{{ inner_item.value }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  with_items:
+    - {key: "TRANSFORMS-catchallsourcetype", value: "{{ props_report_catchall_sourcetype_value }}"}
+  register: deploymentapp_props
+  when: not transform_stanza_catchall_sourcetype_exists
+  loop_control:
+    loop_var: inner_item
+
+# May have few options, 1 with REGEX only, 1 with REGEX, FORMAT, REPEAT_MATCH
+- name: Update deployment app in deployment server - transforms.conf for catchallsourcetype stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ini_file:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/transforms.conf"
+    section: "{{ hf_props_catchall_sourcetype_transname }}"
+    option: "{{ inner_item.key }}"
+    value: "{{ inner_item.value }}"
+    owner: "{{ splunk.nix.user }}"
+    group: "{{ splunk.nix.group }}"
+  with_items:
+    - {key: "REGEX", value: "{{ item.regex }}"}
+    - {key: "DEST_KEY", value: "MetaData:Sourcetype"}
+    - {key: "FORMAT", value: "{{ 'sourcetype::' + item.source_type }}"}
+  register: deploymentapp_transforms
+  when: transform_stanza_force_update or not transform_stanza_catchall_sourcetype_exists
+  loop_control:
+    loop_var: inner_item
+
+- name: Insert empty line before the new stanza for catchall_sourcetype
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  lineinfile:
+    path: "{{ splunk.home }}/etc/deployment-apps/ste_hf_smartsoc/local/transforms.conf"
+    insertbefore: "{{ hf_props_catchall_sourcetype_transname }}"
+    line: "\n"
+  when: not transform_stanza_catchall_sourcetype_exists
+
+- name: SH - Get stats of a file
+  delegate_to: "{{ groups['search_head'] | first }}"
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.stat:
+    path: "{{ splunk.home }}/etc/apps/ste_sh_smartsoc/local/props.conf"
+  register: st_sh_props_conf
+
+- name: SH - Slurp an INI file if exists
+  delegate_to: "{{ groups['search_head'] | first }}"
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.slurp:
+    src: "{{ splunk.home }}/etc/apps/ste_sh_smartsoc/local/props.conf"
+  register: sh_props_conf
+  when: st_sh_props_conf.stat.exists
+
+- name: SH - Display the INI file as dictionary if exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.debug:
+    var: sh_props_conf.content | b64decode | community.general.from_ini | regex_replace("REPORT-", "REPORTXXX")
+  when: st_sh_props_conf.stat.exists
+
+- name: SH - Set a new dictionary fact with the contents of the INI file if exists
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  ansible.builtin.set_fact:
+    sh_props_dict: >-
+      {{
+          sh_props_conf.content | b64decode | community.general.from_ini | regex_replace("REPORT-", "REPORTXXX")
+      }}
+  when: st_sh_props_conf.stat.exists
+
+- name: SH - Set a new variable with the REPORT-smartsoc value from the INI file if exists
+  set_fact:
+    props_report_smartsoc_value: "{{ sh_props_dict[item.source_type] | json_query('REPORTXXXsmartsoc') }}"
+  when:
+    - item.source_type in sh_props_dict 
+    - st_sh_props_conf.stat.exists
+
+- name: SH - set_fact when transform stanza smartsoc in props
+  delegate_to: "{{ groups['search_head'] | first }}"
+  set_fact:
+    transform_stanza_smartsoc_exists: true
+  loop: "{{ props_report_smartsoc_value | replace(' ', '') | split(',') | list }}"
+  when:
+    - st_sh_props_conf.stat.exists
+    - inner_item == sh_props_report_transname
+  loop_control:
+    loop_var: inner_item
+
+- name: SH - Append the original REPORT-smartsoc value if exists
+  set_fact:
+    props_report_smartsoc_value: "{{ props_report_smartsoc_value + ', ' + sh_props_report_transname }}"
+  when:
+    - not transform_stanza_smartsoc_exists
+    - props_report_smartsoc_value != ''
+
+- name: SH - Set new REPORT-smartsoc if not exists
+  set_fact:
+    props_report_smartsoc_value: "{{ sh_props_report_transname }}"
+  when: props_report_smartsoc_value == ""
+
+- name: Update props.conf configuration in Splunk SH - creation of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/configs/conf-props"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      name: "{{ item.source_type }}"
+      "REPORT-smartsoc": "{{ props_report_smartsoc_value }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_creation_response
+  when: not transform_stanza_smartsoc_exists
+  ignore_errors: true
+
+- name: Update props.conf configuration in Splunk SH - update of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/configs/conf-props/{{ item.source_type }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      "REPORT-smartsoc": "{{ props_report_smartsoc_value }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_update_response
+  when:
+    - not transform_stanza_smartsoc_exists
+    - "'already exists' in post_restapi_creation_response.content"
+
+- name: Update transforms.conf configuration in Splunk SH - creation of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/configs/conf-transforms"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      name: "{{ sh_props_report_transname }}"
+      REGEX: "{{ item.regex }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_transforms_creation_response
+  ignore_errors: true
+
+- name: Update transforms.conf configuration in Splunk SH - update of stanza
+  become: true
+  become_user: "{{ splunk.nix.user }}"
+  uri:
+    url: "https://{{ groups['search_head'] | first }}:8089/servicesNS/nobody/ste_sh_smartsoc/configs/conf-transforms/{{ sh_props_report_transname }}"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ splunk.web.sh_token }}"
+    body:
+      REGEX: "{{ item.regex }}"
+    body_format: form-urlencoded
+    validate_certs: false
+    return_content: true
+  register: post_restapi_transforms_update_response
+  when: "'already exists' in post_restapi_transforms_creation_response.content"
+
+- name: set_fact when require reload deploy server
+  set_fact:
+    reload_deploy_server: true
+  when: deploymentapp_props is changed or deploymentapp_transforms is changed
+

@@ -1,0 +1,27 @@
+---
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/extract_mongodb_primary_ip.yml"
+  no_log: true
+
+- name: Run the getCollection command
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "mitre_db"
+    eval: 'db.getCollection("splunk_rules").find({ "sigma_id": { $in: {{ entries_id_list }} } }).toArray()'
+  register: mongo_results
+
+- include_tasks: "{{ playbook_dir }}/roles/common/tasks/process_use_case_deployment.yml"
+  loop: "{{ mongo_results.transformed_output | list }}"
+  when: mongo_results
+  no_log: true
+
+- name: Run the update command for mongodb
+  community.mongodb.mongodb_shell:
+    login_host: "{{ mongo_primary_ip }}"
+    db: "mitre_db"
+    eval: "db.splunk_rules.updateOne({ _id: ObjectId('{{ inner_item._id['$oid'] }}') }, { $set: { 'deployed': true } })"
+  loop: "{{ mongo_results.transformed_output | list }}"
+  loop_control:
+    loop_var: inner_item
+  register: update_mongodb_response
+
