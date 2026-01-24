@@ -1,4 +1,0 @@
----
-
-- name: Prepare and update config in MongoDB
-  import_tasks: update_config_mongodb.yml
