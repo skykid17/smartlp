@@ -116,14 +116,16 @@ class SplunkService(BaseSIEMService):
                     host=config_override.get("host"),
                     port=port,
                     username=config_override.get("user"),
-                    password=config_override.get("password")
+                    password=config_override.get("password"),
+                    verify=False
                 )
             else:
                 self._connection = splunk_client.connect(
                     host=self.settings.host,
                     port=self.settings.port,
                     username=self.settings.username,
-                    password=self.settings.password
+                    password=self.settings.password,
+                    verify=False
                 )
             self.logger.info("Successfully connected to Splunk")
             return True
@@ -318,8 +320,8 @@ class SplunkService(BaseSIEMService):
             entries = []
             for entry_id in entry_ids:
                 entry = db_connection.query(
-                    self.collection_name,
-                    {"id": entry_id},
+                    collection_name="logs",
+                    filter_dict={"id": entry_id},
                     projection={"_id": 0},
                     limit=1
                 )
@@ -424,8 +426,8 @@ class SplunkService(BaseSIEMService):
         import tempfile
         
         # Fixed Splunk configuration paths
-        PROPS_CONF_PATH = "/etc/system/default/props.conf"
-        TRANSFORMS_CONF_PATH = "/etc/system/default/transforms.conf"
+        PROPS_CONF_PATH = "/etc/system/local/props.conf"
+        TRANSFORMS_CONF_PATH = "/etc/system/local/transforms.conf"
         
         try:
             self.logger.info("Starting Splunk configuration deployment for %s entries", len(entry_ids))

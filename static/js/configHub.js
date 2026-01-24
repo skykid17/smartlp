@@ -171,7 +171,7 @@ class ConfigHub {
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
                 // Check if this is a Splunk dict response or Elastic string response
                 if (data.props_conf !== undefined && data.transforms_conf !== undefined) {
@@ -206,10 +206,10 @@ class ConfigHub {
         const modal = document.createElement('div');
         modal.id = 'generatedConfigModal';
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        
+
         // Check if config is a dictionary (Splunk) or string (Elastic)
         const isSplunk = typeof config === 'object' && config.props_conf !== undefined;
-        
+
         if (isSplunk) {
             // Splunk tabbed interface
             modal.innerHTML = `
@@ -225,11 +225,11 @@ class ConfigHub {
                     <div class="flex border-b border-gray-200 dark:border-gray-700">
                         <button id="propsTab" class="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400" onclick="window.configHub.switchTab('props')">
                             props.conf
-                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/default/props.conf</span>
+                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/local/props.conf</span>
                         </button>
                         <button id="transformsTab" class="px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200" onclick="window.configHub.switchTab('transforms')">
                             transforms.conf
-                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/default/transforms.conf</span>
+                            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">/etc/system/local/transforms.conf</span>
                         </button>
                     </div>
                     
@@ -262,14 +262,14 @@ class ConfigHub {
                 </div>
             `;
             document.body.appendChild(modal);
-            
+
             // Populate textareas
             document.getElementById('propsTextarea').value = config.props_conf || '';
             document.getElementById('transformsTextarea').value = config.transforms_conf || '';
-            
+
             // Store current tab
             this.currentTab = 'props';
-            
+
         } else {
             // Elastic single text area interface (original)
             modal.innerHTML = `
@@ -292,7 +292,7 @@ class ConfigHub {
                 </div>
             `;
             document.body.appendChild(modal);
-            
+
             const textarea = modal.querySelector('#generatedConfigTextarea');
             textarea.value = config ?? '';
             textarea.addEventListener('input', () => {
@@ -300,14 +300,14 @@ class ConfigHub {
             });
         }
     }
-    
+
     switchTab(tab) {
         // Update tab buttons
         const propsTab = document.getElementById('propsTab');
         const transformsTab = document.getElementById('transformsTab');
         const propsContent = document.getElementById('propsContent');
         const transformsContent = document.getElementById('transformsContent');
-        
+
         if (tab === 'props') {
             propsTab.className = 'px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-400';
             transformsTab.className = 'px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200';
@@ -322,13 +322,13 @@ class ConfigHub {
             this.currentTab = 'transforms';
         }
     }
-    
+
     copyConfig() {
         // Copy current tab content for Splunk, or entire config for Elastic
         let textToCopy = '';
         if (typeof this.lastGeneratedConfig === 'object') {
             // Splunk - copy current tab
-            const textarea = this.currentTab === 'props' 
+            const textarea = this.currentTab === 'props'
                 ? document.getElementById('propsTextarea')
                 : document.getElementById('transformsTextarea');
             textToCopy = textarea?.value || '';
@@ -337,14 +337,14 @@ class ConfigHub {
             const textarea = document.getElementById('generatedConfigTextarea');
             textToCopy = textarea?.value || '';
         }
-        
+
         navigator.clipboard.writeText(textToCopy).then(() => {
             window.showToast('Configuration copied to clipboard', 'success');
         }).catch(() => {
             window.showToast('Failed to copy configuration', 'error');
         });
     }
-    
+
     downloadConfig() {
         // Download config files
         if (typeof this.lastGeneratedConfig === 'object') {
@@ -358,7 +358,7 @@ class ConfigHub {
             window.showToast('Configuration file downloaded', 'success');
         }
     }
-    
+
     downloadFile(filename, content) {
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
