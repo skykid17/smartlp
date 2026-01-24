@@ -131,10 +131,46 @@ Common endpoints used by the UI (non-exhaustive):
   - `POST /api/test_query` – run a SIEM query test
 
 - **Config generation & deployment**
-  - `POST /api/smartlp/generate_config`
-  - `POST /api/check_deployable`
-  - `POST /api/smartlp/deploy_config`
-  - `POST /api/smartlp/deploy_rule`
+  - `POST /api/smartlp/generate_config` – generate Splunk/Elastic configuration
+  - `POST /api/check_deployable` – verify entries are ready for deployment
+  - `POST /api/smartlp/deploy_config` – deploy configurations via Ansible (Splunk) or direct API (Elastic)
+  - `POST /api/smartlp/deploy_rule` – deploy single rule to SIEM
+
+## Deployment architecture
+
+### Splunk Configuration Deployment
+
+SmartLP uses **Ansible playbooks** to deploy Splunk log parsing configurations, replacing the previous REST API `.refresh()` approach. This provides:
+
+- **File-based configuration management** in a single app location: `/etc/apps/smartlp/local/`
+- **Idempotent deployments** that can be run multiple times safely
+- **Automatic backups** before configuration changes
+- **Configuration merging** to prevent duplicates
+- **CLI-based reload** instead of REST API calls
+
+#### Deployment Flow
+
+1. User triggers deployment via UI or API (`/api/smartlp/deploy_config`)
+2. Python service (`src/services/siem.py`) invokes Ansible playbook
+3. Ansible queries MongoDB for entry data by IDs
+4. Configurations are generated and written to `props.conf` and `transforms.conf`
+5. Splunk configuration is reloaded via CLI
+6. MongoDB entry status is updated to "Deployed"
+
+#### Configuration Location
+
+All SmartLP configurations are stored in:
+```
+/opt/splunk/etc/apps/smartlp/local/
+├── props.conf       # Sourcetype configurations
+└── transforms.conf  # Regex transformations
+```
+
+For detailed Ansible deployment documentation, see [`ansible/README.md`](ansible/README.md).
+
+### Elasticsearch Configuration Deployment
+
+Elasticsearch deployments use direct API calls to update Logstash pipeline configurations.
 
 - **LLM / RAG**
   - `POST /api/query` – task router (`generate`, `fix`, or default RAG query)

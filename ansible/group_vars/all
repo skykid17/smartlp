@@ -270,3 +270,19 @@ audit:
 ##############################
 
 #secret_password: "{{ vault_password }}"
+
+##############################
+##   SmartLP Configuration
+##############################
+
+smartlp:
+  app_path: "{{ splunk.home }}/etc/apps/smartlp/local"
+  mongodb:
+    host: "{{ base.mongo_primary_ip | default('localhost') }}"
+    port: 27017
+    db: "smartlp"
+    collection: "logs"
+  config:
+    props_conf: "{{ splunk.home }}/etc/apps/smartlp/local/props.conf"
+    transforms_conf: "{{ splunk.home }}/etc/apps/smartlp/local/transforms.conf"
+

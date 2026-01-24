@@ -1,4 +1,0 @@
----
-
-- name: Deploy use case into search head
-  import_tasks: deploy_use_case.yml

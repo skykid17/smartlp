@@ -346,7 +346,7 @@ class SplunkService(BaseSIEMService):
             
             for entry in entries:
                 source_type = entry.get("source_type", "<source_type>")
-                log_type = entry.get("logtype", "<log_type>")
+                log_type = entry.get("log_type", "<log_type>")
                 entry_id = entry.get("id", "<entries.id>")
                 regex = entry.get("regex", "<entries.regex>")
                 index = entry.get("index", "<index>")
@@ -413,7 +413,11 @@ class SplunkService(BaseSIEMService):
     
 
     def deploy_config_splunk(self, entry_ids: List[str]) -> Tuple[bool, str]:
-        """Deploy SmartLP configuration to Splunk by writing to props.conf and transforms.conf.
+        """Deploy SmartLP configuration to Splunk via Ansible playbook.
+        
+        This method triggers Ansible playbook execution to deploy configurations
+        to /etc/apps/smartlp/local/ directory, replacing the previous approach
+        that used REST API .refresh() calls.
         
         Args:
             entry_ids: List of entry IDs to deploy
@@ -421,153 +425,104 @@ class SplunkService(BaseSIEMService):
         Returns:
             Tuple of (success, message)
         """
+        import subprocess
         import os
-        import shutil
-        import tempfile
-        
-        # Fixed Splunk configuration paths
-        PROPS_CONF_PATH = "/etc/system/local/props.conf"
-        TRANSFORMS_CONF_PATH = "/etc/system/local/transforms.conf"
         
         try:
-            self.logger.info("Starting Splunk configuration deployment for %s entries", len(entry_ids))
+            self.logger.info("Starting Ansible-based Splunk configuration deployment for %s entries", len(entry_ids))
             
-            # Step 1: Generate configuration
-            config_dict = self.create_config_splunk(entry_ids)
-            if not config_dict or "Error" in config_dict.get("props_conf", ""):
-                return False, "Failed to generate valid configuration"
+            # Validate entry IDs
+            if not entry_ids:
+                return False, "No entry IDs provided for deployment"
             
-            props_content = config_dict["props_conf"]
-            transforms_content = config_dict["transforms_conf"]
+            # Prepare entry IDs as a JSON-formatted string for Ansible
+            entry_ids_json = ','.join(f'"{eid}"' for eid in entry_ids)
+            entry_ids_list = f'[{entry_ids_json}]'
             
-            # Step 2: Backup existing files
-            backup_files = []
-            try:
-                if os.path.exists(PROPS_CONF_PATH):
-                    backup_path = f"{PROPS_CONF_PATH}.bak"
-                    shutil.copy2(PROPS_CONF_PATH, backup_path)
-                    backup_files.append((PROPS_CONF_PATH, backup_path))
-                    self.logger.info("Backed up props.conf to %s", backup_path)
+            # Path to Ansible playbook
+            playbook_path = "/home/runner/work/smartlp/smartlp/ansible/deploy_smartlp.yml"
+            inventory_path = "/home/runner/work/smartlp/smartlp/ansible/inventories/default.yml"
+            
+            # Check if playbook exists
+            if not os.path.exists(playbook_path):
+                self.logger.error("Ansible playbook not found: %s", playbook_path)
+                return False, f"Ansible playbook not found: {playbook_path}"
+            
+            # Execute Ansible playbook
+            ansible_cmd = [
+                "ansible-playbook",
+                playbook_path,
+                "-i", inventory_path,
+                "-e", f"entry_ids={entry_ids_list}",
+                "-v"
+            ]
+            
+            self.logger.info("Executing Ansible command: %s", ' '.join(ansible_cmd))
+            
+            result = subprocess.run(
+                ansible_cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode == 0:
+                self.logger.info("Ansible deployment completed successfully")
+                self.logger.debug("Ansible stdout: %s", result.stdout)
+                return True, f"Successfully deployed configuration via Ansible ({len(entry_ids)} entries)"
+            else:
+                self.logger.error("Ansible deployment failed with return code %s", result.returncode)
+                self.logger.error("Ansible stderr: %s", result.stderr)
+                return False, f"Ansible deployment failed: {result.stderr}"
                 
-                if os.path.exists(TRANSFORMS_CONF_PATH):
-                    backup_path = f"{TRANSFORMS_CONF_PATH}.bak"
-                    shutil.copy2(TRANSFORMS_CONF_PATH, backup_path)
-                    backup_files.append((TRANSFORMS_CONF_PATH, backup_path))
-                    self.logger.info("Backed up transforms.conf to %s", backup_path)
-            except Exception as e:
-                self.logger.warning("Could not create backups: %s", str(e))
-                # Continue without backups - may be first deployment
-            
-            # Step 3: Write configuration files atomically
-            try:
-                # Ensure target directory exists
-                os.makedirs(os.path.dirname(PROPS_CONF_PATH), exist_ok=True)
-                
-                # Write props.conf atomically
-                with tempfile.NamedTemporaryFile(
-                    mode='w', 
-                    dir=os.path.dirname(PROPS_CONF_PATH),
-                    delete=False,
-                    prefix='.props.conf.',
-                    suffix='.tmp'
-                ) as tmp_props:
-                    tmp_props.write(props_content)
-                    tmp_props.flush()
-                    os.fsync(tmp_props.fileno())
-                    tmp_props_path = tmp_props.name
-                
-                os.replace(tmp_props_path, PROPS_CONF_PATH)
-                self.logger.info("Successfully wrote props.conf")
-                
-                # Write transforms.conf atomically
-                with tempfile.NamedTemporaryFile(
-                    mode='w',
-                    dir=os.path.dirname(TRANSFORMS_CONF_PATH),
-                    delete=False,
-                    prefix='.transforms.conf.',
-                    suffix='.tmp'
-                ) as tmp_transforms:
-                    tmp_transforms.write(transforms_content)
-                    tmp_transforms.flush()
-                    os.fsync(tmp_transforms.fileno())
-                    tmp_transforms_path = tmp_transforms.name
-                
-                os.replace(tmp_transforms_path, TRANSFORMS_CONF_PATH)
-                self.logger.info("Successfully wrote transforms.conf")
-                
-            except Exception as e:
-                self.logger.error("Failed to write configuration files: %s", str(e))
-                # Rollback from backups
-                self._rollback_config_files(backup_files)
-                return False, f"Failed to write configuration files: {str(e)}"
-            
-            # Step 4: Reload Splunk configuration
-            reload_success = self._reload_splunk_config()
-            if not reload_success:
-                self.logger.warning("Configuration files written but Splunk reload failed or not connected")
-                # Don't rollback - files are written, just needs manual reload
-                return True, f"Configuration deployed to {PROPS_CONF_PATH} and {TRANSFORMS_CONF_PATH} (Splunk reload may require manual intervention)"
-            
-            self.logger.info("Successfully deployed and reloaded Splunk configuration")
-            return True, f"Successfully deployed configuration to Splunk ({len(entry_ids)} entries)"
-            
+        except subprocess.TimeoutExpired:
+            self.logger.exception("Ansible deployment timed out")
+            return False, "Deployment timed out after 5 minutes"
         except Exception as e:
-            self.logger.exception("Error deploying Splunk configuration")
+            self.logger.exception("Error deploying Splunk configuration via Ansible")
             return False, f"Deployment failed: {str(e)}"
     
-    def _rollback_config_files(self, backup_files: List[Tuple[str, str]]) -> None:
-        """Rollback configuration files from backups.
-        
-        Args:
-            backup_files: List of (original_path, backup_path) tuples
-        """
-        if not backup_files:
-            return
-        
-        self.logger.info("Rolling back configuration files from backups")
-        for original_path, backup_path in backup_files:
-            try:
-                if os.path.exists(backup_path):
-                    shutil.copy2(backup_path, original_path)
-                    self.logger.info("Restored %s from backup", original_path)
-            except Exception as e:
-                self.logger.error("Failed to restore %s: %s", original_path, str(e))
     
     def _reload_splunk_config(self) -> bool:
-        """Reload Splunk configuration using REST API.
+        """Reload Splunk configuration using CLI.
+        
+        This method is deprecated in favor of Ansible-based deployment
+        which handles configuration reload automatically.
         
         Returns:
             True if reload successful, False otherwise
         """
+        import subprocess
+        
         try:
-            # Try to connect if not already connected
-            if not self._connection:
-                connected = self.connect()
-                if not connected:
-                    self.logger.warning("Cannot reload config: not connected to Splunk")
-                    return False
+            # Use Splunk CLI to reload configuration
+            # This avoids REST API .refresh() calls
+            reload_cmd = [
+                "/opt/splunk/bin/splunk",
+                "reload",
+                "deploy-server",
+                "-auth", "admin:changeme"  # TODO: Use proper credentials from config
+            ]
             
-            # Reload configuration using Splunk REST API
-            # The _rcvr endpoint reloads all configurations
-            try:
-                self._connection.post('admin/_rcvr', output_mode='json')
+            self.logger.info("Reloading Splunk configuration via CLI")
+            
+            result = subprocess.run(
+                reload_cmd,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
                 self.logger.info("Splunk configuration reloaded successfully")
                 return True
-            except Exception as e:
-                self.logger.error("Failed to reload Splunk config via REST API: %s", str(e))
-                # Try alternative method with specific conf refreshes
-                try:
-                    # Refresh props and transforms configurations
-                    service = self._connection
-                    if hasattr(service, 'confs'):
-                        service.confs['props'].refresh()
-                        service.confs['transforms'].refresh()
-                        self.logger.info("Refreshed props and transforms configurations")
-                        return True
-                except Exception as e2:
-                    self.logger.error("Failed to refresh specific confs: %s", str(e2))
-                    return False
+            else:
+                self.logger.error("Failed to reload Splunk config: %s", result.stderr)
+                return False
                     
+        except subprocess.TimeoutExpired:
+            self.logger.error("Splunk reload timed out")
+            return False
         except Exception as e:
             self.logger.error("Error reloading Splunk configuration: %s", str(e))
             return False
