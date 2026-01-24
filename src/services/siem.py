@@ -346,7 +346,7 @@ class SplunkService(BaseSIEMService):
             
             for entry in entries:
                 source_type = entry.get("source_type", "<source_type>")
-                log_type = entry.get("logtype", "<log_type>")
+                log_type = entry.get("log_type", "<log_type>")
                 entry_id = entry.get("id", "<entries.id>")
                 regex = entry.get("regex", "<entries.regex>")
                 index = entry.get("index", "<index>")
