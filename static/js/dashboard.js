@@ -24,18 +24,23 @@ class Dashboard {
         // Only initialize if dashboard section exists
         if (!document.getElementById('dashboard-section')) return;
 
-        // Search inputs
-        document.getElementById('searchId')?.addEventListener('input', () => this.searchData());
-        document.getElementById('searchLog')?.addEventListener('input', () => this.searchData());
-        document.getElementById('searchRegex')?.addEventListener('input', () => this.searchData());
+        // Search inputs - debounced for better UX
+        ['searchId', 'searchLog', 'searchRegex'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', () => this.searchData());
+        });
         document.getElementById('filterStatusSelect')?.addEventListener('change', () => this.searchData());
 
         // Action buttons
-        document.getElementById('clearSearchButton')?.addEventListener('click', () => this.clearSearch());
-        document.getElementById('refreshButton')?.addEventListener('click', () => this.searchData());
-        document.getElementById('clearSelectionButton')?.addEventListener('click', () => this.clearSelection());
-        document.getElementById('openParserButton')?.addEventListener('click', () => this.openParser());
-        document.getElementById('deleteEntriesButton')?.addEventListener('click', () => this.deleteEntries());
+        const actions = {
+            clearSearchButton: () => this.clearSearch(),
+            refreshButton: () => this.searchData(),
+            clearSelectionButton: () => this.clearSelection(),
+            openParserButton: () => this.openParser(),
+            deleteEntriesButton: () => this.deleteEntries()
+        };
+        Object.entries(actions).forEach(([id, handler]) => {
+            document.getElementById(id)?.addEventListener('click', handler);
+        });
 
         // Pagination
         document.getElementById('prevPage')?.addEventListener('click', () => this.changePage(this.currentPage - 1));
@@ -95,7 +100,7 @@ class Dashboard {
     }
 
     async searchData() {
-        const searchParams = {
+        const params = {
             search_id: document.getElementById('searchId')?.value || '',
             search_log: document.getElementById('searchLog')?.value || '',
             search_regex: document.getElementById('searchRegex')?.value || '',
@@ -105,8 +110,7 @@ class Dashboard {
         };
 
         try {
-            const queryString = new URLSearchParams(searchParams).toString();
-            const response = await fetch(`/api/smartlp/entries?${queryString}`);
+            const response = await fetch(`/api/smartlp/entries?${new URLSearchParams(params)}`);
             const data = await response.json();
 
             if (data.entries) {
@@ -117,7 +121,7 @@ class Dashboard {
             }
         } catch (error) {
             console.error('Error fetching entries:', error);
-            window.showToast('Error loading entries', 'error');
+            window.showToast?.('Error loading entries', 'error');
         }
     }
 
@@ -262,21 +266,20 @@ class Dashboard {
     }
 
     clearSearch() {
-        document.getElementById('searchId').value = '';
-        document.getElementById('searchLog').value = '';
-        document.getElementById('searchRegex').value = '';
-        document.getElementById('filterStatusSelect').value = '';
+        ['searchId', 'searchLog', 'searchRegex', 'filterStatusSelect'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
         this.currentPage = 1;
         this.searchData();
     }
 
     updateSelectionUI() {
-        const count = this.selectedEntries.size;
-        const buttons = ['clearSelectionButton', 'openParserButton', 'deleteEntriesButton'];
+        const hasSelection = this.selectedEntries.size > 0;
 
-        buttons.forEach(btnId => {
+        ['clearSelectionButton', 'openParserButton', 'deleteEntriesButton'].forEach(btnId => {
             const btn = document.getElementById(btnId);
-            if (btn) btn.disabled = count === 0;
+            if (btn) btn.disabled = !hasSelection;
         });
 
         // Update config hub

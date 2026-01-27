@@ -18,10 +18,7 @@ class ConfigHub {
     }
 
     init() {
-        // Close button
-        document.getElementById('configHubClose')?.addEventListener('click', () => {
-            this.close();
-        });
+        document.getElementById('configHubClose')?.addEventListener('click', () => this.close());
     }
 
     open() {
@@ -36,12 +33,7 @@ class ConfigHub {
     }
 
     toggle() {
-        const isOpen = !this.panel.classList.contains('translate-x-full');
-        if (isOpen) {
-            this.close();
-        } else {
-            this.open();
-        }
+        this.panel.classList.contains('translate-x-full') ? this.open() : this.close();
     }
 
     loadContent() {

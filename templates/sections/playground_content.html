@@ -35,7 +35,8 @@
             <div class="p-6">
                 <textarea id="regexDisplay"
                     class="w-full h-40 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm resize-none"
-                    placeholder="Generate/Add/Edit regex here..."></textarea>
+                    placeholder="Generate/Add/Edit regex here..." aria-label="Regex pattern editor"
+                    spellcheck="false"></textarea>
             </div>
         </div>
 
@@ -71,10 +72,11 @@
                 <div
                     class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 min-h-[10rem] max-h-[20rem] overflow-y-auto">
                     <button
-                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn">
-                        <i class="fas fa-copy"></i>
+                        class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 copy-btn"
+                        aria-label="Copy log content">
+                        <i class="fas fa-copy" aria-hidden="true"></i>
                     </button>
-                    <pre><code id="logDisplay" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">No log loaded. Pull an entry or paste log content here...</code></pre>
+                    <pre><code id="logDisplay" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words" role="textbox" aria-label="Log content display">No log loaded. Pull an entry or paste log content here...</code></pre>
                 </div>
             </div>
         </div>
@@ -118,18 +120,20 @@
 </div>
 
 <!-- Footer Actions -->
-<div class="flex justify-between items-center mt-6">
+<div class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
     <button id="backButton"
-        class="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
-        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        class="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200"
+        aria-label="Return to dashboard">
+        <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back to Dashboard
     </button>
 
     <div class="flex items-center space-x-4">
-        <div id="logger" class="text-sm text-gray-600 dark:text-gray-400"></div>
+        <div id="logger" class="text-sm text-gray-600 dark:text-gray-400" role="status" aria-live="polite"></div>
         <button id="saveToDBButton"
-            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center">
-            <i class="fas fa-database mr-2"></i>Save to Database
-            <span id="saveToDBSpinner" class="ml-2 hidden">
+            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center"
+            aria-label="Save entry to database">
+            <i class="fas fa-database mr-2" aria-hidden="true"></i>Save to Database
+            <span id="saveToDBSpinner" class="ml-2 hidden" aria-hidden="true">
                 <i class="fas fa-spinner fa-spin"></i>
             </span>
         </button>

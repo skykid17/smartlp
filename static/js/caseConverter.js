@@ -29,22 +29,13 @@ function camelToSnake(str) {
  * @returns {any} Converted object
  */
 function keysToCamel(obj) {
-    if (obj === null || obj === undefined) {
-        return obj;
-    }
-    
-    if (Array.isArray(obj)) {
-        return obj.map(item => keysToCamel(item));
-    }
-    
+    if (obj == null) return obj;
+    if (Array.isArray(obj)) return obj.map(keysToCamel);
     if (typeof obj === 'object' && obj.constructor === Object) {
-        const converted = {};
-        for (const [key, value] of Object.entries(obj)) {
-            converted[snakeToCamel(key)] = keysToCamel(value);
-        }
-        return converted;
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [snakeToCamel(key), keysToCamel(value)])
+        );
     }
-    
     return obj;
 }
 
@@ -54,21 +45,12 @@ function keysToCamel(obj) {
  * @returns {any} Converted object
  */
 function keysToSnake(obj) {
-    if (obj === null || obj === undefined) {
-        return obj;
-    }
-    
-    if (Array.isArray(obj)) {
-        return obj.map(item => keysToSnake(item));
-    }
-    
+    if (obj == null) return obj;
+    if (Array.isArray(obj)) return obj.map(keysToSnake);
     if (typeof obj === 'object' && obj.constructor === Object) {
-        const converted = {};
-        for (const [key, value] of Object.entries(obj)) {
-            converted[camelToSnake(key)] = keysToSnake(value);
-        }
-        return converted;
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [camelToSnake(key), keysToSnake(value)])
+        );
     }
-    
     return obj;
 }

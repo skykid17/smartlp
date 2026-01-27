@@ -59,22 +59,20 @@ class Playground {
     }
 
     bindEvents() {
-        this.addEvent(this.dom.regexDisplay, 'input', () => this.findMatch());
-        this.addEvent(this.dom.reduceButton, 'click', () => this.reduceRegex());
-        this.addEvent(this.dom.generateButton, 'click', () => this.queryLLM('generate'));
-        this.addEvent(this.dom.fixButton, 'click', () => this.queryLLM('fix'));
-        this.addEvent(this.dom.pullEntryButton, 'click', () => this.pullEntry());
-        this.addEvent(this.dom.clearEntryButton, 'click', () => this.clearEntry());
-        this.addEvent(this.dom.saveButton, 'click', () => this.saveToDB());
-        this.addEvent(this.dom.backButton, 'click', () => {
-            if (window.navigateToSection) {
-                window.navigateToSection('dashboard');
-            }
-        });
-    }
+        const events = {
+            regexDisplay: ['input', () => this.findMatch()],
+            reduceButton: ['click', () => this.reduceRegex()],
+            generateButton: ['click', () => this.queryLLM('generate')],
+            fixButton: ['click', () => this.queryLLM('fix')],
+            pullEntryButton: ['click', () => this.pullEntry()],
+            clearEntryButton: ['click', () => this.clearEntry()],
+            saveButton: ['click', () => this.saveToDB()],
+            backButton: ['click', () => window.navigateToSection?.('dashboard')]
+        };
 
-    addEvent(element, event, handler) {
-        if (element) element.addEventListener(event, handler);
+        Object.entries(events).forEach(([key, [event, handler]]) => {
+            this.dom[key]?.addEventListener(event, handler);
+        });
     }
 
     restoreFromSession() {
@@ -192,15 +190,11 @@ class Playground {
     }
 
     getSessionItem(key, defaultValue = '') {
-        return window.getSessionItem ? window.getSessionItem(key, defaultValue) : (sessionStorage.getItem(key) || defaultValue);
+        return window.getSessionItem?.(key, defaultValue) ?? sessionStorage.getItem(key) ?? defaultValue;
     }
 
     setSessionItem(key, value) {
-        if (window.setSessionItem) {
-            window.setSessionItem(key, value);
-        } else {
-            sessionStorage.setItem(key, value);
-        }
+        window.setSessionItem?.(key, value) ?? sessionStorage.setItem(key, value);
     }
 
     toggleSpinner(spinner, button, show) {
@@ -246,21 +240,16 @@ class Playground {
     }
 
     async queryLLM(task) {
-        const log = this.dom.logDisplay ? this.dom.logDisplay.textContent : '';
-        const regex = this.dom.regexDisplay ? this.dom.regexDisplay.value : '';
+        const log = this.dom.logDisplay?.textContent || '';
+        const regex = this.dom.regexDisplay?.value || '';
 
-        if (!log) {
-            this.setLogger('No log to analyze');
-            return;
-        }
-        if (task === 'fix' && !regex) {
-            this.setLogger('No regex to fix');
-            return;
-        }
+        if (!log) return this.setLogger('No log to analyze');
+        if (task === 'fix' && !regex) return this.setLogger('No regex to fix');
 
-        if (task === 'fix') this.toggleSpinner(this.dom.fixSpinner, this.dom.fixButton, true);
-        if (task === 'generate') this.toggleSpinner(this.dom.generateSpinner, this.dom.generateButton, true);
+        const spinnerMap = { fix: [this.dom.fixSpinner, this.dom.fixButton], generate: [this.dom.generateSpinner, this.dom.generateButton] };
+        const [spinner, button] = spinnerMap[task];
 
+        this.toggleSpinner(spinner, button, true);
         this.setLogger(task === 'generate' ? 'AI is generating regex...' : 'AI is fixing regex...');
 
         try {
@@ -271,31 +260,24 @@ class Playground {
             });
 
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
-
             const data = await response.json();
 
-            if (!data || data.success === false || !data.regex) {
+            if (!data?.success || !data.regex) {
                 const message = data?.error || data?.message || 'Regex update failed';
                 this.setLogger(message);
-                if (typeof window.showToast === 'function') {
-                    window.showToast(message, 'error');
-                }
+                window.showToast?.(message, 'error');
                 return;
             }
 
             if (this.dom.regexDisplay) this.dom.regexDisplay.value = data.regex;
             this.setLogger(data.logger || 'Regex updated');
-            const successMessage = task === 'fix' ? 'Regex improved successfully' : 'Regex generated successfully';
-            if (typeof window.showToast === 'function') {
-                window.showToast(successMessage, 'success');
-            }
+            window.showToast?.(task === 'fix' ? 'Regex improved successfully' : 'Regex generated successfully', 'success');
             this.findMatch();
         } catch (error) {
             console.error(`Error during ${task}:`, error);
             this.setLogger(`Error: ${error.message}`);
         } finally {
-            if (task === 'fix') this.toggleSpinner(this.dom.fixSpinner, this.dom.fixButton, false);
-            if (task === 'generate') this.toggleSpinner(this.dom.generateSpinner, this.dom.generateButton, false);
+            this.toggleSpinner(spinner, button, false);
         }
     }
 
@@ -367,8 +349,12 @@ class Playground {
         const regex = this.dom.regexDisplay ? this.dom.regexDisplay.value : '';
 
         if (!regex.trim()) {
-            if (this.dom.matchDisplay) this.dom.matchDisplay.textContent = '';
-            if (this.dom.captureGroupDisplay) this.dom.captureGroupDisplay.textContent = '';
+            if (this.dom.matchDisplay) {
+                this.dom.matchDisplay.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No regex provided</p>';
+            }
+            if (this.dom.captureGroupDisplay) {
+                this.dom.captureGroupDisplay.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No capture groups</p>';
+            }
             if (this.dom.matchLogger) this.dom.matchLogger.textContent = 'No Regex';
             if (this.dom.logDisplay) this.dom.logDisplay.textContent = log;
             return;
@@ -405,14 +391,18 @@ class Playground {
             const groupMatches = matches.filter(([k]) => k !== 'matched1');
 
             if (this.dom.matchDisplay) {
-                this.dom.matchDisplay.textContent = fullMatchObj ? fullMatchObj.value : '';
+                this.dom.matchDisplay.innerHTML = fullMatchObj 
+                    ? `<div class="text-gray-900 dark:text-white">${this.escapeHtml(fullMatchObj.value)}</div>` 
+                    : '<p class="text-sm text-gray-500 dark:text-gray-400">No matches</p>';
             }
             if (this.dom.captureGroupDisplay) {
                 const groupText = groupMatches
-                    .map(([k, v]) => `${k}: ${v?.value ?? ''}`)
+                    .map(([k, v]) => `${this.escapeHtml(k)}: ${this.escapeHtml(v?.value ?? '')}`)
                     .join('\n');
-
-                this.dom.captureGroupDisplay.textContent = groupText;
+                
+                this.dom.captureGroupDisplay.innerHTML = groupText 
+                    ? `<pre class="text-gray-900 dark:text-white whitespace-pre-wrap">${groupText}</pre>`
+                    : '<p class="text-sm text-gray-500 dark:text-gray-400">No capture groups</p>';
             }
 
             this.highlightLog(log, fullMatchObj, groupMatches);
@@ -420,6 +410,16 @@ class Playground {
             console.error('findMatch() error:', err);
             if (this.dom.matchLogger) this.dom.matchLogger.textContent = 'Request Error';
         }
+    }
+
+    escapeHtml(text) {
+        if (text == null) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     highlightLog(logText, fullMatch, groups) {
@@ -492,8 +492,12 @@ class Playground {
     clearEntry() {
         if (this.dom.logDisplay) this.dom.logDisplay.textContent = '';
         if (this.dom.regexDisplay) this.dom.regexDisplay.value = '';
-        if (this.dom.matchDisplay) this.dom.matchDisplay.textContent = '';
-        if (this.dom.captureGroupDisplay) this.dom.captureGroupDisplay.textContent = '';
+        if (this.dom.matchDisplay) {
+            this.dom.matchDisplay.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Matches will appear here...</p>';
+        }
+        if (this.dom.captureGroupDisplay) {
+            this.dom.captureGroupDisplay.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Capture groups will appear here...</p>';
+        }
         if (this.dom.matchLogger) this.dom.matchLogger.textContent = '';
 
         ['id', 'log', 'regex', 'parserEntries', 'parserEntryData'].forEach(key => sessionStorage.removeItem(key));

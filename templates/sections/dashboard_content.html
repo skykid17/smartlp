@@ -31,34 +31,35 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
                 <label for="searchId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-tag mr-1"></i>ID Search
+                    <i class="fas fa-tag mr-1" aria-hidden="true"></i>ID Search
                 </label>
                 <input type="text" id="searchId"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter ID or comma-separated IDs...">
+                    placeholder="Enter ID or comma-separated IDs..." aria-label="Search by entry ID">
             </div>
             <div>
                 <label for="searchLog" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-file-alt mr-1"></i>Log Content
+                    <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Log Content
                 </label>
                 <input type="text" id="searchLog"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Search in log content...">
+                    placeholder="Search in log content..." aria-label="Search in log content">
             </div>
             <div>
                 <label for="searchRegex" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-code mr-1"></i>Regex Pattern
+                    <i class="fas fa-code mr-1" aria-hidden="true"></i>Regex Pattern
                 </label>
                 <input type="text" id="searchRegex"
                     class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Search regex patterns...">
+                    placeholder="Search regex patterns..." aria-label="Search by regex pattern">
             </div>
             <div>
                 <label for="filterStatusSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-filter mr-1"></i>Status Filter
+                    <i class="fas fa-filter mr-1" aria-hidden="true"></i>Status Filter
                 </label>
                 <select id="filterStatusSelect"
-                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    aria-label="Filter by status">
                     <option value="">All Statuses</option>
                     {% for status in statuses %}
                     <option value="{{ status }}">{{ status }}</option>
@@ -70,28 +71,30 @@
         <!-- Action Buttons -->
         <div class="flex flex-wrap items-center gap-2">
             <button id="clearSearchButton"
-                class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">
-                <i class="fas fa-eraser mr-2"></i>Reset
+                class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200"
+                aria-label="Reset all search filters">
+                <i class="fas fa-eraser mr-2" aria-hidden="true"></i>Reset
             </button>
             <button id="refreshButton"
-                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
-                <i class="fas fa-sync-alt mr-2"></i>Refresh
+                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                aria-label="Refresh entries">
+                <i class="fas fa-sync-alt mr-2" aria-hidden="true"></i>Refresh
             </button>
             <div class="ml-auto flex flex-wrap gap-2">
                 <button id="clearSelectionButton"
                     class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled>
-                    <i class="fas fa-times mr-2"></i>Clear Selection
+                    disabled aria-label="Clear selected entries">
+                    <i class="fas fa-times mr-2" aria-hidden="true"></i>Clear Selection
                 </button>
                 <button id="openParserButton"
                     class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled>
-                    <i class="fas fa-edit mr-2"></i>Parse
+                    disabled aria-label="Parse selected entries">
+                    <i class="fas fa-edit mr-2" aria-hidden="true"></i>Parse
                 </button>
                 <button id="deleteEntriesButton"
                     class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled>
-                    <i class="fas fa-trash mr-2"></i>Delete
+                    disabled aria-label="Delete selected entries">
+                    <i class="fas fa-trash mr-2" aria-hidden="true"></i>Delete
                 </button>
             </div>
         </div>

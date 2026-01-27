@@ -93,24 +93,17 @@ class Settings {
         }
 
         this.elements.siemSelect?.addEventListener('change', () => this.handleSiemChange());
-        // Wire main SIEM connection inputs to update local objects (values persisted on Save)
-        ['elasticHost', 'elasticApiKey', 'elasticKibanaUrl', 'elasticUser', 'elasticPassword', 'splunkHost', 'splunkPort', 'splunkUser', 'splunkPassword'].forEach(id => {
-            const el = this.elements[id];
-            if (!el) return;
-            el.addEventListener('input', () => {
-                // Update local siem object so UI reflects changes before saving
-                const siemId = this.elements.siemSelect?.value;
-                if (!siemId) return;
-                const siem = this.siems.find((s) => s.id === siemId);
-                if (!siem) return;
-                // Map element ids to camelCase keys expected in frontend siem objects
-                const map = {
-                    elasticHost: 'host', elasticApiKey: 'apiKey', elasticKibanaUrl: 'kibanaUrl', elasticUser: 'user', elasticPassword: 'password',
-                    splunkHost: 'host', splunkPort: 'port', splunkUser: 'user', splunkPassword: 'password'
-                };
-                const key = map[id];
-                if (!key) return;
-                siem[key] = el.value;
+        // Wire main SIEM connection inputs to update local objects
+        const siemFieldMap = {
+            elasticHost: 'host', elasticApiKey: 'apiKey', elasticKibanaUrl: 'kibanaUrl',
+            elasticUser: 'user', elasticPassword: 'password',
+            splunkHost: 'host', splunkPort: 'port', splunkUser: 'user', splunkPassword: 'password'
+        };
+
+        Object.keys(siemFieldMap).forEach(id => {
+            this.elements[id]?.addEventListener('input', () => {
+                const siem = this.siems.find(s => s.id === this.elements.siemSelect?.value);
+                if (siem) siem[siemFieldMap[id]] = this.elements[id].value;
             });
         });
         this.elements.activeLlmEndpoint?.addEventListener('change', () => this.handleActiveEndpointChange());
@@ -170,7 +163,7 @@ class Settings {
             // Backend now returns snake_case: { global_settings, siems, llm_endpoints }
             // Convert to camelCase for internal use
             const camelData = keysToCamel(data);
-            
+
             this.currentSettings = camelData.globalSettings || {};
             this.siems = camelData.siems || [];
 
@@ -1004,7 +997,7 @@ class Settings {
                     url: epData.url || '',
                     api_key: epData.apiKey || epData.api_key || ''
                 };
-                
+
                 if (epData.models) {
                     epData.models.forEach((m) => {
                         // Ensure model has an id

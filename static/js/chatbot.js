@@ -16,24 +16,9 @@ class Chatbot {
     }
 
     init() {
-        // Send button click
-        this.sendBtn?.addEventListener('click', () => {
-            this.sendMessage();
-        });
-
-        // Enter key to send
-        this.input?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendMessage();
-            }
-        });
-
-        // Close modal on outside click
-        this.modal?.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.close();
-            }
-        });
+        this.sendBtn?.addEventListener('click', () => this.sendMessage());
+        this.input?.addEventListener('keypress', (e) => e.key === 'Enter' && this.sendMessage());
+        this.modal?.addEventListener('click', (e) => e.target === this.modal && this.close());
     }
 
     open() {
@@ -49,26 +34,15 @@ class Chatbot {
         const message = this.input?.value.trim();
         if (!message) return;
 
-        // UI
         this.addMessage(message, 'user');
-
-        // Save to session
-        this.session.push({
-            role: 'user',
-            content: message
-        });
-
+        this.session.push({ role: 'user', content: message });
         this.input.value = '';
         this.getResponse();
     }
 
     buildPrompt() {
         return this.session
-            .map(m =>
-                m.role === 'user'
-                    ? `User: ${m.content}`
-                    : `Assistant: ${m.content}`
-            )
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
             .join('\n');
     }
 
