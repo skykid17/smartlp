@@ -477,8 +477,7 @@ class SettingsService(BaseService):
             Active SIEM type or None if not configured
         """
         settings = self.get_global_settings()
-        # Backend stores snake_case; be defensive and accept either
-        return settings.get('active_siem') or settings.get('activeSiem')
+        return settings.get('active_siem')
     
     def set_active_siem(self, siem_type: str) -> bool:
         """Set the active SIEM type.

@@ -24,7 +24,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Any
 import spacy
 
 import numpy as np
-from pymongo import MongoClient
+from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError, OperationFailure, ServerSelectionTimeoutError
 from services.settings import settings_service
@@ -446,9 +446,37 @@ class RAG:
         self.embedding_fn = lambda texts, show_progress=False: self.generate_embeddings(texts, show_progress)
         self.local_retriever: Optional[LocalRetriever] = None
 
-
-    # --- Index Creation Helpers ---
+    # --- Index Creation ---
     def _ensure_index(
+        self,
+        collection: Collection,
+        field: str,
+        unique: bool = False
+    ) -> None:
+        """
+        Ensure a standard MongoDB index exists on a field.
+        """
+        index_name = f"{field}_idx"
+
+        try:
+            existing_indexes = collection.index_information()
+            if index_name in existing_indexes:
+                logger.info("Index '%s' already exists.", index_name)
+                return
+
+            collection.create_index(
+                [(field, ASCENDING)],
+                name=index_name,
+                unique=unique,
+                background=True
+            )
+            logger.info("Index '%s' creation initiated.", index_name)
+
+        except OperationFailure as e:
+            logger.error("Failed to create index '%s': %s", index_name, e)
+
+    # --- Search Index Creation Helpers ---
+    def _ensure_search_index(
         self,
         collection: Collection,
         index_name: str,
@@ -507,9 +535,12 @@ class RAG:
         # --- Text index definition ---
         text_def = {"mappings": {"dynamic": True}}
 
-        # --- Ensure both indexes ---
-        self._ensure_index(coll, self.vector_index, "vectorSearch", vector_def)
-        self._ensure_index(coll, self.text_index, "search", text_def)
+        # --- Ensure both search indexes ---
+        self._ensure_search_index(coll, self.vector_index, "vectorSearch", vector_def)
+        self._ensure_search_index(coll, self.text_index, "search", text_def)
+
+        self._ensure_index(coll, "id", unique=True)
+        self._ensure_index(coll, "sigma_id", unique=False)
 
         # preload embedding model
         try:

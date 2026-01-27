@@ -262,20 +262,20 @@ class SmartLPService(CRUDService):
             return [], 0
     
     def get_oldest_unmatched_entry(self) -> Optional[Dict[str, Any]]:
-        """Get oldest unmatched entry from the database.
+        """Get oldest unmatched or partially matched entry from the database.
         
-        Retrieves the oldest log entry that has 'Unmatched' status,
+        Retrieves the oldest log entry that has 'Unmatched' or 'Partially Matched' status,
         ordered by timestamp in ascending order.
         
         Returns:
             Dictionary containing entry data (id, log, regex) or None if not found
         """
         try:
-            self.logger.info("Searching for oldest unmatched entry")
+            self.logger.info("Searching for oldest unmatched/partially matched entry")
             
             entry = db_connection.query(
                 self.collection_name,
-                {"status": "Unmatched" or "Partially Matched"},
+                {"status": {"$in": ["Unmatched", "Partially Matched"]}},
                 projection={"_id": 0, "id": 1, "log": 1, "regex": 1, "timestamp": 1},
                 sort=[("timestamp", 1)],  # Ascending order (oldest first)
                 limit=1
@@ -296,15 +296,15 @@ class SmartLPService(CRUDService):
             return None
 
     def get_unmatched_entries_count(self) -> int:
-        """Get total count of unmatched entries.
+        """Get total count of unmatched or partially matched entries.
         
         Returns:
-            Number of unmatched entries in database
+            Number of unmatched/partially matched entries in database
         """
         try:
             count = db_connection.count_documents(
                 self.collection_name,
-                {"status": { "$in": ['unmatched', 'partially matched']}}
+                {"status": {"$in": ["Unmatched", "Partially Matched"]}}
             )
             return count
         except Exception as e:

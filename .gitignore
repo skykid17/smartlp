@@ -11,3 +11,4 @@ tools/
 smartlp_dumpdocker/
 smartlp.archive*
 models/
+.github/

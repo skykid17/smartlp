@@ -220,10 +220,11 @@ class RegexEngineService:
         logger.info("Generating regex (v1)...")
 
         system_prompt = settings_service.get_prompts_settings("generate_regex")
-
+        active_siem = settings_service.get_active_siem()
         result = rag_service.query_rag(
             user_prompt=log, 
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            filter_category=f"{active_siem}_fields"
         )
 
         if not result["success"]:
@@ -251,12 +252,12 @@ class RegexEngineService:
         logger.info("Generating regex (v2)...")
 
         system_prompt = settings_service.get_prompts_settings("generate_regex")
-
+        active_siem = settings_service.get_active_siem()
         remaining = log
         final_regex = ""
         total_latency = 0.0
         failure_count = 0
-
+        
         for i in range(fix_count):
             remaining_stripped = remaining.strip()
             if not remaining_stripped:
@@ -266,7 +267,8 @@ class RegexEngineService:
             logger.info("Generating regex round %s...", i + 1)
             result = rag_service.query_rag(
                 user_prompt=remaining, 
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
+                filter_category=f"{active_siem}_fields"
             )
             total_latency += result.get("latency", 0)
 

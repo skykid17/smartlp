@@ -21,12 +21,20 @@ class Playground {
         this.bindEvents();
         this.restoreFromSession();
         this.loadEntryStatistics();
+        this.setupSocketListeners();
 
         window.addEventListener('sectionChanged', (e) => {
             if (e.detail.section === 'playground') {
                 this.loadFromSession();
             }
         });
+    }
+
+    setupSocketListeners() {
+        if (typeof io !== 'undefined') {
+            this.socket = io();
+            this.socket.on('stats_update', () => this.loadEntryStatistics());
+        }
     }
 
     cacheDom() {

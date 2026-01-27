@@ -21,6 +21,15 @@ from services.llm import llm_service
 from services.rag import rag_service
 from services.regex_engine import regex_engine_service
 from database.connection import db_connection
+from core.socketio_manager import socketio_manager
+
+
+def emit_stats_update():
+    """Emit stats update event to connected clients."""
+    try:
+        socketio_manager.emit('stats_update', {'updated': True})
+    except Exception:
+        pass  # Non-critical, don't break request handling
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +104,7 @@ def register_smartlp_routes(app: Flask) -> None:
             
             success = smartlp_service.update(entry_id, to_update)
             if success:
+                emit_stats_update()
                 return jsonify({"message": f"Entry {entry_id} updated in database"})
             else:
                 return jsonify({"message": f"No entry {entry_id} with such id found"}), 404
@@ -119,6 +129,8 @@ def register_smartlp_routes(app: Flask) -> None:
                 except Exception:
                     continue
 
+            if deleted > 0:
+                emit_stats_update()
             return jsonify({
                 "success": True,
                 "deleted": deleted,

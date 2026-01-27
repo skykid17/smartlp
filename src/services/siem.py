@@ -427,6 +427,7 @@ class SplunkService(BaseSIEMService):
         """
         import subprocess
         import os
+        from pathlib import Path
         
         try:
             self.logger.info("Starting Ansible-based Splunk configuration deployment for %s entries", len(entry_ids))
@@ -439,9 +440,12 @@ class SplunkService(BaseSIEMService):
             entry_ids_json = ','.join(f'"{eid}"' for eid in entry_ids)
             entry_ids_list = f'[{entry_ids_json}]'
             
-            # Path to Ansible playbook
-            playbook_path = "/home/runner/work/smartlp/smartlp/ansible/deploy_smartlp.yml"
-            inventory_path = "/home/runner/work/smartlp/smartlp/ansible/inventories/default.yml"
+            # Dynamically determine project root (siem.py is in src/services/)
+            project_root = Path(__file__).resolve().parent.parent.parent
+            
+            # Path to Ansible playbook and inventory
+            playbook_path = str(project_root / "ansible" / "deploy_smartlp.yml")
+            inventory_path = str(project_root / "ansible" / "inventories" / "emax_test.yml")
             
             # Check if playbook exists
             if not os.path.exists(playbook_path):
