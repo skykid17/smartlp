@@ -52,14 +52,21 @@
     <!-- Mobile Overlay -->
     <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden"></div>
 
+    <!-- Mobile Hamburger Button (Always Visible on Mobile) -->
+    <button id="mobileMenuBtn"
+        class="fixed top-4 left-4 z-40 lg:hidden bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
+
     <!-- Left Sidebar Navigation -->
     <aside id="sidebar"
         class="fixed top-0 left-0 h-full bg-sidebar dark:bg-sidebar-dark w-64 transform transition-transform duration-200 ease-in-out z-30 shadow-lg lg:translate-x-0 -translate-x-full">
         <!-- Sidebar Header -->
         <div class="flex items-center justify-between p-4 border-b border-gray-700">
             <div class="flex items-center space-x-3">
-                <img src="{{ url_for('static', filename='logos/logo_white.png') }}" alt="SmartLP Logo"
-                    class="h-8 w-8 transition-all duration-200" id="sidebarLogo">
+                <button id="sidebarToggle" class="hidden lg:block text-gray-300 hover:text-white p-1">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
                 <h1 class="text-white font-semibold text-lg transition-opacity duration-200" id="sidebarTitle">SmartLP
                 </h1>
             </div>
@@ -107,17 +114,7 @@
         </div>
     </aside>
 
-    <!-- Hamburger Menu Button (Mobile) -->
-    <button id="mobileMenuBtn"
-        class="fixed top-4 left-4 z-40 lg:hidden bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-        <i class="fas fa-bars text-xl"></i>
-    </button>
 
-    <!-- Sidebar Toggle Button (Desktop) -->
-    <button id="sidebarToggle"
-        class="hidden lg:block fixed top-4 left-4 z-40 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-        <i class="fas fa-bars text-xl"></i>
-    </button>
 
     <!-- Logger Panel (Left Slide-over) -->
     <div id="loggerPanel"
@@ -403,11 +400,13 @@
             const mobileOverlay = document.getElementById('mobileOverlay');
             const mainContent = document.getElementById('mainContent');
 
-            // Desktop toggle
+            // Desktop toggle (collapses sidebar)
             sidebarToggle?.addEventListener('click', toggleSidebarCollapse);
 
-            // Mobile menu
+            // Mobile menu button (opens sidebar)
             mobileMenuBtn?.addEventListener('click', openMobileMenu);
+
+            // Mobile menu close
             sidebarClose?.addEventListener('click', closeMobileMenu);
             mobileOverlay?.addEventListener('click', closeMobileMenu);
         }
