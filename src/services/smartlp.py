@@ -100,8 +100,8 @@ class SmartLPService(CRUDService):
             self.logger.info("[INGESTION] Starting ingestion cycle for SIEM: %s", active_siem)
             
             # Get SIEM-specific search configuration
-            siem_settings = settings_service.get_siem_settings()
-            siem_settings = next((s for s in siem_settings if s['id'] == active_siem), None)
+            all_siem_settings = settings_service.get_siem_settings()
+            siem_settings = next((s for s in all_siem_settings if s['id'] == active_siem), None)
             
             if not siem_settings:
                 self.logger.error("[INGESTION] No configuration found for SIEM: %s", active_siem)
@@ -135,36 +135,34 @@ class SmartLPService(CRUDService):
                         continue
                     
                     # Determine log type and source type
-                    results = self.identify_log_type(log)
-                    log_type = results["log_type"]
-                    source_type = results["source_type"]
-                    description = results["description"]
+                    type_results = self.identify_log_type(log)
+                    log_type = type_results["log_type"]
+                    source_type = type_results["source_type"]
+                    description = type_results["description"]
 
                     # Identify package for log
                     package = self.resolve_native_package(log, source_type, active_siem)
-                    regex = None
-
                     if not package:
                         package = self.identify_package(log, log_type, source_type, active_siem)
+                    
+                    # Generate regex if no package found
+                    regex = None
                     if not package['package_name'] and not package['package_url']:
-                        # Generate regex for the log
-                        results = self.generate_regex(log, fix_count)
-                        regex = results['regex']
-                        
-                        # Run regex match to get status
+                        regex_results = self.generate_regex(log, fix_count)
+                        regex = regex_results['regex']
                         match_result = regex_engine_service.run_regex_match(log, regex)
                         status = match_result['status']
                     else:
                         status = "Pending"
                     
-                    results = self.identify_detection_rules(description, active_siem)
-                    if not results.get("success"):
+                    detection_results = self.identify_detection_rules(description, active_siem)
+                    if not detection_results.get("success"):
                         self.logger.error(
                             "[INGESTION] Detection rule identification failed: %s",
-                            results.get("error"),
+                            detection_results.get("error"),
                         )
 
-                    detection_rules = results.get('detection_rules', [])
+                    detection_rules = detection_results.get('detection_rules', [])
                     
                     # Create log entry in database
                     entry_data = {
@@ -602,15 +600,12 @@ class SmartLPService(CRUDService):
             # Extract raw log messages from results
             logs = []
             for result in results:
-                # Try to extract the raw log message
-                raw_log = (
-                    result.get('_source', {}).get('message', '') or
-                    result.get('message', '') or
-                    result.get('_raw', '') or
-                    str(result)
-                )
-                if raw_log and raw_log.strip():
-                    logs.append(raw_log.strip())
+                raw_log = (result.get('_source', {}).get('message') or 
+                           result.get('message') or 
+                           result.get('_raw') or 
+                           str(result)).strip()
+                if raw_log:
+                    logs.append(raw_log)
             
             self.logger.info("[INGESTION] Retrieved %s logs from %s", len(logs), siem_type)
             return logs, None
@@ -641,10 +636,7 @@ class SmartLPService(CRUDService):
             semantic_log_emb = rag_service.generate_embeddings([masked_log])[0]
 
             for entry in recent_entries:
-                if isinstance(entry, tuple):
-                    entry = entry[1]  # or whatever contains the actual dict
-
-                existing_log = entry.get("log", "")
+                existing_log = entry.get("log", "") if isinstance(entry, dict) else entry[1].get("log", "")
                 masked_existing = self.mask_log_entry(existing_log)
 
                 # ---- Text similarity ----
@@ -766,38 +758,30 @@ class SmartLPService(CRUDService):
         """Get package URL based on SIEM type."""
         if siem == "elastic":
             return f"https://www.elastic.co/docs/reference/integrations/{package_name}"
-        elif siem == "splunk":
-            package_number = {
-                "TA-Windows": "742",
-                "TA-VMWare": "3215",
-            }.get(package_name, "unknown")
+        if siem == "splunk":
+            package_map = {"TA-Windows": "742", "TA-VMWare": "3215"}
+            package_number = package_map.get(package_name, "unknown")
             return f"https://splunkbase.splunk.com/app/{package_number}"
         return ""
     
     def resolve_native_package(self, log: str, source_type: str, active_siem: str) -> Optional[Dict[str, Any]]:
         siem = active_siem.lower()
         source = source_type.lower()
+        pkg_name = None
 
         if source == "windows":
             channel_match = re.search(r"<Channel>(.*?)</Channel>", log, re.IGNORECASE)
             channel = channel_match.group(1).lower() if channel_match else ""
-            standard_channels = {"application", "security", "system"}
-
+            
             if siem == "elastic":
-                pkg_name = "windows" if channel in standard_channels else "winlog"
+                pkg_name = "windows" if channel in {"application", "security", "system"} else "winlog"
             elif siem == "splunk":
                 pkg_name = "TA-Windows"
-            else:
-                return None
 
         elif source in {"vmware", "vsphere"}:
-            if siem == "elastic":
-                pkg_name = "vsphere"
-            elif siem == "splunk":
-                pkg_name = "TA-VMWare"
-            else:
-                return None
-        else:
+            pkg_name = "vsphere" if siem == "elastic" else "TA-VMWare" if siem == "splunk" else None
+
+        if not pkg_name:
             return None
 
         return {

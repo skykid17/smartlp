@@ -110,34 +110,20 @@ class RegexEngineService:
             try:
                 val = m.group(idx)
                 if val is not None:
-                    result["groups"].append({
-                        "name": name,
-                        "value": val,
-                        "start": m.start(idx),
-                        "end": m.end(idx)
-                    })
+                    result["groups"].append({"name": name, "value": val, "start": m.start(idx), "end": m.end(idx)})
             except Exception:
                 continue
 
         # Numbered groups
         named_indices = set(groupindex.values())
-        total = m.lastindex or 0
-
-        for i in range(1, total + 1):
-            if i in named_indices:
-                continue
-            try:
-                val = m.group(i)
-                if val is None:
+        for i in range(1, (m.lastindex or 0) + 1):
+            if i not in named_indices:
+                try:
+                    val = m.group(i)
+                    if val is not None:
+                        result["groups"].append({"name": f"group{i}", "value": val, "start": m.start(i), "end": m.end(i)})
+                except Exception:
                     continue
-                result["groups"].append({
-                    "name": f"group{i}",
-                    "value": val,
-                    "start": m.start(i),
-                    "end": m.end(i)
-                })
-            except Exception:
-                continue
 
         return result
 
@@ -173,38 +159,27 @@ class RegexEngineService:
         for cut in range(len(regex), 0, -1):
             candidate = regex[:cut]
 
-            # Try compiling
             try:
                 pcre2.compile(candidate)
             except Exception:
-                continue  # skip invalid patterns
+                continue
 
-            # Run unified matcher
             match = self.run_regex_match(log, candidate)
-
-            # Skip invalid or fully invalid
-            if match["status"] == "Unmatched":
-                continue
-            
-            # A partial or full match exists
-            full = match["full"]
-            if not full:
+            if match["status"] == "Unmatched" or not match["full"]:
                 continue
 
-            match_text = full["value"]
+            match_text = match["full"]["value"]
             match_len = len(match_text)
 
-            # Keep the candidate that yields the longest match
             if match_len > best["length"]:
                 best = {
                     "regex": candidate,
                     "matched_text": match_text,
-                    "start": full["start"],
-                    "end": full["end"],
+                    "start": match["full"]["start"],
+                    "end": match["full"]["end"],
                     "length": match_len
                 }
 
-            # If it's a full match of the entire log, stop early
             if match_text == log:
                 break
         
@@ -235,17 +210,11 @@ class RegexEngineService:
                 "latency": result["latency"]
             }
 
-        # Clean + normalize
         regex = self._normalize_regex_output(result["content"])
         if not regex.endswith("$"):
             regex += "$"
 
-        return {
-            "success": True,
-            "regex": regex,
-            "error": None,
-            "latency": result["latency"]
-        }
+        return {"success": True, "regex": regex, "error": None, "latency": result["latency"]}
     
     
     def generate_regex_v2(self, log: str, fix_count: int) -> Dict[str, Any]:

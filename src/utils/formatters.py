@@ -108,20 +108,15 @@ def clean_response(response: str) -> str:
     Returns:
         Cleaned response text
     """
-    # Remove code block markers
-    response = response.replace("```", "")
+    response = response.replace("```", "").replace("\n", "")
     
-    # Remove regex prefix if present
-    if response.startswith("regex"):
-        response = response[len("regex"):].strip()
+    # Remove common prefixes
+    for prefix in ("regex", "json"):
+        if response.startswith(prefix):
+            response = response[len(prefix):].strip()
+            break
     
-    if response.startswith("json"):
-        response = response[len("json"):].strip()
-    
-    if response.startswith("`"):
-        response = response[1:-1].strip()
-
-    # Remove newlines
-    response = response.replace("\n", "")
+    if response.startswith("`") and response.endswith("`"):
+        response = response[1:-1]
     
     return response.strip()

@@ -75,44 +75,40 @@
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Elasticsearch Host</label>
                 <input id="elasticHost" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  placeholder="https://localhost:9200" value="https://192.168.31.62:9200" />
+                  placeholder="https://localhost:9200" />
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">API Key</label>
                 <input id="elasticApiKey" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  placeholder="Base64 API key" value="dnBVVzU1WUI2MFhUUENVblpCSzA6OVdHN2JGamVUSC1SWHEtd0hpQmhhUQ=="
-                  required />
+                  placeholder="Base64 API key" required />
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm text-gray-700 mb-1">Kibana URL</label>
                 <input id="elasticKibanaUrl" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  placeholder="https://localhost:5601" value="https://192.168.31.62:5601" required />
+                  placeholder="https://localhost:5601" required />
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">User</label>
-                <input id="elasticUser" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  value="george" />
+                <input id="elasticUser" class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Password</label>
-                <input id="elasticPassword" type="password" value="P@55w0rd"
+                <input id="elasticPassword" type="password"
                   class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div>
                 <label class="block text-sm text-gray-700 mb-1">Search Index</label>
-                <input id="elasticSearchIndex" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  value="logs-unparsed*" />
+                <input id="elasticSearchIndex" class="w-full bg-white border border-gray-300 rounded px-3 py-2" />
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm text-gray-700 mb-1">Search Query</label>
                 <input id="elasticSearchQuery" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  placeholder='{"query": {"match_all": {}}'
-                  value='{ "size": 1,  "sort": [   {"@timestamp": {"order": "desc"}}  ],"query": {"match_all": {}  } }' />
+                  placeholder='{"query": {"match_all": {}}' />
               </div>
               <div class="md:col-span-2">
                 <label class="block text-sm text-gray-700 mb-1">Cert Path (Optional)</label>
                 <input id="elasticCertPath" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                  placeholder="/path/to/ca.crt" value="./certs/elastic_chain_cert.cer" />
+                  placeholder="/path/to/ca.crt" />
               </div>
             </div>
           </div>
@@ -174,8 +170,8 @@
             <div class="md:col-span-2 mb-3">
               <label class="block text-sm text-gray-700 mb-1">Provider</label>
               <select id="llmProvider" class="w-full bg-white border border-gray-300 rounded px-3 py-2">
-                <option value="vllm">vLLM</option>
                 <option value="">Select…</option>
+                <option value="vllm">vLLM</option>
                 <option value="ollama">Ollama</option>
                 <option value="lmstudio">LM Studio</option>
                 <option value="custom">OpenAI</option>
@@ -184,12 +180,12 @@
             <div class="md:col-span-2 mb-3">
               <label class="block text-sm text-gray-700 mb-1">Endpoint URL</label>
               <input id="llmEndpointUrl" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                placeholder="http://localhost:8000/v1" value="http://192.168.125.31:8000/v1" />
+                placeholder="http://localhost:8000/v1" />
             </div>
             <div class="mb-3">
               <label class="block text-sm text-gray-700 mb-1">Model Name</label>
               <input id="llmModelName" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
-                value="qwen25-coder-32b-awq" placeholder="Qwen3-8B" />
+                placeholder="Qwen3-8B" />
             </div>
             <div class="mb-3">
               <label class="block text-sm text-gray-700 mb-1">API Key (optional)</label>

@@ -49,28 +49,19 @@ def generate_pagination_links(current_page: int, total_pages: int,
 
     # Calculate the page numbers to display
     pages_to_show = set()
-
-    # Add boundary pages (start)
     pages_to_show.update(range(1, min(boundaries + 1, total_pages + 1)))
-
-    # Add pages around the current page
-    start_around = max(1, current_page - around)
-    end_around = min(total_pages, current_page + around)
-    pages_to_show.update(range(start_around, end_around + 1))
-
-    # Add boundary pages (end)
+    pages_to_show.update(range(max(1, current_page - around), min(total_pages, current_page + around) + 1))
     pages_to_show.update(range(max(1, total_pages - boundaries + 1), total_pages + 1))
 
     # Sort the page numbers and add ellipses
     last_page = 0
-    sorted_pages = sorted(list(pages_to_show))
+    sorted_pages = sorted(pages_to_show)
 
     for page_num in sorted_pages:
-        if page_num > 0:  # Ensure valid page number
-            # Add ellipsis if there's a gap
-            if page_num > last_page + 1:
-                links.append(None)  # None represents an ellipsis
-            links.append(page_num)
-            last_page = page_num
+        # Add ellipsis if there's a gap
+        if page_num > last_page + 1:
+            links.append(None)
+        links.append(page_num)
+        last_page = page_num
 
     return links

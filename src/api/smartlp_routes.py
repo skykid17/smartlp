@@ -60,29 +60,22 @@ def register_smartlp_routes(app: Flask) -> None:
     @app.route("/api/smartlp/entries", methods=["GET"])
     def get_smartlp_entries():
         """Alias for frontend dashboard requests."""
-        search_id = request.args.get('search_id', '', type=str)
-        search_log = request.args.get('search_log', '', type=str)
-        search_regex = request.args.get('search_regex', '', type=str)
-        filter_status = request.args.get('filter_status', '', type=str)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 15, type=int)
 
         # Build search filters
-        search_filters = {}
-        if search_id:
-            search_filters['search_id'] = search_id
-        if search_log:
-            search_filters['search_log'] = search_log
-        if search_regex:
-            search_filters['search_regex'] = search_regex
-        if filter_status:
-            search_filters['filter_status'] = filter_status
+        search_filters = {k: v for k, v in {
+            'search_id': request.args.get('search_id', '', type=str),
+            'search_log': request.args.get('search_log', '', type=str),
+            'search_regex': request.args.get('search_regex', '', type=str),
+            'filter_status': request.args.get('filter_status', '', type=str)
+        }.items() if v}
 
         # Get entries from the database
         paginated_results, total_entries = smartlp_service.get_entries(
             page=page, 
             per_page=per_page, 
-            search_filters=search_filters if search_filters else None
+            search_filters=search_filters or None
         )
         return jsonify({"entries": paginated_results, "total": total_entries}), 200
     
@@ -92,12 +85,9 @@ def register_smartlp_routes(app: Flask) -> None:
         try:
             to_update = request.json.copy()
 
-            # Check if log & regex is being updated - recalculate status
-            log = request.json.get("log")
-            regex = request.json.get("regex")
-            if log and regex:
-                status = "Matched" if pcre2.fullmatch(regex, log) else "Unmatched"
-                to_update["status"] = status
+            # Recalculate status if log & regex are being updated
+            if request.json.get("log") and request.json.get("regex"):
+                to_update["status"] = "Matched" if pcre2.fullmatch(request.json["regex"], request.json["log"]) else "Unmatched"
                 
             # Update timestamp
             to_update["last_modified"] = datetime.utcnow().isoformat()
@@ -121,13 +111,7 @@ def register_smartlp_routes(app: Flask) -> None:
             if not ids:
                 return jsonify({"success": False, "message": "No entry IDs provided"}), 400
 
-            deleted = 0
-            for entry_id in ids:
-                try:
-                    if smartlp_service.delete(entry_id):
-                        deleted += 1
-                except Exception:
-                    continue
+            deleted = sum(1 for entry_id in ids if smartlp_service.delete(entry_id))
 
             if deleted > 0:
                 emit_stats_update()
