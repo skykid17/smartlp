@@ -5,6 +5,8 @@ node_modules
 .git
 *.pyc
 models/
+demo/
 
 # already added via compose
 smartlp.archive
+?
