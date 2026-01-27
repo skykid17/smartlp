@@ -184,6 +184,79 @@ The ingestion loop runs in a daemon thread started on the first HTTP request aft
 - RAG uses MongoDB vector search with a fallback local retriever. Index names are `vector_index` and `text_index`.
 - LLM integration uses LangChain’s `ChatOpenAI` client with OpenAI-compatible endpoints.
 
+## Regex Generation Algorithms
+
+SmartLP implements multiple regex generation strategies for parsing log entries:
+
+### Algorithm v1: Single-Pass Generation
+
+```
+1. Initialize:
+   - Request regex from LLM for the entire log entry
+   - Normalize and clean the response
+
+2. Validation:
+   - Compile regex using PCRE2
+   - Test against input log
+   - Return regex with end-of-line anchor ($)
+
+3. Return:
+   - Success/failure status
+   - Generated regex pattern
+   - Latency metrics
+```
+
+### Algorithm v2: Iterative Progressive Generation
+
+```
+1. Initialize:
+   - remaining_log ← log
+   - final_regex ← ""
+   - failure_count ← 0
+   - total_latency ← 0
+
+2. Loop for fix_count iterations:
+   a. If remaining_log is empty:
+      - Break loop
+
+   b. Request regex from LLM for remaining_log
+      - Accumulate latency
+      - If request fails, return error
+
+   c. Normalize and clean LLM response
+      - Add end-anchor ($) if missing
+
+   d. Reduce regex to longest matching pattern:
+      - Try progressively shorter regex substrings
+      - Find candidate that yields longest partial match
+      - Keep best matching substring
+
+   e. Match reduced regex against remaining_log:
+      - Extract matched substring and end position
+
+   f. Handle match failure:
+      - If unmatched or no progress:
+        * Increment failure_count
+        * If failure_count >= 3:
+          · Append wildcard pattern (\\s?.*)
+          · Break loop
+        * Continue to next iteration without advancing
+
+   g. On successful match:
+      - Reset failure_count to 0
+      - Append reduced regex to final_regex with optional whitespace (\\s?)
+      - Advance remaining_log past matched portion
+
+3. Post-processing:
+   - Resolve duplicate named capture groups
+   - Add incremental suffixes (_1, _2, etc.) to duplicates
+
+4. Return:
+   - Success status
+   - Final assembled regex
+   - Total latency
+```
+
 ## Development notes
 
 - Static assets are served from `static/` and templates from `templates/`.
