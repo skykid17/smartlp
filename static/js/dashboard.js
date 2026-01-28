@@ -35,7 +35,6 @@ class Dashboard {
             clearSearchButton: () => this.clearSearch(),
             refreshButton: () => this.searchData(),
             clearSelectionButton: () => this.clearSelection(),
-            openParserButton: () => this.openParser(),
             deleteEntriesButton: () => this.deleteEntries()
         };
         Object.entries(actions).forEach(([id, handler]) => {
@@ -58,7 +57,7 @@ class Dashboard {
         // Entry modal
         document.getElementById('entryModalClose')?.addEventListener('click', () => this.closeModal());
         document.getElementById('saveEntryChangesBtn')?.addEventListener('click', () => this.saveEntryChanges());
-        document.getElementById('openParserFromModal')?.addEventListener('click', () => this.openParserFromModal());
+        document.getElementById('openParserButton')?.addEventListener('click', () => this.openParserFromModal());
         document.getElementById('deleteEntryFromModal')?.addEventListener('click', (e) => this.deleteEntryFromModal());
         document.getElementById('deployConfigFromModal')?.addEventListener('click', (e) => {
             if (!this.currentEntry) {
@@ -277,7 +276,7 @@ class Dashboard {
     updateSelectionUI() {
         const hasSelection = this.selectedEntries.size > 0;
 
-        ['clearSelectionButton', 'openParserButton', 'deleteEntriesButton'].forEach(btnId => {
+        ['clearSelectionButton', 'deleteEntriesButton'].forEach(btnId => {
             const btn = document.getElementById(btnId);
             if (btn) btn.disabled = !hasSelection;
         });
