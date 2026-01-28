@@ -155,10 +155,15 @@ class MongoHybridRetriever:
         self.filter_category = filter_category
 
     def invoke(self, query: str) -> List[Document]:
+        # Handle empty or whitespace-only queries
+        if not query or not query.strip():
+            logger.warning("Empty query provided to retriever")
+            return []
+        
         query_vector = self.embedding_fn([query])[0]
         query_text = extract_keywords(query)
 
-        # --- Primary Path: Mongo RankFusion ---
+        # Primary Path: Mongo RankFusion
         try:
             vector_pipeline = [
                 {"$vectorSearch": {
@@ -174,34 +179,48 @@ class MongoHybridRetriever:
                 }}
             ]
 
-            text_pipeline = [
-                {"$search": {
-                    "index": self.text_index,
-                    "phrase": {"query": query_text, "path": "content"}
-                }},
-                {"$limit": self.keyword_candidates}
-            ]
+            # Only include text pipeline if there are keywords to search for
+            if query_text:
+                text_pipeline = [
+                    {"$search": {
+                        "index": self.text_index,
+                        "phrase": {"query": query_text, "path": "content"}
+                    }},
+                    {"$limit": self.keyword_candidates}
+                ]
 
-            pipeline = [
-                {"$rankFusion": {
-                    "input": {"pipelines": {
-                        "vectorPipeline": vector_pipeline,
-                        "fullTextPipeline": text_pipeline
+                pipeline = [
+                    {"$rankFusion": {
+                        "input": {"pipelines": {
+                            "vectorPipeline": vector_pipeline,
+                            "fullTextPipeline": text_pipeline
+                        }},
+                        "combination": {"weights": {
+                            "vectorPipeline": 0.5,
+                            "fullTextPipeline": 0.5
+                        }},
+                        "scoreDetails": True
                     }},
-                    "combination": {"weights": {
-                        "vectorPipeline": 0.5,
-                        "fullTextPipeline": 0.5
+                    {"$project": {
+                        "_id": 1,
+                        "content": 1,
+                        "metadata": 1,
+                        "scoreDetails": {"$meta": "scoreDetails"}
                     }},
-                    "scoreDetails": True
-                }},
-                {"$project": {
-                    "_id": 1,
-                    "content": 1,
-                    "metadata": 1,
-                    "scoreDetails": {"$meta": "scoreDetails"}
-                }},
-                {"$limit": self.top_k}
-            ]
+                    {"$limit": self.top_k}
+                ]
+            else:
+                # Fallback to vector-only search if no keywords extracted
+                logger.warning("No keywords extracted from query, using vector-only search")
+                pipeline = vector_pipeline + [
+                    {"$project": {
+                        "_id": 1,
+                        "content": 1,
+                        "metadata": 1,
+                        "score": {"$meta": "vectorSearchScore"}
+                    }},
+                    {"$limit": self.top_k}
+                ]
 
             fused = list(self.collection.aggregate(pipeline))
 
@@ -727,9 +746,9 @@ class RAG:
         endpoint_cfg = llm_settings["endpoint"]
 
         llm = ChatOpenAI(
-            model=model_override or model_cfg.get("model_name", "qwen25-coder-32b-awq"),
-            base_url=url_override or endpoint_cfg.get("url", "http://192.168.125.31:8000/v1"),
-            api_key=api_key_override or endpoint_cfg.get("api_key", "testing"),
+            model=model_override or model_cfg.get("model_name"),
+            base_url=url_override or endpoint_cfg.get("url"),
+            api_key=api_key_override or endpoint_cfg.get("api_key"),
             temperature=0
         )
 

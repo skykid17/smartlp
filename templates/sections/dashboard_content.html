@@ -12,7 +12,7 @@
         </div>
         <!-- Add Data Button -->
         <button id="addDataButton"
-            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center space-x-2">
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
             <i class="fas fa-plus mr-1"></i>
             <span>Add Data</span>
         </button>
@@ -214,9 +214,9 @@
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
             <!-- IDENTIFICATION -->
             <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+                <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                     Identification</h3>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ID</label>
                         <div
@@ -239,26 +239,14 @@
                             <code id="modalTimestamp" class="text-sm text-gray-900 dark:text-gray-100"></code>
                         </div>
                     </div>
-                    <div>
-                        <label for="modalSourceType"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source Type</label>
-                        <input type="text" id="modalSourceType"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                    </div>
-                    <div>
-                        <label for="modalIndex"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Index</label>
-                        <input type="text" id="modalIndex"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                    </div>
                 </div>
             </div>
 
             <!-- LOG CONTENT -->
             <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Log
+                <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Log
                     Content</h3>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Raw Log</label>
                         <div
@@ -272,7 +260,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Suggested
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Log
                             Type</label>
                         <div
                             class="relative bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
@@ -288,9 +276,21 @@
 
             <!-- PARSER CONFIGURATION -->
             <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Parser
+                <h3 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Parser
                     Configuration</h3>
-                <div class="space-y-3">
+                <div class="space-y-2">
+                    <div>
+                        <label for="modalSourceType"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Source Type</label>
+                        <input type="text" id="modalSourceType"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="modalIndex"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Index</label>
+                        <input type="text" id="modalIndex"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Regex
                             Pattern</label>
