@@ -493,3 +493,38 @@ def register_smartlp_routes(app: Flask) -> None:
                 )
 
         return jsonify(result)
+    
+    @app.route("/api/smartlp/ingest/manual", methods=["POST"])
+    def manual_ingest():
+        """Manual log ingestion endpoint."""
+        try:
+            data = request.json
+            logs = data.get('logs', [])
+            
+            if not logs or not isinstance(logs, list):
+                return jsonify({"error": "Invalid input: 'logs' must be a non-empty array"}), 400
+            
+            # Filter out empty logs
+            logs = [log.strip() for log in logs if log.strip()]
+            
+            if not logs:
+                return jsonify({"error": "No valid log entries provided"}), 400
+            
+            # Trigger manual ingestion in background thread
+            import threading
+            thread = threading.Thread(
+                target=smartlp_service.perform_manual_ingestion,
+                args=(logs,),
+                daemon=True
+            )
+            thread.start()
+            
+            logger.info(f"[MANUAL_INGEST] Started ingestion for {len(logs)} log(s)")
+            return jsonify({
+                "message": f"Manual ingestion started for {len(logs)} log(s)",
+                "count": len(logs)
+            }), 202
+            
+        except Exception as e:
+            logger.exception("[MANUAL_INGEST] Error processing manual ingestion")
+            return jsonify({"error": str(e)}), 500

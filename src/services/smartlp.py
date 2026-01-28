@@ -1006,6 +1006,220 @@ class SmartLPService(CRUDService):
         active_llm_endpoint = general_settings.get("active_llm_endpoint")
         enhanced_text = f"The application currently uses SIEM: {active_siem}, LLM: {active_llm} at endpoint {active_llm_endpoint}. Based on this context, answer the following prompt accordingly."
         return enhanced_text + "\n" + prompt
+    
+    def perform_manual_ingestion(self, logs: List[str]) -> None:
+        """Perform manual ingestion of logs with real-time progress updates.
+        
+        Args:
+            logs: List of raw log strings to ingest
+        """
+        from core.socketio_manager import socketio_manager
+        
+        total_logs = len(logs)
+        self.logger.info(f"[MANUAL_INGEST] Starting manual ingestion for {total_logs} log(s)")
+        
+        # Get settings for ingestion configuration
+        settings = settings_service.get_global_settings()
+        active_siem = settings.get('active_siem', 'elastic')
+        similarity_check = settings.get('similarity_check', False)
+        similarity_threshold = float(settings.get('similarity_threshold', 0.8))
+        fix_count = int(settings.get('fix_count', 3))
+        
+        # Process each log sequentially
+        for idx, log in enumerate(logs, start=1):
+            try:
+                self.logger.info(f"[MANUAL_INGEST] Processing log {idx}/{total_logs}")
+                
+                # Stage 1: Deduplication (Similarity Check)
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'deduplication',
+                    'status': 'in_progress',
+                    'message': f'Checking log {idx}/{total_logs}',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                # Generate embedding
+                embedding = rag_service.generate_embeddings(log)
+                
+                # Check for similarity if enabled
+                if similarity_check and self.check_log_similarity(log, similarity_threshold):
+                    self.logger.info(f"[MANUAL_INGEST] Skipped similar log {idx}")
+                    socketio_manager.emit('ingest_progress', {
+                        'stage': 'deduplication',
+                        'status': 'completed',
+                        'message': f'Duplicate detected, skipped ({idx}/{total_logs})',
+                        'log_index': idx,
+                        'total_logs': total_logs
+                    })
+                    continue
+                
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'deduplication',
+                    'status': 'completed',
+                    'message': f'No duplicate ({idx}/{total_logs})',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                # Stage 2: Log Classification
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'classification',
+                    'status': 'in_progress',
+                    'message': f'Classifying log {idx}/{total_logs}',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                type_results = self.identify_log_type(log)
+                log_type = type_results["log_type"]
+                source_type = type_results["source_type"]
+                description = type_results["description"]
+                
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'classification',
+                    'status': 'completed',
+                    'message': f'Type: {log_type} ({idx}/{total_logs})',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                # Stage 3: Parser Resolution
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'parser_resolution',
+                    'status': 'in_progress',
+                    'message': f'Resolving parser {idx}/{total_logs}',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                package = self.resolve_native_package(log, source_type, active_siem)
+                if not package:
+                    package = self.identify_package(log, log_type, source_type, active_siem)
+                
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'parser_resolution',
+                    'status': 'completed',
+                    'message': f'Parser: {package.get("package_name") or "None"} ({idx}/{total_logs})',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                # Stage 4: Regex Generation (if needed)
+                regex = None
+                status = "Pending"
+                
+                if not package['package_name'] and not package['package_url']:
+                    socketio_manager.emit('ingest_progress', {
+                        'stage': 'regex_generation',
+                        'status': 'in_progress',
+                        'message': f'Generating regex {idx}/{total_logs}',
+                        'log_index': idx,
+                        'total_logs': total_logs
+                    })
+                    
+                    regex_results = self.generate_regex(log, fix_count)
+                    regex = regex_results['regex']
+                    match_result = regex_engine_service.run_regex_match(log, regex)
+                    status = match_result['status']
+                    
+                    socketio_manager.emit('ingest_progress', {
+                        'stage': 'regex_generation',
+                        'status': 'completed',
+                        'message': f'Regex generated ({idx}/{total_logs})',
+                        'log_index': idx,
+                        'total_logs': total_logs
+                    })
+                else:
+                    socketio_manager.emit('ingest_progress', {
+                        'stage': 'regex_generation',
+                        'status': 'completed',
+                        'message': f'Skipped - using parser ({idx}/{total_logs})',
+                        'log_index': idx,
+                        'total_logs': total_logs
+                    })
+                
+                # Stage 5: Detection Rule Mapping
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'detection_mapping',
+                    'status': 'in_progress',
+                    'message': f'Mapping detection rules {idx}/{total_logs}',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                detection_results = self.identify_detection_rules(description, active_siem)
+                if not detection_results.get("success"):
+                    self.logger.error(
+                        f"[MANUAL_INGEST] Detection rule identification failed for log {idx}: {detection_results.get('error')}"
+                    )
+                
+                detection_rules = detection_results.get('detection_rules', [])
+                
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'detection_mapping',
+                    'status': 'completed',
+                    'message': f'Found {len(detection_rules)} rule(s) ({idx}/{total_logs})',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                # Stage 6: Save to MongoDB
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'saved',
+                    'status': 'in_progress',
+                    'message': f'Saving to database {idx}/{total_logs}',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                
+                entry_data = {
+                    'id': generate_alphanumeric_id(8),
+                    'log': log,
+                    'regex': regex,
+                    'status': status,
+                    'log_type': log_type,
+                    'source_type': source_type,
+                    'description': description,
+                    'timestamp': datetime.now().isoformat(),
+                    'package_name': package.get('package_name', None),
+                    'package_url': package.get('package_url', None),
+                    'detection_rules': detection_rules,
+                    'detection_status': (
+                        "recommended" if detection_rules else "none"
+                    ),
+                    'max_detection_confidence': (
+                        max([r["confidence"] for r in detection_rules])
+                        if detection_rules else 0
+                    ),
+                    'embedding': embedding
+                }
+                
+                entry_id = self.create(entry_data)
+                if entry_id:
+                    self.logger.info(f"[MANUAL_INGEST] Saved log {idx} with ID: {entry_id}")
+                    socketio_manager.emit('ingest_progress', {
+                        'stage': 'saved',
+                        'status': 'completed',
+                        'message': f'Saved successfully ({idx}/{total_logs})',
+                        'log_index': idx,
+                        'total_logs': total_logs
+                    })
+                else:
+                    raise Exception("Failed to create entry in database")
+                    
+            except Exception as e:
+                self.logger.exception(f"[MANUAL_INGEST] Failed to process log {idx}")
+                socketio_manager.emit('ingest_progress', {
+                    'stage': 'saved',
+                    'status': 'failed',
+                    'message': f'Error: {str(e)[:50]} ({idx}/{total_logs})',
+                    'log_index': idx,
+                    'total_logs': total_logs
+                })
+                continue
+        
+        self.logger.info(f"[MANUAL_INGEST] Manual ingestion completed for {total_logs} log(s)")
 
 
 # Create service instance

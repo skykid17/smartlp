@@ -16,6 +16,7 @@ class Dashboard {
         this.selectedDetectionRule = null;
         this.statusSocket = null;
         this.statusPollInterval = null;
+        this.ingestProgressState = {};
 
         this.init();
     }
@@ -92,6 +93,9 @@ class Dashboard {
 
         // Setup copy buttons
         this.setupCopyButtons();
+
+        // Setup manual ingestion modal
+        this.setupIngestModal();
 
         // Initial load
         this.searchData();
@@ -818,6 +822,158 @@ class Dashboard {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    setupIngestModal() {
+        const addDataBtn = document.getElementById('addDataButton');
+        const ingestModal = document.getElementById('ingestModal');
+        const ingestModalClose = document.getElementById('ingestModalClose');
+        const ingestCancelBtn = document.getElementById('ingestCancelBtn');
+        const ingestSubmitBtn = document.getElementById('ingestSubmitBtn');
+        const ingestTextarea = document.getElementById('ingestTextarea');
+
+        addDataBtn?.addEventListener('click', () => {
+            ingestModal?.classList.remove('hidden');
+            this.resetIngestProgress();
+        });
+
+        ingestModalClose?.addEventListener('click', () => {
+            ingestModal?.classList.add('hidden');
+        });
+
+        ingestCancelBtn?.addEventListener('click', () => {
+            ingestModal?.classList.add('hidden');
+        });
+
+        ingestSubmitBtn?.addEventListener('click', () => this.submitManualIngestion());
+
+        // Setup Socket.IO listener for ingestion progress
+        if (typeof io !== 'undefined') {
+            const socket = io();
+            socket.on('ingest_progress', (data) => {
+                this.updateIngestProgress(data);
+            });
+        }
+    }
+
+    resetIngestProgress() {
+        const progressContainer = document.getElementById('ingestProgressContainer');
+        progressContainer?.classList.add('hidden');
+
+        const steps = ['dedup', 'classify', 'parser', 'regex', 'detection', 'save'];
+        steps.forEach(step => {
+            const icon = document.getElementById(`step-${step}-icon`);
+            const status = document.getElementById(`step-${step}-status`);
+            icon?.classList.remove('fa-spinner', 'fa-spin', 'fa-check', 'fa-times', 'text-blue-500', 'text-green-500', 'text-red-500');
+            icon?.classList.add('fa-circle', 'text-gray-400');
+            if (status) status.textContent = 'Pending';
+        });
+
+        this.ingestProgressState = {};
+    }
+
+    async submitManualIngestion() {
+        const textarea = document.getElementById('ingestTextarea');
+        const submitBtn = document.getElementById('ingestSubmitBtn');
+        const progressContainer = document.getElementById('ingestProgressContainer');
+
+        const rawInput = textarea?.value?.trim();
+        if (!rawInput) {
+            window.showToast?.('Please enter at least one log entry', 'warning');
+            return;
+        }
+
+        const logs = rawInput.split('\n').filter(line => line.trim() !== '');
+        if (logs.length === 0) {
+            window.showToast?.('No valid log entries found', 'warning');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        progressContainer?.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/smartlp/ingest/manual', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logs })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                window.showToast?.(`Started ingestion of ${logs.length} log(s)`, 'success');
+            } else {
+                window.showToast?.(result.error || 'Ingestion failed', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i><span>Start Ingestion</span>';
+            }
+        } catch (error) {
+            console.error('Manual ingestion error:', error);
+            window.showToast?.('Failed to submit logs for ingestion', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-upload"></i><span>Start Ingestion</span>';
+        }
+    }
+
+    updateIngestProgress(data) {
+        const { stage, status, message, log_index, total_logs } = data;
+
+        const stageMap = {
+            'deduplication': 'dedup',
+            'classification': 'classify',
+            'parser_resolution': 'parser',
+            'regex_generation': 'regex',
+            'detection_mapping': 'detection',
+            'saved': 'save'
+        };
+
+        const stepId = stageMap[stage];
+        if (!stepId) return;
+
+        const icon = document.getElementById(`step-${stepId}-icon`);
+        const statusText = document.getElementById(`step-${stepId}-status`);
+
+        if (!icon || !statusText) return;
+
+        // Update icon based on status
+        icon.classList.remove('fa-circle', 'fa-spinner', 'fa-spin', 'fa-check', 'fa-times', 'text-gray-400', 'text-blue-500', 'text-green-500', 'text-red-500');
+
+        if (status === 'in_progress') {
+            icon.classList.add('fa-spinner', 'fa-spin', 'text-blue-500');
+            statusText.textContent = message || 'In Progress...';
+        } else if (status === 'completed') {
+            icon.classList.add('fa-check', 'text-green-500');
+            statusText.textContent = message || 'Completed';
+        } else if (status === 'failed') {
+            icon.classList.add('fa-times', 'text-red-500');
+            statusText.textContent = message || 'Failed';
+        }
+
+        // Store state for persistence
+        this.ingestProgressState[stepId] = { status, message };
+
+        // Check if all stages complete
+        if (stage === 'saved' && status === 'completed') {
+            setTimeout(() => {
+                const submitBtn = document.getElementById('ingestSubmitBtn');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i><span>Start Ingestion</span>';
+
+                window.showToast?.('Ingestion completed successfully', 'success');
+
+                // Refresh dashboard
+                this.searchData();
+
+                // Close modal after a delay
+                setTimeout(() => {
+                    document.getElementById('ingestModal')?.classList.add('hidden');
+                    document.getElementById('ingestTextarea').value = '';
+                    this.resetIngestProgress();
+                }, 2000);
+            }, 500);
+        }
     }
 }
 

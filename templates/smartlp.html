@@ -292,6 +292,111 @@
         </div>
     </div>
 
+    <!-- Manual Ingestion Modal -->
+    <div id="ingestModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <i class="fas fa-database text-green-500"></i>
+                    <span>Add Data Manually</span>
+                </h2>
+                <button id="ingestModalClose"
+                    class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4">
+                <!-- Input Section -->
+                <div class="mb-4">
+                    <label for="ingestTextarea" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Raw Log Entries (one per line)
+                    </label>
+                    <textarea id="ingestTextarea" rows="8"
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
+                        placeholder="Paste your raw log entries here. Each line will be processed as a separate log entry..."></textarea>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="ingestProgressContainer" class="hidden mt-6">
+                    <h3 class="text-md font-semibold text-gray-900 dark:text-white mb-3">Ingestion Progress</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-dedup-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Deduplication</p>
+                                <p id="step-dedup-status" class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-classify-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Log Classification</p>
+                                <p id="step-classify-status" class="text-xs text-gray-500 dark:text-gray-400">Pending
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-parser-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Parser Resolution</p>
+                                <p id="step-parser-status" class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-regex-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Generating Regex</p>
+                                <p id="step-regex-status" class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-detection-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Mapping Detection Rule</p>
+                                <p id="step-detection-status" class="text-xs text-gray-500 dark:text-gray-400">Pending
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <i id="step-save-icon" class="fas fa-circle text-xs text-gray-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Saved to MongoDB</p>
+                                <p id="step-save-status" class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700 p-4 flex justify-end space-x-2">
+                <button id="ingestCancelBtn"
+                    class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200">Cancel</button>
+                <button id="ingestSubmitBtn"
+                    class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 flex items-center space-x-2">
+                    <i class="fas fa-upload"></i>
+                    <span>Start Ingestion</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer id="mainFooter"
         class="lg:ml-64 bg-sidebar dark:bg-sidebar-dark text-white text-center py-4 transition-all duration-200 w-auto border-t border-gray-700">
