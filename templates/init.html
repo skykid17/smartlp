@@ -169,13 +169,8 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2 mb-3">
               <label class="block text-sm text-gray-700 mb-1">Provider</label>
-              <select id="llmProvider" class="w-full bg-white border border-gray-300 rounded px-3 py-2">
-                <option value="">Select…</option>
-                <option value="vllm">vLLM</option>
-                <option value="ollama">Ollama</option>
-                <option value="lmstudio">LM Studio</option>
-                <option value="custom">OpenAI</option>
-              </select>
+              <input id="llmProvider" class="w-full bg-white border border-gray-300 rounded px-3 py-2"
+                placeholder="e.g., vLLM, Ollama, OpenAI, LM Studio" />
             </div>
             <div class="md:col-span-2 mb-3">
               <label class="block text-sm text-gray-700 mb-1">Endpoint URL</label>

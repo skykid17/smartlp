@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 SIEM_ELASTIC = "elastic"
 SIEM_SPLUNK = "splunk"
 
-ALLOWED_LLM_PROVIDERS = {"vllm", "lmstudio", "ollama", "openai"}
-
 DEFAULT_TEST_PROMPT = "Hello! Reply with a short confirmation."
 
 def _required(data: Dict[str, Any], field: str) -> Optional[str]:
@@ -172,13 +170,9 @@ def register_init_routes(app: Flask) -> None:
         from services.llm import llm_service
         
         data = request.get_json() or {}
-        provider = (data.get("provider") or "").strip().lower()
         endpoint_url = (data.get("endpoint_url") or "").strip()
         api_key = (data.get("api_key") or "").strip()
         model_name = (data.get("model_name") or "").strip()
-
-        if provider not in ALLOWED_LLM_PROVIDERS:
-            return jsonify({"success": False, "error": "Invalid LLM provider"}), 400
 
         if not endpoint_url:
             return jsonify({"success": False, "error": "Missing required field: endpoint_url"}), 400
