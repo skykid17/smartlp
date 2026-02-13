@@ -209,6 +209,9 @@ def register_init_routes(app: Flask) -> None:
         api_key = (data.get("api_key") or "").strip()
         model_name = (data.get("model_name") or "").strip()
 
+        if not provider:
+            return jsonify({"success": False, "error": "Missing required field: provider"}), 400
+
         endpoint_id = f"{provider}"
         model_id = f"{provider}-{_slugify(model_name)}"
 
@@ -217,7 +220,7 @@ def register_init_routes(app: Flask) -> None:
             "llm_endpoints": {
                 endpoint_id: {
                     "id": endpoint_id,
-                    "name": provider.upper(),
+                    "name": provider,
                     "url": endpoint_url,
                     "api_key": api_key or "",
                 }
