@@ -1,12 +1,20 @@
-.venv
-tools/
-__pycache__
-node_modules
-.git
-*.pyc
-models/
-demo/
-.github/
+# Ignore everything by default
+*
 
-# already added via compose
-smartlp.archive
+# Docker files and configs
+!docker/
+
+# Build-only artefacts (not in git)
+!build-assets/
+
+# Python app
+!*.py
+!requirements.txt
+!src/
+!ansible/
+!certs/
+
+# Frontend assets
+!static/
+!templates/
+!tailwind.config.js

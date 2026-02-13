@@ -1,6 +1,7 @@
 services:
   mongod:
     image: mongodb/mongodb-community-server:latest
+    user: "0:0"
     container_name: mongod-community
     command: >-
       mongod --config /etc/mongod.conf --replSetMember=mongod.search-community:27017

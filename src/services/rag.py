@@ -654,7 +654,7 @@ class RAG:
 
         return {
             "_id": content_hash,
-            "chunk_id": content_hash,
+            "id": content_hash,
             "content": content,
             "metadata": metadata,
             "embedding": embedding,
@@ -748,7 +748,7 @@ class RAG:
         llm = ChatOpenAI(
             model=model_override or model_cfg.get("model_name"),
             base_url=url_override or endpoint_cfg.get("url"),
-            api_key=api_key_override or endpoint_cfg.get("api_key"),
+            api_key=api_key_override or endpoint_cfg.get("api_key") or "dummy",
             temperature=0
         )
 

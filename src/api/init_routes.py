@@ -270,9 +270,74 @@ def register_init_routes(app: Flask) -> None:
         if not llm_model:
             return jsonify({"success": False, "error": "LLM settings not saved"}), 400
 
+        # Re-test SIEM connection before finalizing initialization
+        try:
+            from services.siem import splunk_service, elasticsearch_service
+
+            if active_siem == "splunk":
+                siem_ok, siem_msg, _ = splunk_service.test_connection()
+            elif active_siem == "elastic":
+                siem_ok, siem_msg, _ = elasticsearch_service.test_connection()
+            else:
+                siem_ok, siem_msg = False, "Unknown SIEM type"
+
+            if not siem_ok:
+                return jsonify({
+                    "success": False,
+                    "error": f"SIEM connection test failed: {siem_msg}",
+                    "category": "siem"
+                }), 400
+        except Exception as e:
+            logger.exception("Error testing SIEM connection during initialization")
+            return jsonify({
+                "success": False,
+                "error": f"SIEM connection test error: {str(e)}",
+                "category": "siem"
+            }), 500
+
+        # Re-test LLM connection before finalizing initialization
+        try:
+            from services.llm import llm_service
+
+            endpoint_id = llm_model.get("endpoint_id")
+            endpoint_doc = settings_service.get_llm_endpoints(endpoint_id)
+
+            if endpoint_doc:
+                test_prompt = settings_service.get_prompts_settings("test") or "Hello! Reply with a short confirmation."
+                llm_ok, llm_msg, _ = llm_service.test_connection(
+                    endpoint_doc.get("url"),
+                    llm_model.get("model_name"),
+                    endpoint_doc.get("api_key", ""),
+                    test_prompt
+                )
+                if not llm_ok:
+                    return jsonify({
+                        "success": False,
+                        "error": f"LLM connection test failed: {llm_msg}",
+                        "category": "llm"
+                    }), 400
+        except Exception as e:
+            logger.exception("Error testing LLM connection during initialization")
+            return jsonify({
+                "success": False,
+                "error": f"LLM connection test error: {str(e)}",
+                "category": "llm"
+            }), 500
+
         # Mark system as initialized
         settings_service.update_settings({
             "initialized": True
         })
+
+        # Dynamically register SmartLP routes now that initialization is complete
+        try:
+            from flask import current_app
+            from core.app_factory import ApplicationFactory
+
+            ApplicationFactory._register_smartlp_routes_safe(current_app)
+            logger.info("SmartLP routes registered after initialization")
+        except Exception as e:
+            logger.exception("Failed to register SmartLP routes after init")
+            # Don't fail the request - routes will be registered on next request via hook
 
         return jsonify({"success": True}), 200

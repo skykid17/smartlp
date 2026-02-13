@@ -61,9 +61,17 @@ snapshot_download(
 print("Embedding model downloaded to", TARGET_DIR)
 EOF
 
-# Copy application code
-COPY docker/smartlp.archive /smartlp.archive
-COPY . .
+# Runtime artefacts (explicit, single-copy)
+COPY build-assets/smartlp.archive /smartlp.archive
+
+# Application code 
+COPY *.py .
+COPY src/ ./src/
+COPY certs/ ./certs/
+COPY ansible/ ./ansible/
+COPY static/ ./static/
+COPY templates/ ./templates/
+COPY tailwind.config.js .
 
 ENTRYPOINT ["tini", "--"]
 CMD ["python", "setup.py"]

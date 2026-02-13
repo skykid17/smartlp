@@ -41,7 +41,7 @@ class LLMService(BaseService):
             llm = ChatOpenAI(
                 model=model_override or model_cfg["model_name"],
                 base_url=url_override or endpoint_cfg["url"],
-                api_key=api_key_override or endpoint_cfg.get("api_key", ""),
+                api_key=api_key_override or endpoint_cfg.get("api_key", "") or "dummy",
                 temperature=0,
                 timeout=30,
             )
