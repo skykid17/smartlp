@@ -3,6 +3,7 @@ Data formatting and conversion utilities for SmartSOC.
 """
 
 from typing import Dict, Any, Union
+import re
 import nanoid
 
 
@@ -101,22 +102,29 @@ def truncate_text(text: str, max_length: int = 100, suffix: str = "...") -> str:
 
 def clean_response(response: str) -> str:
     """Clean up LLM response text.
-    
-    Args:
-        response: Raw response text
-        
-    Returns:
-        Cleaned response text
+
+    Attempts to extract JSON/structured content robustly before falling back
+    to simple string cleanup for plain-text responses (e.g. regex strings).
     """
+    # 1. Extract content from a markdown fenced code block (```json ... ``` or ``` ... ```)
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", response)
+    if fenced:
+        return fenced.group(1).strip()
+
+    # 2. Extract a bare JSON object or array — only when response actually starts
+    #    with { or [ to avoid false-positives on regex patterns containing {n} quantifiers
+    stripped = response.strip()
+    if stripped.startswith("{") or stripped.startswith("["):
+        json_match = re.search(r"(\{[\s\S]*\}|\[[\s\S]*\])", stripped)
+        if json_match:
+            return json_match.group(1).strip()
+
+    # 3. Legacy cleanup for plain strings (regex patterns, simple answers)
     response = response.replace("```", "").replace("\n", "")
-    
-    # Remove common prefixes
     for prefix in ("regex", "json"):
         if response.startswith(prefix):
             response = response[len(prefix):].strip()
             break
-    
     if response.startswith("`") and response.endswith("`"):
         response = response[1:-1]
-    
     return response.strip()

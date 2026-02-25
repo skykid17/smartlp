@@ -149,7 +149,12 @@ class SmartLPService(CRUDService):
                     regex = None
                     if not package['package_name'] and not package['package_url']:
                         regex_results = self.generate_regex(log, fix_count)
-                        regex = regex_results['regex']
+                        if not regex_results.get("success"):
+                            self.logger.error(
+                                "[INGESTION] Regex generation failed: %s",
+                                regex_results.get("error"),
+                            )
+                        regex = regex_results.get('regex')
                         match_result = regex_engine_service.run_regex_match(log, regex)
                         status = match_result['status']
                     else:
@@ -707,7 +712,7 @@ class SmartLPService(CRUDService):
             self.logger.info("Identifying log type for entry")
             
             system_prompt = settings_service.get_prompts_settings("identify_type")
-            response = llm_service.query_llm(log, system_prompt)
+            response = llm_service.query_llm(log, system_prompt, json_mode=True)
 
             if not response["success"]:
                 return {
@@ -769,7 +774,7 @@ class SmartLPService(CRUDService):
         source = source_type.lower()
         pkg_name = None
 
-        if source == "windows":
+        if source in {"windows", "powershell"}:
             channel_match = re.search(r"<Channel>(.*?)</Channel>", log, re.IGNORECASE)
             channel = channel_match.group(1).lower() if channel_match else ""
             
@@ -804,7 +809,7 @@ class SmartLPService(CRUDService):
         user_prompt = f"log: {log}\nlog_type: {log_type}\nsource_type: {source_type}\nsiem: {active_siem}"
         
         # Execute RAG
-        response = rag_service.query_rag(user_prompt, system_prompt, filter_category=f"{active_siem}_packages")
+        response = rag_service.query_rag(user_prompt, system_prompt, filter_category=f"{active_siem}_packages", json_mode=True)
 
         # Handle RAG System Failure (Database down, Network error, etc.)
         if not response["success"]:
@@ -879,7 +884,8 @@ class SmartLPService(CRUDService):
             user_prompt=user_prompt,
             system_prompt=system_prompt,
             filter_category="sigma_rules",
-            top_k=5
+            top_k=5,
+            json_mode=True
         )
         content_raw = response.get("content", "")
         context_docs = response.get("context", [])
@@ -1119,7 +1125,12 @@ class SmartLPService(CRUDService):
                     })
                     
                     regex_results = self.generate_regex(log, fix_count)
-                    regex = regex_results['regex']
+                    if not regex_results.get("success"):
+                        self.logger.error(
+                            "[INGESTION] Regex generation failed: %s",
+                            regex_results.get("error"),
+                        )
+                    regex = regex_results.get('regex')
                     match_result = regex_engine_service.run_regex_match(log, regex)
                     status = match_result['status']
                     

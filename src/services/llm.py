@@ -19,9 +19,9 @@ class LLMService(BaseService):
     
     def __init__(self):
         super().__init__('llm')
-        self.temperature = 0.1  # Low temperature for consistent output
+        self.temperature = 0
     
-    def _build_llm_client(self, model_override=None, url_override=None, api_key_override=None):
+    def _build_llm_client(self, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False):
         """Build a ChatOpenAI client from DB settings or frontend overrides."""
         llm_settings = settings_service.get_active_llm()
 
@@ -38,12 +38,17 @@ class LLMService(BaseService):
         endpoint_cfg = llm_settings["endpoint"]
 
         try:
+            llm_kwargs = {}
+            if json_mode:
+                llm_kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
+
             llm = ChatOpenAI(
                 model=model_override or model_cfg["model_name"],
                 base_url=url_override or endpoint_cfg["url"],
                 api_key=api_key_override or endpoint_cfg.get("api_key", "") or "dummy",
                 temperature=0,
                 timeout=30,
+                **llm_kwargs
             )
 
             return llm, None
@@ -57,14 +62,15 @@ class LLMService(BaseService):
                 "latency": 0
             }
 
-    def query_llm(self, user_prompt: str, system_prompt: str = None, model_override=None, url_override=None, api_key_override=None):
-    
+    def query_llm(self, user_prompt: str, system_prompt: str = None, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False):
+
         start_time = time.time()
 
         llm, error_response = self._build_llm_client(
             model_override=model_override,
             url_override=url_override,
-            api_key_override=api_key_override
+            api_key_override=api_key_override,
+            json_mode=json_mode
         )
 
         if error_response:

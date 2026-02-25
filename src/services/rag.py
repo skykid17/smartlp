@@ -31,7 +31,7 @@ from services.settings import settings_service
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
@@ -730,7 +730,7 @@ class RAG:
 
 
     # --- Chain builder ---
-    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None) -> RunnableLambda:
+    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False) -> RunnableLambda:
         llm_settings = settings_service.get_active_llm()
 
         if not llm_settings:
@@ -745,21 +745,26 @@ class RAG:
         model_cfg = llm_settings["model"]
         endpoint_cfg = llm_settings["endpoint"]
 
+        llm_kwargs = {}
+        if json_mode:
+            llm_kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
+
         llm = ChatOpenAI(
             model=model_override or model_cfg.get("model_name"),
             base_url=url_override or endpoint_cfg.get("url"),
             api_key=api_key_override or endpoint_cfg.get("api_key") or "dummy",
-            temperature=0
+            temperature=0,
+            **llm_kwargs
         )
 
-        prompt = PromptTemplate(
-            template="{system_prompt}\n\nContext:\n{context}\n\nQuestion:\n{question}\n\nUsing only the context above, provide the answer.",
-            input_variables=["system_prompt", "question", "context"],
-        )
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "{system_prompt}"),
+            ("human", "Context:\n{context}\n\nQuestion:\n{question}\n\nUse only the context above."),
+        ])
 
         return (
             {
-                "system_prompt": lambda x: x["system_prompt"],
+                "system_prompt": lambda x: x["system_prompt"] or "",
                 "question": lambda x: x["question"],
                 "context": RunnableLambda(lambda x: format_docs(retriever.invoke(x["question"]))),
             }
@@ -794,7 +799,7 @@ class RAG:
                 filter_category=kwargs.get("filter_category"),
             )
             
-            chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"))
+            chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"), json_mode=kwargs.get("json_mode", False))
             answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
             result = {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
             logger.info("RAG Response: %s", result)

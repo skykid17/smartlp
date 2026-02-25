@@ -250,8 +250,6 @@ class RegexEngineService:
                 }
 
             raw = self._normalize_regex_output(result["content"])
-            if not raw.endswith("$"):
-                raw += "$"
 
             # reduce to longest valid partial match
             reduced = regex_engine_service.run_reduce_regex(remaining, raw)["regex"]
@@ -259,11 +257,9 @@ class RegexEngineService:
 
             # match it
             match_info = regex_engine_service.run_regex_match(remaining, reduced)
-            matched_value = match_info["full"]["value"]
-            end = match_info["full"]["end"]
 
-            # check if regex failed to advance
-            if match_info["status"] == "Unmatched" or end == 0:
+            # check if regex failed to advance — guard full before accessing its keys
+            if match_info["status"] == "Unmatched" or not match_info["full"] or match_info["full"]["end"] == 0:
                 failure_count += 1
                 logger.warning(f"Regex failed to match or advance. Failure count: {failure_count}")
                 if failure_count >= 3:
@@ -271,6 +267,9 @@ class RegexEngineService:
                     logger.warning("Too many failures, appending wildcard and stopping.")
                     break
                 continue  # try next round without updating remaining
+
+            matched_value = match_info["full"]["value"]
+            end = match_info["full"]["end"]
 
             failure_count = 0  # reset on success
 
@@ -289,6 +288,16 @@ class RegexEngineService:
 
         # post-process result
         final_regex = self.resolve_duplicate_capture_groups(final_regex)
+
+        # Only anchor with $ when the assembled regex fully covers the log
+        if final_regex:
+            match_check = regex_engine_service.run_regex_match(log, final_regex)
+            if match_check.get("status") == "Matched":
+                final_regex += "$"
+            else:
+                logger.warning("Assembled regex does not fully match log; skipping $ anchor.")
+
+        logger.info(f"Successfully generated regex: {final_regex}")
 
         return {
             "success": True,
