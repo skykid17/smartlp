@@ -495,32 +495,102 @@ class RAG:
             logger.error("Failed to create index '%s': %s", index_name, e)
 
     # --- Search Index Creation Helpers ---
+    def _wait_for_search_index_ready(
+        self,
+        collection: Collection,
+        index_name: str,
+        timeout: int = 300,
+        poll_interval: int = 5,
+    ) -> bool:
+        """
+        Poll list_search_indexes until the named index is READY or timeout expires.
+        Returns True if READY, False if timed out or FAILED.
+        """
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                indexes = list(collection.list_search_indexes(index_name))
+                if indexes:
+                    status = indexes[0].get("status", "UNKNOWN")
+                    if status == "READY":
+                        logger.info("Search index '%s' is READY.", index_name)
+                        return True
+                    elif status is None:
+                        # mongot-community does not expose status; treat presence as ready.
+                        logger.info("Search index '%s' is present (mongot-community, no status field).", index_name)
+                        return True
+                    elif status == "FAILED":
+                        logger.error("Search index '%s' entered FAILED state: %s", index_name, indexes[0])
+                        return False
+                    else:
+                        logger.info("Search index '%s' status: %s — waiting...", index_name, status)
+            except Exception as exc:
+                logger.debug("Polling index '%s': %s", index_name, exc)
+            time.sleep(poll_interval)
+        logger.warning("Timed out waiting for search index '%s' to become READY after %ds.", index_name, timeout)
+        return False
+
     def _ensure_search_index(
         self,
         collection: Collection,
         index_name: str,
         index_type: str,
-        definition: dict
+        definition: dict,
+        ready_timeout: int = 60,
     ) -> None:
         """
-        Ensure a search or vector index exists in the collection.
+        Ensure a search or vector index exists and is READY in the collection.
+        Retries creation up to 3 times with backoff, then polls for READY state.
         """
+        # Check if already exists (and its status).
         try:
             existing = list(collection.list_search_indexes(index_name))
             if existing:
-                logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
-                return
+                status = existing[0].get("status", "UNKNOWN")
+                if status == "READY":
+                    logger.info("%s index '%s' already exists and is READY.", index_type.capitalize(), index_name)
+                    return
+                elif status in ("BUILDING", "PENDING"):
+                    logger.info("%s index '%s' is %s — waiting for READY...", index_type.capitalize(), index_name, status)
+                    self._wait_for_search_index_ready(collection, index_name, ready_timeout)
+                    return
+                elif status == "FAILED":
+                    logger.warning("%s index '%s' is in FAILED state — will attempt to recreate.", index_type.capitalize(), index_name)
+                elif status is None:
+                    # mongot-community does not expose status; index is present and managed by mongot.
+                    logger.info("%s index '%s' exists (mongot-community, no status field).", index_type.capitalize(), index_name)
+                    return
+                else:
+                    logger.info("%s index '%s' status: %s", index_type.capitalize(), index_name, status)
+                    return
         except Exception as exc:
-            logger.debug("Index existence check failed: %s", exc)
+            logger.debug("Index existence check failed for '%s': %s", index_name, exc)
 
-        try:
-            collection.create_search_index(model={"definition": definition, "name": index_name, "type": index_type})
-            logger.info("%s index '%s' creation initiated.", index_type.capitalize(), index_name)
-        except OperationFailure as e:
-            if "already exists" in str(e):
-                logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
-            else:
-                logger.error("Failed to create %s index '%s': %s", index_type, index_name, e)
+        # Attempt creation with retries.
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                collection.create_search_index(
+                    model={"definition": definition, "name": index_name, "type": index_type}
+                )
+                logger.info("%s index '%s' creation initiated (attempt %d).", index_type.capitalize(), index_name, attempt)
+                break
+            except Exception as e:
+                if "already exists" in str(e):
+                    logger.info("%s index '%s' already exists.", index_type.capitalize(), index_name)
+                    break
+                logger.warning(
+                    "Attempt %d/%d failed to create %s index '%s': %s",
+                    attempt, max_attempts, index_type, index_name, e,
+                )
+                if attempt < max_attempts:
+                    time.sleep(5 * attempt)
+                else:
+                    logger.error("All %d attempts exhausted for %s index '%s'.", max_attempts, index_type, index_name)
+                    return
+
+        # Wait for the index to reach READY state.
+        self._wait_for_search_index_ready(collection, index_name, ready_timeout)
 
     # --- Connection / index helpers ---
     def connect(self) -> MongoClient:

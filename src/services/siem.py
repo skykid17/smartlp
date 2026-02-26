@@ -594,13 +594,18 @@ class ElasticsearchService(BaseSIEMService):
     
     def connect(self, config_override: Optional[Dict[str, Any]] = None) -> bool:
         """Connect to Elasticsearch.
-        
+
         Args:
             config_override: Optional configuration to use instead of self.settings
-        
+
         Returns:
             True if connection successful, False otherwise
         """
+        # Always refresh settings from DB to pick up any changes made after startup
+        if not config_override:
+            env_manager._elastic_settings = None
+            self.settings = env_manager.elastic
+
         try:
             # First try with certificate verification
             if config_override:

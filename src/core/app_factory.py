@@ -199,7 +199,6 @@ class ApplicationFactory:
             from api.init_routes import register_init_routes
             from api.settings_routes import register_settings_routes
             from api.main_routes import register_main_routes
-            from services.settings import settings_service
 
             # Register all route modules
             register_init_routes(app)
@@ -213,23 +212,15 @@ class ApplicationFactory:
             register_main_routes(app)
             logger.info("Main routes registered")
 
-            # Only register SmartLP routes once initialization is complete.
-            # This prevents import-time side effects (SIEM service instantiation)
-            # from crashing the app when the settings collection is empty.
+            # Always register SmartLP routes at startup.
+            # The initialization_guard before_request hook blocks access to these
+            # routes until setup is complete, so conditional registration is unnecessary.
+            # Conditional registration was broken in Flask 2.3+ which forbids route
+            # registration after the first request has been processed.
             try:
-                global_settings = settings_service.get_global_settings() or {}
-                initialized = bool(global_settings.get("initialized"))
-            except Exception:
-                initialized = False
-
-            if initialized:
-                try:
-                    ApplicationFactory._register_smartlp_routes_safe(app)
-                except Exception as e:
-                    logger.exception("Error registering SmartLP routes at startup")
-                    # Don't raise - app can still start, routes will be registered post-init
-            else:
-                logger.info("Initialization not complete; SmartLP routes will be registered after init")
+                ApplicationFactory._register_smartlp_routes_safe(app)
+            except Exception as e:
+                logger.exception("Error registering SmartLP routes at startup")
             
             logger.info("All application routes registered")
         except Exception as e:
@@ -261,12 +252,6 @@ class ApplicationFactory:
             if start_background_ingester in app.before_request_funcs[None]:
                 app.before_request_funcs[None].remove(start_background_ingester)
 
-                # Ensure SmartLP routes are registered before starting ingestion
-                try:
-                    ApplicationFactory._register_smartlp_routes_safe(app)
-                except Exception as e:
-                    logger.exception("Failed to register SmartLP routes before ingestion")
-
                 # Start background ingestion in daemon thread
                 thread = threading.Thread(
                     target=smartlp_service.start_log_ingestion,
@@ -274,37 +259,6 @@ class ApplicationFactory:
                 )
                 thread.start()
                 logger.info("Background log ingestion started")
-
-        @app.before_request
-        def register_smartlp_routes_after_init():
-            """Register SmartLP routes after initialization completes.
-
-            This hook runs once on the first request after initialization is detected.
-            It's a safety net for scenarios like:
-            - App restart after initialization (pre-seeded database)
-            - Initialization completed in a previous session
-            - Post-init registration in /api/init/finish failed
-
-            The hook removes itself after first execution to avoid overhead.
-            """
-            try:
-                global_settings = settings_service.get_global_settings() or {}
-                if not bool(global_settings.get("initialized")):
-                    return None
-            except Exception:
-                return None
-
-            # Remove this hook after first execution
-            if register_smartlp_routes_after_init in app.before_request_funcs[None]:
-                app.before_request_funcs[None].remove(register_smartlp_routes_after_init)
-
-                # Try to register SmartLP routes
-                try:
-                    ApplicationFactory._register_smartlp_routes_safe(app)
-                except Exception as e:
-                    logger.exception("Failed to register SmartLP routes after init")
-
-            return None
     
     @staticmethod
     def _setup_signal_handlers() -> None:
