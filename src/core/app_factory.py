@@ -24,7 +24,7 @@ _registration_lock = None
 
 
 def _get_registration_lock():
-    """Get or create the registration lock (lazy initialization for eventlet compatibility)."""
+    """Get or create the registration lock (lazy initialization for thread-safety)."""
     global _registration_lock
     if _registration_lock is None:
         _registration_lock = threading.Lock()

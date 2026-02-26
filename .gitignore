@@ -11,3 +11,4 @@ models/
 .vscode/
 CLAUDE.md
 tmpclaude*
+*.sh

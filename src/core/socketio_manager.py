@@ -26,7 +26,7 @@ class SocketIOManager:
             SocketIO instance
         """
         if self._socketio is None:
-            self._socketio = SocketIO(cors_allowed_origins="*", **kwargs)
+            self._socketio = SocketIO(async_mode='threading', cors_allowed_origins="*", **kwargs)
         
         if app and self._socketio:
             self._socketio.init_app(app)

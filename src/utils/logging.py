@@ -33,7 +33,7 @@ class SocketIOLogHandler(logging.Handler):
                 "message": self.format(record),
             }
             # Emit to all clients on the default namespace
-            # When using eventlet, socketio.emit() automatically broadcasts from background threads
+            # socketio.emit() broadcasts safely from background threads in threading mode
             self._socketio.emit("log", payload, namespace='/')
         except Exception as e:
             # Log errors to stderr for debugging, but don't break the application
