@@ -353,10 +353,10 @@ class ApplicationFactory:
         if socketio_manager.socketio is not None:
             try:
                 socketio_manager.socketio.run(
-                    app, 
-                    host=run_host, 
-                    port=run_port, 
-                    debug=run_debug
+                    app,
+                    host=run_host,
+                    port=run_port,
+                    debug=run_debug,
                 )
             except Exception as e:
                 logger.exception("SocketIO run error")

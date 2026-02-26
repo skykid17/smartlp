@@ -35,6 +35,9 @@ services:
     restart: unless-stopped
 
   smartlp:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
     image: skykid17/smartlp:latest
     container_name: smartlp
     depends_on:

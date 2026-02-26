@@ -73,7 +73,24 @@ def restore_archive(client):
     )
 
 def start_application():
-    os.execvp(sys.executable, [sys.executable, "app.py"])
+    debug = os.getenv("APP_DEBUG", "True").lower() in ("true", "1", "yes")
+    host = os.getenv("APP_HOST", "0.0.0.0")
+    port = os.getenv("APP_PORT", "8800")
+
+    if debug:
+        # Development: use Flask-SocketIO's built-in Werkzeug server
+        os.execvp(sys.executable, [sys.executable, "app.py"])
+    else:
+        # Production: use Gunicorn with threading worker (required for Socket.IO)
+        gunicorn_cmd = [
+            "gunicorn",
+            "--worker-class", "gthread",
+            "--threads", "4",
+            "-w", "1",
+            "--bind", f"{host}:{port}",
+            "wsgi:app",
+        ]
+        os.execvp("gunicorn", gunicorn_cmd)
 
 def main():
     wait_for_mongo(URI)
