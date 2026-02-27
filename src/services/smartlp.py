@@ -883,7 +883,7 @@ class SmartLPService(CRUDService):
         response = rag_service.query_rag(
             user_prompt=user_prompt,
             system_prompt=system_prompt,
-            filter_category="sigma_rules",
+            filter_category="detection_rules",
             top_k=5,
             json_mode=True
         )
@@ -935,21 +935,22 @@ class SmartLPService(CRUDService):
                 siem_rule_docs = db_connection.query(
                     collection_name="knowledge_base",
                     filter_dict={
-                        "metadata.category": f"{active_siem}_rules",
+                        "metadata.category": "detection_rules",
                         "sigma_id": sigma_id
                     },
                     projection={"_id": 0}
                 )
 
                 siem_rule_doc = siem_rule_docs[0] if siem_rule_docs else None
-                
+                siem_sub = (siem_rule_doc.get(f"{active_siem}_rule") or {}) if siem_rule_doc else {}
+
                 detection_rules.append({
                     "sigma_id": sigma_id,
                     "confidence": confidence,
                     "reason": match.get("reason", ""),
-                    "title": siem_rule_doc.get("title") if siem_rule_doc else "",
-                    "siem_rule": siem_rule_doc.get("rule") if siem_rule_doc else "",
-                    "deployed": siem_rule_doc.get("deployed", False) if siem_rule_doc else False
+                    "title": siem_rule_doc.get("metadata", {}).get("title", "") if siem_rule_doc else "",
+                    "siem_rule": siem_sub.get("rule", ""),
+                    "deployed": siem_sub.get("deployed", False)
                 })
             self.logger.info(
                 "Identified %s detection rules above confidence threshold %s",

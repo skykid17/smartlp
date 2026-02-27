@@ -628,7 +628,7 @@ class RAG:
         self._ensure_search_index(coll, self.vector_index, "vectorSearch", vector_def)
         self._ensure_search_index(coll, self.text_index, "search", text_def)
 
-        self._ensure_index(coll, "id", unique=True)
+        self._ensure_index(coll, "hash", unique=True)
         self._ensure_index(coll, "sigma_id", unique=False)
 
         # preload embedding model
@@ -723,8 +723,6 @@ class RAG:
         content_hash = hashlib.sha1(content.encode("utf-8")).hexdigest()
 
         return {
-            "_id": content_hash,
-            "id": content_hash,
             "content": content,
             "metadata": metadata,
             "embedding": embedding,

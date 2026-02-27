@@ -27,9 +27,16 @@ SmartLP (Smart Log Parser) is a Flask-based web application for ingesting securi
   - `src/services/` – SmartLP, SIEM, settings, LLM, RAG, regex engine
   - `src/database/` – MongoDB connection wrapper
   - `src/utils/` – logging, formatting, pagination helpers
+- `tools/` – maintenance and migration scripts
+  - `tools/rebuild_knowledge_base.py` – rebuild the knowledge base collection from source files
+  - `tools/migrate_kb_ids.py` – migrate knowledge base document IDs
+  - `tools/download_embedding.py` – download the embedding model
 - `templates/` – main UI template (`smartlp.html`) and sections
 - `static/` – CSS/JS assets used by the UI
 - `demo/` – demo JSON and utility scripts
+- `knowledge_base/` – source data for RAG knowledge base
+- `models/` – local embedding model (`all-MiniLM-L6-v2`)
+- `ansible/` – Ansible playbooks for Splunk deployment
 
 ## Requirements
 
@@ -136,6 +143,9 @@ Common endpoints used by the UI (non-exhaustive):
   - `POST /api/smartlp/deploy_config` – deploy configurations via Ansible (Splunk) or direct API (Elastic)
   - `POST /api/smartlp/deploy_rule` – deploy single rule to SIEM
 
+- **LLM / RAG**
+  - `POST /api/query` – task router (`generate`, `fix`, or default RAG query)
+
 ## Deployment architecture
 
 ### Splunk Configuration Deployment
@@ -172,17 +182,84 @@ For detailed Ansible deployment documentation, see [`ansible/README.md`](ansible
 
 Elasticsearch deployments use direct API calls to update Logstash pipeline configurations.
 
-- **LLM / RAG**
-  - `POST /api/query` – task router (`generate`, `fix`, or default RAG query)
-
 ## Background ingestion behavior
 
 The ingestion loop runs in a daemon thread started on the first HTTP request after initialization. It reads `global_settings` each cycle, and only ingests when `ingest_on` is enabled. You can also start/stop ingestion manually via the ingestion endpoints.
 
-## RAG and LLM notes
+## Knowledge base
 
-- RAG uses MongoDB vector search with a fallback local retriever. Index names are `vector_index` and `text_index`.
-- LLM integration uses LangChain’s `ChatOpenAI` client with OpenAI-compatible endpoints.
+The `smartlp.knowledge_base` MongoDB collection stores embedded documents used for RAG retrieval. Documents use MongoDB auto-generated `ObjectId` for `_id` and a SHA1 `hash` field for content deduplication.
+
+### Document schema
+
+Every document contains the following fields:
+
+| Field                | Type       | Description                                      |
+|----------------------|------------|--------------------------------------------------|
+| `_id`                | ObjectId   | Auto-generated MongoDB identifier                |
+| `content`            | string     | The text content used for retrieval              |
+| `metadata`           | object     | Contains `category`, `source`, `file_type`, etc. |
+| `embedding`          | float[384] | Vector embedding (all-MiniLM-L6-v2)             |
+| `embedding_provider` | string     | Embedding model identifier                       |
+| `hash`               | string     | SHA1 content hash for deduplication              |
+| `created_at`         | datetime   | UTC timestamp of insertion                       |
+
+Detection rule documents additionally include:
+
+| Field           | Type   | Description                                         |
+|-----------------|--------|-----------------------------------------------------|
+| `sigma_id`      | string | Sigma rule UUID                                     |
+| `splunk_rule`   | object | Nested Splunk translation (`rule`, `deployed`, etc.)|
+| `elastic_rule`  | object | Nested Elastic translation (`rule`, `deployed`, etc.)|
+
+### Categories
+
+| Category           | Source                          | Description                                   |
+|--------------------|---------------------------------|-----------------------------------------------|
+| `detection_rules`  | `sigma_rules.json`, `splunk_rules.json`, `elastic_rules.json` | Unified detection rules (1:1 with sigma rules) |
+| `splunk_fields`    | `splunk_fields.csv`             | Splunk CIM field definitions                  |
+| `elastic_fields`   | `elastic_fields.csv`            | Elastic ECS field definitions                 |
+| `splunk_packages`  | `splunk_packages/`              | Splunk Technology Add-on configuration files  |
+| `elastic_packages` | `elastic_packages/`             | Elastic integration package files             |
+
+### Indexes
+
+- `vector_index` – MongoDB Atlas vector search index on the `embedding` field with `metadata.category` as a filter
+- `text_index` – MongoDB Atlas full-text search index on the `content` field
+- Unique index on `hash` for deduplication
+
+### Knowledge base management
+
+Rebuild the entire collection or specific categories:
+
+```bash
+# Full rebuild (drops and recreates the collection)
+python tools/rebuild_knowledge_base.py
+
+# Rebuild only detection rules (deletes and re-inserts that category)
+python tools/rebuild_knowledge_base.py --categories detection_rules
+
+# Preview without writing to MongoDB
+python tools/rebuild_knowledge_base.py --dry-run
+
+# Rebuild without recreating indexes
+python tools/rebuild_knowledge_base.py --skip-drop --skip-indexes
+```
+
+Migrate existing documents (e.g. after schema changes):
+
+```bash
+python tools/migrate_kb_ids.py
+python tools/migrate_kb_ids.py --dry-run
+python tools/migrate_kb_ids.py --keep-backup
+```
+
+## RAG and LLM
+
+- RAG uses MongoDB Atlas hybrid search (RankFusion combining vector search and text search) with a fallback local retriever. Index names are `vector_index` and `text_index`.
+- Embeddings are generated locally using `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions, cosine similarity).
+- LLM integration uses LangChain's `ChatOpenAI` client with OpenAI-compatible endpoints.
+- `POST /api/query` serves as the task router (`generate`, `fix`, or default RAG query).
 
 ## Regex Generation Algorithms
 

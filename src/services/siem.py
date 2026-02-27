@@ -1113,13 +1113,14 @@ output {{
 
     def create_rule_elastic(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a detection rule in Elasticsearch."""
-        siem_rule = db_connection.query('knowledge_base', {'sigma_id': data.get('id'),'metadata.category': 'elastic_rules'}, projection={'_id': 0}, limit =1)
-        sigma_rule = db_connection.query('knowledge_base', {'id': data.get('id'),'metadata.category': 'sigma_rules'}, projection={'_id': 0}, limit =1)
+        doc = db_connection.query('knowledge_base', {'sigma_id': data.get('id'), 'metadata.category': 'detection_rules'}, projection={'_id': 0}, limit=1)
+        meta = doc.get("metadata", {}) if doc else {}
+        elastic_sub = doc.get("elastic_rule", {}) if doc else {}
         elastic_rule = {
-            'rule_id': siem_rule.get('id', data.get('id')),
+            'rule_id': data.get('id'),
             'entry_id': data.get('entry_id'),
-            'name': siem_rule.get('title'),
-            'description': sigma_rule.get('description'),
+            'name': meta.get('title', ''),
+            'description': doc.get('content', '') if doc else '',
             'severity': data.get('severity', 'medium'),
             'risk_score': data.get('risk_score', 50),
             'from': f"{data.get('dispatch_latest_time', 'now')}{data.get('dispatch_earliest_time', '-15m')}",
@@ -1128,8 +1129,8 @@ output {{
             'type': "esql",
             'language': "esql",
             'enabled': True,
-            'query': "FROM logs-parsed* \n| " + siem_rule.get('rule'),
-            'tags': sigma_rule.get('tags', []),
+            'query': "FROM logs-parsed* \n| " + elastic_sub.get('rule', ''),
+            'tags': meta.get('tags', []),
         }
         return elastic_rule
 
@@ -1155,7 +1156,7 @@ output {{
                 resp = requests.put(update_url, headers=HEADERS, json=rule, verify=False)
             
             # Update database records to mark rule as deployed
-            db_connection.update_one("knowledge_base", {"sigma_id": rule.get("rule_id"), "metadata.category": "elastic_rules"}, {"$set": {"deployed": True}})
+            db_connection.update_one("knowledge_base", {"sigma_id": rule.get("rule_id"), "metadata.category": "detection_rules"}, {"$set": {"elastic_rule.deployed": True}})
             db_connection.update_one("logs", {"id": rule.get("entry_id"), "detection_rules.sigma_id": rule.get("rule_id")}, {"$set": {"detection_rules.$.deployed": True}})
             
             return {"success": True, "message": f"Rule deployed successfully", "response": resp.json()}

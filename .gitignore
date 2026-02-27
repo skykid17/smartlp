@@ -1,5 +1,5 @@
 __pycache__/
-llm_output.txt
+knowledge_base/
 .venv/
 .env
 certs/
