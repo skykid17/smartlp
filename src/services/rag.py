@@ -34,7 +34,6 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -181,11 +180,16 @@ class MongoHybridRetriever:
 
             # Only include text pipeline if there are keywords to search for
             if query_text:
+                text_search_op = {"text": {"query": query_text, "path": "content"}}
+                if self.filter_category:
+                    text_search_op = {
+                        "compound": {
+                            "must": [{"text": {"query": query_text, "path": "content"}}],
+                            "filter": [{"text": {"query": self.filter_category, "path": "metadata.category"}}]
+                        }
+                    }
                 text_pipeline = [
-                    {"$search": {
-                        "index": self.text_index,
-                        "phrase": {"query": query_text, "path": "content"}
-                    }},
+                    {"$search": {"index": self.text_index, **text_search_op}},
                     {"$limit": self.keyword_candidates}
                 ]
 
@@ -798,48 +802,38 @@ class RAG:
 
 
     # --- Chain builder ---
-    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False) -> RunnableLambda:
-        llm_settings = settings_service.get_active_llm()
+    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False):
+        """Build a LangChain RAG chain.
 
-        if not llm_settings:
-            return None, {
-                "success": False,
-                "content": None,
-                "status_code": 500,
-                "error": "No active LLM endpoint configured",
-                "latency": 0
-            }
+        Returns ``(chain, None)`` on success or ``(None, error_dict)`` on error.
+        """
+        from services.llm import llm_service
 
-        model_cfg = llm_settings["model"]
-        endpoint_cfg = llm_settings["endpoint"]
-
-        llm_kwargs = {}
-        if json_mode:
-            llm_kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
-
-        llm = ChatOpenAI(
-            model=model_override or model_cfg.get("model_name"),
-            base_url=url_override or endpoint_cfg.get("url"),
-            api_key=api_key_override or endpoint_cfg.get("api_key") or "dummy",
-            temperature=0,
-            **llm_kwargs
+        client, err = llm_service.get_client(
+            model_override=model_override,
+            url_override=url_override,
+            api_key_override=api_key_override,
+            json_mode=json_mode,
         )
+        if err:
+            return None, err.to_dict()
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", "{system_prompt}"),
             ("human", "Context:\n{context}\n\nQuestion:\n{question}\n\nUse only the context above."),
         ])
 
-        return (
+        chain = (
             {
                 "system_prompt": lambda x: x["system_prompt"] or "",
                 "question": lambda x: x["question"],
                 "context": RunnableLambda(lambda x: format_docs(retriever.invoke(x["question"]))),
             }
             | prompt
-            | llm
+            | client
             | StrOutputParser()
         )
+        return chain, None
 
     # --- Query Method ---
     def query_rag(self, user_prompt: str, system_prompt: Optional[str] = None, top_k: int = 5, **kwargs) -> Dict[str, Any]:
@@ -867,7 +861,10 @@ class RAG:
                 filter_category=kwargs.get("filter_category"),
             )
             
-            chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"), json_mode=kwargs.get("json_mode", False))
+            chain, err = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"), json_mode=kwargs.get("json_mode", False))
+            if err:
+                return err
+
             answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
             result = {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
             logger.info("RAG Response: %s", result)

@@ -11,6 +11,7 @@ class Chatbot {
         this.sendBtn = document.getElementById('chatSend');
 
         this.session = [];
+        this.MAX_HISTORY_TURNS = 20; // Keep last 20 messages to avoid context overflow
 
         this.init();
     }
@@ -41,7 +42,8 @@ class Chatbot {
     }
 
     buildPrompt() {
-        return this.session
+        const recent = this.session.slice(-this.MAX_HISTORY_TURNS);
+        return recent
             .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
             .join('\n');
     }

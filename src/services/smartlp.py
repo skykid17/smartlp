@@ -13,7 +13,6 @@ import time
 import os
 import pcre2
 import re
-import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, List
 
@@ -24,7 +23,8 @@ from .regex_engine import regex_engine_service
 from .rag import rag_service, cosine
 from .llm import llm_service
 from database.connection import db_connection
-from utils.formatters import generate_alphanumeric_id, clean_response
+from utils.formatters import generate_alphanumeric_id
+from utils.llm_output_parser import parse_json_response
 
 
 class SmartLPService(CRUDService):
@@ -725,7 +725,10 @@ class SmartLPService(CRUDService):
 
             # Parse JSON
             try:
-                result = json.loads(clean_response(response["content"]))
+                result = parse_json_response(
+                    response["content"],
+                    defaults={"source_type": "unknown", "log_type": "unknown", "description": ""}
+                )
                 self.logger.info(
                     "Identified log type: %s, source type: %s",
                     result.get('log_type', 'unknown'),
@@ -739,7 +742,7 @@ class SmartLPService(CRUDService):
                     "error": None
                 }
 
-            except Exception as e:
+            except (ValueError, Exception) as e:
                 self.logger.warning("LLM returned invalid JSON: %s", response["content"])
                 return {
                     "success": False,
@@ -824,15 +827,17 @@ class SmartLPService(CRUDService):
 
         # Parse LLM Result
         try:
-            content = clean_response(response.get("content", ""))
-            result = json.loads(content)
-        except json.JSONDecodeError as e:
+            result = parse_json_response(
+                response.get("content", ""),
+                defaults={"package_name": "", "package_url": ""}
+            )
+        except ValueError as e:
             return {
                 "success": False,
                 "found": False,
                 "context": response.get("context", []),
-                "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response.get('content')}",
-                "package_name": "", 
+                "error": f"LLM Output Parsing Failed: {e}",
+                "package_name": "",
                 "package_url": ""
             }
 
@@ -888,14 +893,13 @@ class SmartLPService(CRUDService):
             json_mode=True
         )
         content_raw = response.get("content", "")
-        context_docs = response.get("context", [])
-        if not content_raw and (not context_docs or all(not (c and c.get("content")) for c in context_docs)):
+        if not content_raw:
             self.logger.info("No relevant detection rules found in RAG context.")
             return {
                 "success": True,
                 "found": False,
                 "detection_rules": [],
-                "context": context_docs,
+                "context": [],
                 "error": None
             }
 
@@ -911,15 +915,14 @@ class SmartLPService(CRUDService):
 
         # Parse RAG output
         try:
-            content = clean_response(content_raw)
-            parsed = json.loads(content)
+            parsed = parse_json_response(content_raw)
 
-            if isinstance(parsed, dict):
-                matches = parsed.get("matches", [])
+            if isinstance(parsed.get("matches"), list):
+                matches = parsed["matches"]
             elif isinstance(parsed, list):
                 matches = parsed
             else:
-                raise ValueError("Unexpected RAG output format")
+                matches = parsed.get("matches", [])
 
             if not isinstance(matches, list):
                 raise ValueError("Invalid matches format")
