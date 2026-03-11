@@ -160,7 +160,7 @@ class SmartLPService(CRUDService):
                     else:
                         status = "Pending"
                     
-                    detection_results = self.identify_detection_rules(description, active_siem)
+                    detection_results = self.identify_detection_rules(description, active_siem, raw_log=log)
                     if not detection_results.get("success"):
                         self.logger.error(
                             "[INGESTION] Detection rule identification failed: %s",
@@ -858,7 +858,8 @@ class SmartLPService(CRUDService):
         self,
         log_description: str,
         active_siem: str = None,
-        confidence_threshold: float = 0.8
+        confidence_threshold: float = 0.8,
+        raw_log: str = None
     ) -> Dict[str, Any]:
         """
         Identify relevant detection rules for a log using semantic RAG matching.
@@ -879,9 +880,11 @@ class SmartLPService(CRUDService):
         system_prompt = settings_service.get_prompts_settings("identify_detection_rules")
 
         user_prompt = (
-            "Evaluate relevant detection rules for the following log description:\n"
+            "Log description:\n"
             f"{log_description}"
         )
+        if raw_log:
+            user_prompt += f"\n\nRaw log:\n{raw_log}"
 
         
         # Execute RAG
@@ -890,6 +893,8 @@ class SmartLPService(CRUDService):
             system_prompt=system_prompt,
             filter_category="detection_rules",
             top_k=5,
+            semantic_candidates=100,
+            keyword_candidates=60,
             json_mode=True
         )
         content_raw = response.get("content", "")
@@ -1163,7 +1168,7 @@ class SmartLPService(CRUDService):
                     'total_logs': total_logs
                 })
                 
-                detection_results = self.identify_detection_rules(description, active_siem)
+                detection_results = self.identify_detection_rules(description, active_siem, raw_log=log)
                 if not detection_results.get("success"):
                     self.logger.error(
                         f"[MANUAL_INGEST] Detection rule identification failed for log {idx}: {detection_results.get('error')}"
