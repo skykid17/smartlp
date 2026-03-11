@@ -51,6 +51,30 @@ output {{
 
 elasticsearch_service.deploy_config_elastic(pipeline_body)
 
+# update query in settings
+db_connection.update_one(
+    "settings",
+    {"id": "elastic", },
+    {"$set": {"query": '''{
+  "size": 1,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ],
+  "query": {
+    "range": {
+      "@timestamp": {
+        "gte": "now-15m",
+        "lte": "now"
+      }
+    }
+  }
+}'''}},
+)
+
 # Clear the database collection "logs"
 db_connection.delete_many("logs", {})
 print("Database collection 'logs' has been cleared.")

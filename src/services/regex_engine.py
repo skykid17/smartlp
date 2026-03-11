@@ -1,9 +1,8 @@
 import pcre2
 import logging
-import json
 from services.settings import settings_service
 from services.rag import rag_service
-from utils.formatters import clean_response
+from utils.llm_output_parser import parse_regex_response
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -14,31 +13,8 @@ class RegexEngineService:
         self.service_name = "regex_engine"
 
     def _normalize_regex_output(self, response: str) -> str:
-        """Normalize LLM output into a usable regex string.
-
-        Handles JSON-wrapped strings/objects and safely unescapes backslashes.
-        """
-        cleaned = clean_response(response)
-
-        parsed = None
-        try:
-            parsed = json.loads(cleaned)
-        except Exception:
-            parsed = None
-
-        if isinstance(parsed, dict):
-            cleaned = parsed.get("regex") or parsed.get("pattern") or cleaned
-        elif isinstance(parsed, list) and parsed:
-            first = parsed[0]
-            cleaned = first if isinstance(first, str) else cleaned
-        elif isinstance(parsed, str):
-            cleaned = parsed
-
-        if isinstance(cleaned, str):
-            cleaned = cleaned.strip()
-            cleaned = cleaned.replace("\\\\", "\\")
-
-        return cleaned
+        """Normalize LLM output into a usable regex string."""
+        return parse_regex_response(response)
         
 
     def run_regex_match(self, log: str, pattern: str):

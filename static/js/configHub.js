@@ -19,6 +19,13 @@ class ConfigHub {
 
     init() {
         document.getElementById('configHubClose')?.addEventListener('click', () => this.close());
+
+        // Close slide-over when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.isOpen() && !this.panel.contains(e.target) && !e.target.closest('[onclick*="configHub"]')) {
+                this.close();
+            }
+        });
     }
 
     open() {
@@ -291,6 +298,11 @@ class ConfigHub {
                 this.lastGeneratedConfig = textarea.value;
             });
         }
+
+        // Close modal when clicking on the backdrop
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
     }
 
     switchTab(tab) {

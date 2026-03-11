@@ -13,7 +13,6 @@ import time
 import os
 import pcre2
 import re
-import json
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple, List
 
@@ -24,7 +23,8 @@ from .regex_engine import regex_engine_service
 from .rag import rag_service, cosine
 from .llm import llm_service
 from database.connection import db_connection
-from utils.formatters import generate_alphanumeric_id, clean_response
+from utils.formatters import generate_alphanumeric_id
+from utils.llm_output_parser import parse_json_response
 
 
 class SmartLPService(CRUDService):
@@ -160,7 +160,7 @@ class SmartLPService(CRUDService):
                     else:
                         status = "Pending"
                     
-                    detection_results = self.identify_detection_rules(description, active_siem)
+                    detection_results = self.identify_detection_rules(description, active_siem, raw_log=log)
                     if not detection_results.get("success"):
                         self.logger.error(
                             "[INGESTION] Detection rule identification failed: %s",
@@ -725,7 +725,10 @@ class SmartLPService(CRUDService):
 
             # Parse JSON
             try:
-                result = json.loads(clean_response(response["content"]))
+                result = parse_json_response(
+                    response["content"],
+                    defaults={"source_type": "unknown", "log_type": "unknown", "description": ""}
+                )
                 self.logger.info(
                     "Identified log type: %s, source type: %s",
                     result.get('log_type', 'unknown'),
@@ -739,7 +742,7 @@ class SmartLPService(CRUDService):
                     "error": None
                 }
 
-            except Exception as e:
+            except (ValueError, Exception) as e:
                 self.logger.warning("LLM returned invalid JSON: %s", response["content"])
                 return {
                     "success": False,
@@ -824,15 +827,17 @@ class SmartLPService(CRUDService):
 
         # Parse LLM Result
         try:
-            content = clean_response(response.get("content", ""))
-            result = json.loads(content)
-        except json.JSONDecodeError as e:
+            result = parse_json_response(
+                response.get("content", ""),
+                defaults={"package_name": "", "package_url": ""}
+            )
+        except ValueError as e:
             return {
                 "success": False,
                 "found": False,
                 "context": response.get("context", []),
-                "error": f"LLM Output Parsing Failed: {str(e)} | Raw: {response.get('content')}",
-                "package_name": "", 
+                "error": f"LLM Output Parsing Failed: {e}",
+                "package_name": "",
                 "package_url": ""
             }
 
@@ -853,7 +858,8 @@ class SmartLPService(CRUDService):
         self,
         log_description: str,
         active_siem: str = None,
-        confidence_threshold: float = 0.8
+        confidence_threshold: float = 0.8,
+        raw_log: str = None
     ) -> Dict[str, Any]:
         """
         Identify relevant detection rules for a log using semantic RAG matching.
@@ -874,9 +880,11 @@ class SmartLPService(CRUDService):
         system_prompt = settings_service.get_prompts_settings("identify_detection_rules")
 
         user_prompt = (
-            "Evaluate relevant detection rules for the following log description:\n"
+            "Log description:\n"
             f"{log_description}"
         )
+        if raw_log:
+            user_prompt += f"\n\nRaw log:\n{raw_log}"
 
         
         # Execute RAG
@@ -885,17 +893,18 @@ class SmartLPService(CRUDService):
             system_prompt=system_prompt,
             filter_category="detection_rules",
             top_k=5,
+            semantic_candidates=100,
+            keyword_candidates=60,
             json_mode=True
         )
         content_raw = response.get("content", "")
-        context_docs = response.get("context", [])
-        if not content_raw and (not context_docs or all(not (c and c.get("content")) for c in context_docs)):
+        if not content_raw:
             self.logger.info("No relevant detection rules found in RAG context.")
             return {
                 "success": True,
                 "found": False,
                 "detection_rules": [],
-                "context": context_docs,
+                "context": [],
                 "error": None
             }
 
@@ -911,15 +920,14 @@ class SmartLPService(CRUDService):
 
         # Parse RAG output
         try:
-            content = clean_response(content_raw)
-            parsed = json.loads(content)
+            parsed = parse_json_response(content_raw)
 
-            if isinstance(parsed, dict):
-                matches = parsed.get("matches", [])
+            if isinstance(parsed.get("matches"), list):
+                matches = parsed["matches"]
             elif isinstance(parsed, list):
                 matches = parsed
             else:
-                raise ValueError("Unexpected RAG output format")
+                matches = parsed.get("matches", [])
 
             if not isinstance(matches, list):
                 raise ValueError("Invalid matches format")
@@ -1160,7 +1168,7 @@ class SmartLPService(CRUDService):
                     'total_logs': total_logs
                 })
                 
-                detection_results = self.identify_detection_rules(description, active_siem)
+                detection_results = self.identify_detection_rules(description, active_siem, raw_log=log)
                 if not detection_results.get("success"):
                     self.logger.error(
                         f"[MANUAL_INGEST] Detection rule identification failed for log {idx}: {detection_results.get('error')}"

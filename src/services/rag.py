@@ -32,9 +32,7 @@ from services.settings import settings_service
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
@@ -42,7 +40,13 @@ logger = logging.getLogger(__name__)
 # --- Defaults ---
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".json", ".yaml", ".yml", ".csv", ".pdf"}
 DEFAULT_ALLOWED_METADATA = ["source", "category", "tags", "file_type", "collection"]
-DEFAULT_TEXT_PATHS = ["content", "metadata.source"]
+DEFAULT_TEXT_PATHS = [
+    "content",
+    "metadata.title",
+    "metadata.tags",
+    "metadata.rule_type",
+    "metadata.source",
+]
 
 # --- Utility helpers ---
 
@@ -58,10 +62,15 @@ def filter_metadata(metadata: Dict, allowed_fields: Sequence[str]) -> Dict:
 
 
 def format_docs(docs: Sequence[Document]) -> str:
-    return "\n\n".join(
-        f"[{i+1}] Source: {d.metadata.get('source','unknown')}\n{d.page_content}"
-        for i, d in enumerate(docs)
-    )
+    parts = []
+    for i, d in enumerate(docs):
+        header = f"[{i+1}] Source: {d.metadata.get('source', 'unknown')}"
+        if d.metadata.get("title"):
+            header += f" | Title: {d.metadata['title']}"
+        if d.metadata.get("sigma_id"):
+            header += f" | ID: {d.metadata['sigma_id']}"
+        parts.append(f"{header}\n{d.page_content}")
+    return "\n\n".join(parts)
 
 def cosine(a, b):
     a = np.asarray(a, dtype=float)
@@ -154,6 +163,27 @@ class MongoHybridRetriever:
         self.fallback_engine = fallback_engine
         self.filter_category = filter_category
 
+    def _fallback_retrieve(self, query: str) -> List[Document]:
+        if self.fallback_engine is None:
+            return []
+
+        try:
+            docs = self.fallback_engine.retrieve(
+                query,
+                mode=RetrievalMode.HYBRID,
+                limit=self.top_k,
+                semantic_k=self.semantic_candidates,
+                keyword_k=self.keyword_candidates,
+                rrf_k=self.rrf_k,
+                filter_category=self.filter_category,
+            )
+            if docs:
+                logger.info("Using local retriever fallback (%d docs)", len(docs))
+            return docs
+        except Exception as exc:
+            logger.error("Local retriever fallback failed: %s", exc)
+            return []
+
     def invoke(self, query: str) -> List[Document]:
         # Handle empty or whitespace-only queries
         if not query or not query.strip():
@@ -181,11 +211,16 @@ class MongoHybridRetriever:
 
             # Only include text pipeline if there are keywords to search for
             if query_text:
+                text_search_op = {"text": {"query": query_text, "path": self.allowed_text_paths}}
+                if self.filter_category:
+                    text_search_op = {
+                        "compound": {
+                            "must": [{"text": {"query": query_text, "path": self.allowed_text_paths}}],
+                            "filter": [{"text": {"query": self.filter_category, "path": "metadata.category"}}]
+                        }
+                    }
                 text_pipeline = [
-                    {"$search": {
-                        "index": self.text_index,
-                        "phrase": {"query": query_text, "path": "content"}
-                    }},
+                    {"$search": {"index": self.text_index, **text_search_op}},
                     {"$limit": self.keyword_candidates}
                 ]
 
@@ -236,10 +271,12 @@ class MongoHybridRetriever:
                     for d in fused
                 ]
 
+            logger.warning("Hybrid rank fusion returned no documents; trying local fallback")
+            return self._fallback_retrieve(query)
+
         except Exception as exc:
             logger.error("RankFusion failed: %s", exc)
-
-        return []
+            return self._fallback_retrieve(query)
 
 
 class LocalRetriever:
@@ -798,48 +835,38 @@ class RAG:
 
 
     # --- Chain builder ---
-    def _build_chain(self, retriever: MongoHybridRetriever, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False) -> RunnableLambda:
-        llm_settings = settings_service.get_active_llm()
+    def _build_chain(self, model_override=None, url_override=None, api_key_override=None, json_mode: bool = False):
+        """Build a LangChain RAG chain.
 
-        if not llm_settings:
-            return None, {
-                "success": False,
-                "content": None,
-                "status_code": 500,
-                "error": "No active LLM endpoint configured",
-                "latency": 0
-            }
+        Returns ``(chain, None)`` on success or ``(None, error_dict)`` on error.
+        """
+        from services.llm import llm_service
 
-        model_cfg = llm_settings["model"]
-        endpoint_cfg = llm_settings["endpoint"]
-
-        llm_kwargs = {}
-        if json_mode:
-            llm_kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
-
-        llm = ChatOpenAI(
-            model=model_override or model_cfg.get("model_name"),
-            base_url=url_override or endpoint_cfg.get("url"),
-            api_key=api_key_override or endpoint_cfg.get("api_key") or "dummy",
-            temperature=0,
-            **llm_kwargs
+        client, err = llm_service.get_client(
+            model_override=model_override,
+            url_override=url_override,
+            api_key_override=api_key_override,
+            json_mode=json_mode,
         )
+        if err:
+            return None, err.to_dict()
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", "{system_prompt}"),
             ("human", "Context:\n{context}\n\nQuestion:\n{question}\n\nUse only the context above."),
         ])
 
-        return (
+        chain = (
             {
                 "system_prompt": lambda x: x["system_prompt"] or "",
                 "question": lambda x: x["question"],
-                "context": RunnableLambda(lambda x: format_docs(retriever.invoke(x["question"]))),
+                "context": lambda x: x.get("context", ""),
             }
             | prompt
-            | llm
+            | client
             | StrOutputParser()
         )
+        return chain, None
 
     # --- Query Method ---
     def query_rag(self, user_prompt: str, system_prompt: Optional[str] = None, top_k: int = 5, **kwargs) -> Dict[str, Any]:
@@ -866,10 +893,33 @@ class RAG:
                 fallback_engine=self.local_retriever,
                 filter_category=kwargs.get("filter_category"),
             )
+
+            retrieved_docs = retriever.invoke(user_prompt)
+            context_text = format_docs(retrieved_docs)
             
-            chain = self._build_chain(retriever, kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"), json_mode=kwargs.get("json_mode", False))
-            answer = chain.invoke({"system_prompt": system_prompt or "", "question": user_prompt})
-            result = {"success": True, "content": answer, "latency": round(time.time() - start, 3)}
+            chain, err = self._build_chain(kwargs.get("model_override"), kwargs.get("url_override"), kwargs.get("api_key_override"), json_mode=kwargs.get("json_mode", False))
+            if err:
+                return err
+
+            answer = chain.invoke({
+                "system_prompt": system_prompt or "",
+                "question": user_prompt,
+                "context": context_text,
+            })
+            result = {
+                "success": True,
+                "content": answer,
+                "latency": round(time.time() - start, 3),
+                "context": [
+                    {
+                        "source": d.metadata.get("source"),
+                        "title": d.metadata.get("title"),
+                        "sigma_id": d.metadata.get("sigma_id"),
+                        "score": d.metadata.get("score") or d.metadata.get("scoreDetails"),
+                    }
+                    for d in retrieved_docs
+                ],
+            }
             logger.info("RAG Response: %s", result)
             return result
 

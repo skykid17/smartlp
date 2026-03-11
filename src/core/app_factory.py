@@ -96,6 +96,11 @@ class ApplicationFactory:
         # and allow only init APIs + static assets.
         from services.settings import settings_service
 
+        # Cache: once the app is initialized it stays initialized for the
+        # lifetime of this process, so we only need to hit MongoDB until the
+        # flag flips to True.
+        _init_cache = {"initialized": False}
+
         ALLOWED_PREFIXES = (
             "/init",
             "/api/init",
@@ -113,6 +118,9 @@ class ApplicationFactory:
 
         @app.before_request
         def initialization_guard():
+            if _init_cache["initialized"]:
+                return None
+
             try:
                 global_settings = settings_service.get_global_settings() or {}
                 initialized = bool(global_settings.get("initialized"))
@@ -120,6 +128,7 @@ class ApplicationFactory:
                 initialized = False
 
             if initialized:
+                _init_cache["initialized"] = True
                 return None
 
             path = request.path or "/"

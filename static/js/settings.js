@@ -116,6 +116,7 @@ class Settings {
         this.elements.llmUrl?.addEventListener('input', (e) => this.updateSelectedEndpointUrl(e.target.value));
         this.elements.llmApiKey?.addEventListener('input', (e) => this.updateSelectedEndpointApiKey(e.target.value));
 
+        this.elements.addEndpointBtn?.addEventListener('click', () => this.promptNewEndpoint());
         this.elements.deleteLlmEndpointBtn?.addEventListener('click', () => this.deleteSelectedEndpoint());
 
         this.elements.saveBtn?.addEventListener('click', () => this.saveSettings());
@@ -642,10 +643,6 @@ class Settings {
             container.appendChild(btn);
         });
 
-        addEndpointBtn.addEventListener('click', () => this.promptNewEndpoint());
-
-        // Ensure a valid endpoint is selected
-
         if (!this.selectedLlmEndpoint && this.llmEndpoints.length) {
             this.selectLlmEndpoint(this.llmEndpoints[0].id);
         } else if (this.selectedLlmEndpoint) {
@@ -885,23 +882,28 @@ class Settings {
     }
 
     promptNewEndpoint() {
-        const id = prompt('Enter endpoint ID (no spaces):');
-        if (!id) return;
+        const name = prompt('Enter endpoint name:');
+        if (!name) return;
+
+        const id = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
+        if (!id) {
+            this.toast('Invalid endpoint name', 'warning');
+            return;
+        }
         if (this.llmEndpointMap[id]) {
             this.toast('Endpoint ID already exists', 'warning');
             return;
         }
 
-        const name = prompt('Enter endpoint display name:', id) || id;
         const url = prompt('Enter endpoint API URL:', '') || '';
 
-        const endpoint = { id, name, url, apiKey: '', models: [] };
+        const endpoint = { id, name: name.trim(), url, apiKey: '', models: [] };
         this.llmEndpoints.push(endpoint);
         this.llmEndpointMap[id] = endpoint;
         this.markEndpointChanged(id);
         this.renderLlmControls();
         this.selectLlmEndpoint(id);
-        this.toast(`Endpoint ${name} created`, 'success');
+        this.toast(`Endpoint "${name.trim()}" created`, 'success');
     }
 
     deleteSelectedEndpoint() {
