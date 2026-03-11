@@ -8,6 +8,17 @@ from flask_socketio import SocketIO
 logger = logging.getLogger(__name__)
 
 
+def _detect_async_mode() -> str:
+    """Return 'gevent' if gevent has been monkey-patched, else 'threading'."""
+    try:
+        from gevent import monkey
+        if monkey.is_module_patched("socket"):
+            return "gevent"
+    except ImportError:
+        pass
+    return "threading"
+
+
 class SocketIOManager:
     """Manages SocketIO instance and connections."""
     
@@ -26,7 +37,9 @@ class SocketIOManager:
             SocketIO instance
         """
         if self._socketio is None:
-            self._socketio = SocketIO(async_mode='threading', cors_allowed_origins="*", **kwargs)
+            mode = _detect_async_mode()
+            logger.info("SocketIO async_mode: %s", mode)
+            self._socketio = SocketIO(async_mode=mode, cors_allowed_origins="*", **kwargs)
         
         if app and self._socketio:
             self._socketio.init_app(app)

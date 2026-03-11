@@ -2,8 +2,13 @@
 WSGI entry point for production server (Gunicorn).
 
 Usage:
-    gunicorn --worker-class gthread --threads 4 -w 1 --bind 0.0.0.0:8800 wsgi:app
+    gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
+        -w 1 --bind 0.0.0.0:8800 wsgi:app
 """
+
+# Monkey-patch stdlib for gevent BEFORE any other imports.
+from gevent import monkey
+monkey.patch_all()
 
 import sys
 import os

@@ -91,11 +91,10 @@ def start_application():
         # Development: use Flask-SocketIO's built-in Werkzeug server
         os.execvp(sys.executable, [sys.executable, "app.py"])
     else:
-        # Production: use Gunicorn with threading worker (required for Socket.IO)
+        # Production: use Gunicorn with gevent-websocket worker (required for Socket.IO)
         gunicorn_cmd = [
             "gunicorn",
-            "--worker-class", "gthread",
-            "--threads", "4",
+            "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker",
             "-w", "1",
             "--bind", f"{host}:{port}",
             "wsgi:app",
