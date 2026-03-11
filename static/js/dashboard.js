@@ -56,6 +56,9 @@ class Dashboard {
         });
 
         // Entry modal
+        document.getElementById('entryModal')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeModal();
+        });
         document.getElementById('entryModalClose')?.addEventListener('click', () => this.closeModal());
         document.getElementById('saveEntryChangesBtn')?.addEventListener('click', () => this.saveEntryChanges());
         document.getElementById('openParserButton')?.addEventListener('click', () => this.openParserFromModal());
@@ -71,6 +74,9 @@ class Dashboard {
             configHub.validateAndGenerate();
         });
 
+        document.getElementById('deployRulePopup')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget || e.target.classList.contains('bg-opacity-50')) this.closeDeployRulePopup();
+        });
         document.getElementById('deployRuleCancel')?.addEventListener('click', () => this.closeDeployRulePopup());
         document.getElementById('deployRuleConfirm')?.addEventListener('click', () => this.deployRuleFromPopup());
 
@@ -835,6 +841,10 @@ class Dashboard {
         addDataBtn?.addEventListener('click', () => {
             ingestModal?.classList.remove('hidden');
             this.resetIngestProgress();
+        });
+
+        ingestModal?.addEventListener('click', (e) => {
+            if (e.target === ingestModal) ingestModal.classList.add('hidden');
         });
 
         ingestModalClose?.addEventListener('click', () => {
