@@ -75,8 +75,19 @@ class Dashboard {
                 return;
             }
 
+            // Update currentEntry with latest values from modal form fields
+            // This ensures that index and source_type typed by the user are included
+            const modalIndex = document.getElementById('modalIndex')?.value || '';
+            const modalSourceType = document.getElementById('modalSourceType')?.value || '';
+
+            const entryForDeploy = {
+                ...this.currentEntry,
+                index: modalIndex,
+                source_type: modalSourceType
+            };
+
             // Ensure Config Hub receives a selection when deploying from the modal.
-            configHub.setSelectedEntries([this.currentEntry]);
+            configHub.setSelectedEntries([entryForDeploy]);
             configHub.validateAndGenerate();
         });
 
