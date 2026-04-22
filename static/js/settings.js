@@ -944,6 +944,20 @@ class Settings {
     }
 
     async saveSettings() {
+        // Client-side validation before submission
+        if (window.validationManager && typeof window.validationManager.validateSettingsForm === 'function') {
+            const validation = window.validationManager.validateSettingsForm();
+            if (!validation.valid) {
+                // Show validation errors as toasts
+                window.validationManager.showValidationErrors(validation.errors);
+                // Announce to screen readers
+                if (window.accessibilityManager) {
+                    window.accessibilityManager.announce(`Validation failed: ${validation.errors.length} error(s) found`, 'assertive');
+                }
+                return; // Prevent submission
+            }
+        }
+
         const payload = {
             ingest_on: this.elements.ingestOn?.checked ?? false,
             ingest_algo_version: this.elements.ingestAlgoVersion?.value || 'v1',
