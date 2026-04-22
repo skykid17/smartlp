@@ -1,13 +1,15 @@
 /**
  * Config Hub Module - ES6
  * Manages the right slide-over configuration panel
+ * Selections are persisted to sessionStorage for recovery after refresh
  */
 
 class ConfigHub {
     constructor() {
         this.panel = document.getElementById('configHub');
         this.content = document.getElementById('configHubContent');
-        this.selectedEntries = [];
+        // Restore selections from sessionStorage on init
+        this.selectedEntries = this._loadSelections();
         this.lastGeneratedConfig = null;
 
         this._saveTimeouts = new Map();
@@ -15,6 +17,34 @@ class ConfigHub {
         this._inFlightSaves = new Map();
 
         this.init();
+    }
+
+    /**
+     * Load selections from sessionStorage
+     * @private
+     */
+    _loadSelections() {
+        try {
+            const stored = sessionStorage.getItem('configHubSelection');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn('Failed to load config hub selections from sessionStorage', e);
+        }
+        return [];
+    }
+
+    /**
+     * Save selections to sessionStorage
+     * @private
+     */
+    _saveSelections() {
+        try {
+            sessionStorage.setItem('configHubSelection', JSON.stringify(this.selectedEntries));
+        } catch (e) {
+            console.warn('Failed to save config hub selections to sessionStorage', e);
+        }
     }
 
     init() {
@@ -105,6 +135,7 @@ class ConfigHub {
 
     setSelectedEntries(entries) {
         this.selectedEntries = entries;
+        this._saveSelections(); // Persist to sessionStorage
         if (this.isOpen()) {
             this.loadContent();
         }
@@ -113,6 +144,7 @@ class ConfigHub {
     addEntry(entry) {
         if (!this.selectedEntries.find(e => e.id === entry.id)) {
             this.selectedEntries.push(entry);
+            this._saveSelections(); // Persist to sessionStorage
             if (this.isOpen()) {
                 this.loadContent();
             }
@@ -121,6 +153,7 @@ class ConfigHub {
 
     removeEntry(entryId) {
         this.selectedEntries = this.selectedEntries.filter(e => e.id !== entryId);
+        this._saveSelections(); // Persist to sessionStorage
         this.loadContent();
 
         // Dispatch event for table to update
@@ -131,6 +164,7 @@ class ConfigHub {
 
     clearSelection() {
         this.selectedEntries = [];
+        this._saveSelections(); // Persist to sessionStorage
         this.loadContent();
 
         // Dispatch event for table to update

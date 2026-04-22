@@ -189,22 +189,47 @@ class LoggerPanel {
     renderMessage(entry, { skipPersist = false } = {}) {
         const messageEl = document.createElement('div');
         messageEl.className = 'flex items-start space-x-2 text-xs';
+        messageEl.setAttribute('role', 'logitem');
 
         const typeIcons = {
-            info: '<i class="fas fa-info-circle text-blue-500"></i>',
-            success: '<i class="fas fa-check-circle text-green-500"></i>',
-            warning: '<i class="fas fa-exclamation-triangle text-yellow-500"></i>',
-            error: '<i class="fas fa-times-circle text-red-500"></i>'
+            info: '<i class="fas fa-info-circle text-blue-500" aria-hidden="true"></i>',
+            success: '<i class="fas fa-check-circle text-green-500" aria-hidden="true"></i>',
+            warning: '<i class="fas fa-exclamation-triangle text-yellow-500" aria-hidden="true"></i>',
+            error: '<i class="fas fa-times-circle text-red-500" aria-hidden="true"></i>'
+        };
+
+        const typeLabels = {
+            info: 'Info',
+            success: 'Success',
+            warning: 'Warning',
+            error: 'Error'
         };
 
         messageEl.innerHTML = `
             <span class="text-gray-500 dark:text-gray-400">[${entry.timestamp}]</span>
             ${typeIcons[entry.type] || typeIcons.info}
-            <span class="flex-1">${entry.message}</span>
+            <span class="sr-only">[${typeLabels[entry.type] || 'Info'}]</span>
+            <span class="flex-1">${this._escapeHtml(entry.message)}</span>
         `;
 
         this.content.appendChild(messageEl);
         if (!skipPersist) this.persist();
+
+        // Announce to screen readers (only for errors and warnings to avoid spam)
+        if (['error', 'warning'].includes(entry.type) && window.accessibilityManager) {
+            window.accessibilityManager.announceLog(entry);
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @private
+     */
+    _escapeHtml(text) {
+        if (typeof text !== 'string') return text;
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     clear() {

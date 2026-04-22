@@ -17,6 +17,8 @@ class Dashboard {
         this.statusSocket = null;
         this.statusPollInterval = null;
         this.ingestProgressState = {};
+        this.searchDebounceTimer = null;
+        this.DEBOUNCE_DELAY_MS = 300;
 
         this.init();
     }
@@ -25,9 +27,13 @@ class Dashboard {
         // Only initialize if dashboard section exists
         if (!document.getElementById('dashboard-section')) return;
 
-        // Search inputs - debounced for better UX
+        // Search inputs - debounced for better UX (300ms delay)
         ['searchId', 'searchLog', 'searchRegex'].forEach(id => {
-            document.getElementById(id)?.addEventListener('input', () => this.searchData());
+            const el = document.getElementById(id);
+            el?.addEventListener('input', () => {
+                clearTimeout(this.searchDebounceTimer);
+                this.searchDebounceTimer = setTimeout(() => this.searchData(), this.DEBOUNCE_DELAY_MS);
+            });
         });
         document.getElementById('filterStatusSelect')?.addEventListener('change', () => this.searchData());
 
@@ -69,8 +75,19 @@ class Dashboard {
                 return;
             }
 
+            // Update currentEntry with latest values from modal form fields
+            // This ensures that index and source_type typed by the user are included
+            const modalIndex = document.getElementById('modalIndex')?.value || '';
+            const modalSourceType = document.getElementById('modalSourceType')?.value || '';
+
+            const entryForDeploy = {
+                ...this.currentEntry,
+                index: modalIndex,
+                source_type: modalSourceType
+            };
+
             // Ensure Config Hub receives a selection when deploying from the modal.
-            configHub.setSelectedEntries([this.currentEntry]);
+            configHub.setSelectedEntries([entryForDeploy]);
             configHub.validateAndGenerate();
         });
 
@@ -212,19 +229,44 @@ class Dashboard {
     }
 
     getStatusBadge(status) {
+        // Color-blind friendly status badges with distinct icons AND labels
+        // Uses both color AND icons/text for accessibility
         const statusMap = {
-            'matched': { color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200', icon: 'check-circle' },
-            'unmatched': { color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200', icon: 'times-circle' },
-            'pending': { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200', icon: 'clock' },
-            'partially matched': { color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200', icon: 'exclamation-circle' },
-            'deployed': { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200', icon: 'cloud-upload-alt' }
+            'matched': {
+                color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                icon: 'check-circle',
+                label: 'Matched'
+            },
+            'unmatched': {
+                color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                icon: 'times-circle',
+                label: 'Unmatched'
+            },
+            'pending': {
+                color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                icon: 'clock',
+                label: 'Pending'
+            },
+            'partially matched': {
+                color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                icon: 'exclamation-circle',
+                label: 'Partial'
+            },
+            'deployed': {
+                color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                icon: 'cloud-upload-alt',
+                label: 'Deployed'
+            }
         };
 
         const statusInfo = statusMap[status] || statusMap['pending'];
+        // Use the label for display (shorter, more readable) and include aria-label for screen readers
         return `
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}">
-                <i class="fas fa-${statusInfo.icon} mr-1"></i>
-                ${status}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}"
+                  role="status"
+                  aria-label="${statusInfo.label}">
+                <i class="fas fa-${statusInfo.icon} mr-1" aria-hidden="true"></i>
+                ${statusInfo.label}
             </span>
         `;
     }
@@ -375,9 +417,38 @@ class Dashboard {
     async deleteEntries() {
         if (this.selectedEntries.size === 0) return;
 
-        if (!confirm(`Are you sure you want to delete ${this.selectedEntries.size} entries?`)) {
-            return;
+        // Build preview of entries to delete (first 5 entries)
+        const entriesToDelete = this.entries.filter(e => this.selectedEntries.has(e.id));
+        const previewCount = Math.min(5, entriesToDelete.length);
+        const previewHtml = entriesToDelete.slice(0, previewCount).map(e =>
+            `<div class="text-xs truncate text-gray-700 dark:text-gray-300 font-mono">${this.escapeHtml(e.log.substring(0, 80))}${e.log.length > 80 ? '...' : ''}</div>`
+        ).join('');
+
+        const remainingCount = entriesToDelete.length - previewCount;
+        const previewBody = `
+            <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">This action cannot be undone.</p>
+            <div class="max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                ${previewHtml}
+                ${remainingCount > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-2">...and ${remainingCount} more</div>` : ''}
+            </div>
+        `;
+
+        // Use custom confirmation modal if available, otherwise fallback to browser confirm
+        let confirmed = false;
+        if (window.showConfirmModal && typeof window.showConfirmModal === 'function') {
+            confirmed = await window.showConfirmModal({
+                title: `Delete ${this.selectedEntries.size} entr${this.selectedEntries.size === 1 ? 'y' : 'ies'}?`,
+                body: previewBody,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                confirmClass: 'bg-red-500 hover:bg-red-600'
+            });
+        } else {
+            // Fallback to browser confirm
+            confirmed = confirm(`Are you sure you want to delete ${this.selectedEntries.size} entries?\n\nThis action cannot be undone.`);
         }
+
+        if (!confirmed) return;
 
         try {
             const response = await fetch('/api/smartlp/entries/delete', {
@@ -393,7 +464,7 @@ class Dashboard {
                 this.clearSelection();
                 this.searchData();
             } else {
-                window.showToast('Failed to delete entries', 'error');
+                window.showToast(data.message || 'Failed to delete entries', 'error');
             }
         } catch (error) {
             console.error('Error deleting entries:', error);
@@ -580,11 +651,15 @@ class Dashboard {
 
             const pct = Number.isFinite(confidence) ? Math.round(confidence * 100) : 0;
 
+            // Color-blind friendly confidence badges with icons
             let badgeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+            let badgeIcon = 'fa-circle';
             if (confidence >= 0.85) {
                 badgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                badgeIcon = 'fa-check-circle';
             } else if (confidence >= 0.75) {
                 badgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                badgeIcon = 'fa-exclamation-circle';
             }
 
             const card = document.createElement('div');
@@ -600,7 +675,7 @@ class Dashboard {
 
             const badge = document.createElement('span');
             badge.className = `px-2.5 py-0.5 rounded-full text-xs ${badgeClass}`;
-            badge.textContent = `${pct}% Confidence`;
+            badge.innerHTML = `<i class="fas ${badgeIcon} mr-1" aria-hidden="true"></i>${pct}% Confidence`;
 
             headerRow.appendChild(sigmaTitle);
             headerRow.appendChild(badge);
@@ -964,6 +1039,9 @@ class Dashboard {
         // Store state for persistence
         this.ingestProgressState[stepId] = { status, message };
 
+        // Update ETA display
+        this._updateIngestETA();
+
         // Check if all stages complete
         if (stage === 'saved' && status === 'completed') {
             setTimeout(() => {
@@ -983,6 +1061,50 @@ class Dashboard {
                     this.resetIngestProgress();
                 }, 2000);
             }, 500);
+        }
+    }
+
+    /**
+     * Update ETA display for ingestion progress
+     * @private
+     */
+    _updateIngestETA() {
+        const etaElement = document.getElementById('ingestETA');
+        if (!etaElement) return;
+
+        const steps = ['dedup', 'classify', 'parser', 'regex', 'detection', 'save'];
+        const completedSteps = steps.filter(step => {
+            const state = this.ingestProgressState[step];
+            return state && state.status === 'completed';
+        });
+
+        const totalSteps = steps.length;
+        const completedCount = completedSteps.length;
+        const remainingSteps = totalSteps - completedCount;
+
+        if (completedCount === 0) {
+            etaElement.textContent = 'ETA: Calculating...';
+            return;
+        }
+
+        // Calculate average time per step based on completed steps
+        // For more accuracy, you could track actual timestamps per step
+        const avgTimePerStep = 5; // Default: 5 seconds per step (conservative estimate)
+        const etaSeconds = remainingSteps * avgTimePerStep;
+
+        // Format ETA display
+        if (etaSeconds < 60) {
+            etaElement.textContent = `ETA: ~${etaSeconds}s remaining`;
+        } else {
+            const minutes = Math.floor(etaSeconds / 60);
+            const seconds = etaSeconds % 60;
+            etaElement.textContent = `ETA: ~${minutes}m ${seconds}s remaining`;
+        }
+
+        // Announce progress to screen readers
+        if (window.accessibilityManager) {
+            const percentage = Math.round((completedCount / totalSteps) * 100);
+            window.accessibilityManager.announceProgress(completedCount, totalSteps, 'Ingestion progress');
         }
     }
 }
